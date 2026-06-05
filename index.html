@@ -43,11 +43,11 @@
                 
                 <!-- الحقل الذكي الجديد: يقبل الاسم أو رابط الـ API -->
                 <form id="add-city-form" class="flex flex-wrap items-center justify-center gap-2 mt-4">
-                    <input type="text" id="smart-city-input" placeholder="اسم المدينة بالإنجليزية أو رابط API..." required class="bg-theme-bg border border-theme-accent/50 text-theme-primary text-sm rounded-full px-5 py-3 focus:outline-none focus:border-theme-primary w-full max-w-[400px] text-center transition-all shadow-sm" dir="ltr">
-                    <button type="submit" id="submit-btn" class="bg-theme-primary text-theme-bg text-sm font-bold rounded-full px-6 py-3 hover:opacity-80 transition-opacity shadow-sm">
-                        بحث وإضافة
-                    </button>
-                </form>
+    <input type="text" id="smart-city-input" placeholder="اكتب اسم المدينة بالإنجليزية (مثال: London)..." required class="bg-theme-bg border border-theme-accent/50 text-theme-primary text-sm rounded-full px-5 py-3 focus:outline-none focus:border-theme-primary w-full max-w-[400px] text-center transition-all shadow-sm" dir="ltr" autocomplete="off">
+    <button type="submit" id="submit-btn" class="bg-theme-primary text-theme-bg text-sm font-bold rounded-full px-6 py-3 hover:opacity-80 transition-opacity shadow-sm">
+        إضافة المدينة
+    </button>
+</form>
                 <div id="error-msg" class="text-xs text-center text-red-500 hidden mt-1"></div>
             </div>
 
