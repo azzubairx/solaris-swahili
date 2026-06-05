@@ -208,59 +208,32 @@ els.addCityForm.addEventListener('submit', async (e) => {
     els.submitBtn.disabled = true;
     els.submitBtn.textContent = 'جاري البحث...';
 
-    let finalName = "مدينة مخصصة";
-    let lat, lng;
-
     try {
-        // 1. هل المدخل هو رابط يحتوي على lat و lng؟
-        if (inputVal.includes('lat=') && inputVal.includes('lng=')) {
-            const url = new URL(inputVal);
-            lat = url.searchParams.get('lat');
-            lng = url.searchParams.get('lng');
-            
-            // محاولة بديلة لاستخراج القيم عبر Regex إذا لم ينجح الـ URL parser
-            if (!lat || !lng) {
-                const latMatch = inputVal.match(/lat=([^&]+)/);
-                const lngMatch = inputVal.match(/lng=([^&]+)/);
-                if (latMatch && lngMatch) {
-                    lat = latMatch[1];
-                    lng = lngMatch[1];
-                }
-            }
-            finalName = "موقع من الـ API";
-        } 
-        // 2. إذا لم يكن رابطاً، ابحث عنه كاسم مدينة بالإنجليزية
-        else {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(inputVal)}&limit=1`);
-            const data = await res.json();
-            
-            if (data && data.length > 0) {
-                lat = data[0].lat;
-                lng = data[0].lon;
-                // أخذ الاسم القصير للمدينة
-                finalName = data[0].name || inputVal;
-            } else {
-                throw new Error("لم يتم العثور على المدينة. جرب تهجئة إنجليزية مختلفة.");
-            }
-        }
+        // البحث عن المدينة بالإنجليزية فقط
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(inputVal)}&limit=1`);
+        const data = await res.json();
+        
+        if (data && data.length > 0) {
+            const lat = data[0].lat;
+            const lng = data[0].lon;
+            // استخدام اسم المدينة العائد من الخريطة
+            const finalName = data[0].name || inputVal;
 
-        // إذا نجحنا في الحصول على إحداثيات
-        if (lat && lng) {
             const cityKey = `city_${Date.now()}`;
             cities[cityKey] = { name: finalName, lat: lat, lng: lng };
             createCityButton(cityKey, cities[cityKey]);
+            
             els.smartInput.value = '';
             loadCity(cityKey);
         } else {
-            throw new Error("تأكد من صحة الرابط المدخل.");
+            throw new Error("لم يتم العثور على المدينة. يرجى التأكد من كتابة الاسم بالإنجليزية بشكل صحيح.");
         }
-
     } catch (err) {
-        els.errorMsg.textContent = err.message || "حدث خطأ غير متوقع.";
+        els.errorMsg.textContent = err.message || "حدث خطأ في الاتصال بالشبكة.";
         els.errorMsg.classList.remove('hidden');
     } finally {
         els.submitBtn.disabled = false;
-        els.submitBtn.textContent = 'بحث وإضافة';
+        els.submitBtn.textContent = 'إضافة المدينة';
     }
 });
 
