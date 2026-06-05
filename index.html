@@ -5,47 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>التوقيت السواحلي الديناميكي | ليبيا</title>
     
-    <!-- خطوط عربية ورقمية أنيقة -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
-    
-    <!-- مكتبة Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Tajawal"', 'sans-serif'],
-                        mono: ['"JetBrains Mono"', 'monospace'],
-                    },
-                    colors: {
-                        theme: {
-                            bg: 'var(--bg-color)',
-                            primary: 'var(--text-primary)',
-                            secondary: 'var(--text-secondary)',
-                            accent: 'var(--accent)',
-                            surface: 'var(--surface)'
-                        }
-                    }
-                }
-            }
-        }
+        tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['"Tajawal"', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'], }, colors: { theme: { bg: 'var(--bg-color)', primary: 'var(--text-primary)', secondary: 'var(--text-secondary)', accent: 'var(--accent)', surface: 'var(--surface)' } } } } }
     </script>
-
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="antialiased min-h-screen flex flex-col items-center py-10 px-4 transition-colors duration-1000 ease-in-out relative">
     
-    <!-- شاشة التحميل -->
     <div id="loader" class="fixed inset-0 z-[100] flex flex-col gap-4 items-center justify-center bg-theme-bg text-theme-secondary font-sans transition-opacity duration-500">
         <div class="w-8 h-8 border-4 border-theme-accent border-t-theme-primary rounded-full animate-spin"></div>
         <span class="tracking-widest text-sm">جاري معالجة البيانات الفلكية...</span>
     </div>
 
-    <!-- زر تبديل الوضع (تم إصلاح الطبقة Z-Index والموقع) -->
     <button id="theme-toggle" class="fixed top-6 left-6 z-50 p-3 rounded-full border border-theme-accent text-theme-primary bg-theme-surface/90 hover:bg-theme-accent/30 shadow-md backdrop-blur-sm transition-all cursor-pointer">
         <svg id="moon-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
         <svg id="sun-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 1.32a1 1 0 011.415 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM14.657 15.343a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM10 18a1 1 0 01-1-1v-1a1 1 0 112 0v1a1 1 0 01-1 1zM5.343 15.343a1 1 0 01-1.414 0l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM4 10a1 1 0 01-1 1H2a1 1 0 110-2h1a1 1 0 011 1zM5.343 4.657a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM10 5a5 5 0 100 10 5 5 0 000-10z" clip-rule="evenodd"></path></svg>
@@ -53,39 +28,34 @@
 
     <div class="w-full max-w-2xl flex flex-col gap-6 opacity-0 transition-opacity duration-1000 mt-12 md:mt-4" id="app-container">
         
-        <!-- شرح التوقيت السواحلي -->
         <header class="bg-theme-surface/50 border border-theme-accent/30 rounded-2xl p-6 text-center shadow-sm backdrop-blur-md">
             <h1 class="text-xl font-bold text-theme-primary mb-2">النظام السواحلي (الغروبي)</h1>
             <p class="text-sm text-theme-secondary leading-relaxed max-w-lg mx-auto">
                 تعتمد هذه الساعة على حركة الشمس الحقيقية. يبدأ اليوم عند شروق الشمس (الساعة 1 نهاراً) وينتهي عند الغروب. 
-                يتم تقسيم فترة النهار إلى 12 ساعة نسبية، وفترة الليل إلى 12 ساعة أخرى، تتغير مدتها تلقائياً حسب فصول السنة.
+                يتم تقسيم فترة النهار إلى 12 ساعة نسبية، وفترة الليل إلى 12 ساعة أخرى.
             </p>
         </header>
 
-        <!-- التطبيق الرئيسي -->
         <main class="w-full border border-theme-accent/30 bg-theme-surface/80 rounded-3xl p-8 shadow-2xl backdrop-blur-lg flex flex-col items-center">
             
-            <!-- أشرطة المدن وإضافة مدينة -->
             <div class="w-full flex flex-col gap-4 mb-10 border-b border-theme-accent/20 pb-6">
-                <nav class="w-full flex flex-wrap justify-center gap-3" id="city-selector">
-                    <!-- أزرار المدن تُضاف هنا -->
-                </nav>
+                <nav class="w-full flex flex-wrap justify-center gap-3" id="city-selector"></nav>
                 
-                <!-- إضافة مدينة عبر API -->
-                <form id="add-city-form" class="flex items-center justify-center gap-2 mt-2">
-                    <input type="text" id="new-city-input" placeholder="اسم مدينة جديدة (مثال: سبها)..." class="bg-theme-bg border border-theme-accent/50 text-theme-primary text-sm rounded-full px-4 py-2 focus:outline-none focus:border-theme-primary transition-colors w-64">
-                    <button type="submit" id="add-city-btn" class="bg-theme-primary text-theme-bg text-sm font-bold rounded-full px-5 py-2 hover:opacity-80 transition-opacity">
+                <!-- تم تعديل النموذج ليعتمد فقط على الإدخال اليدوي للإحداثيات -->
+                <form id="add-city-form" class="flex flex-wrap items-center justify-center gap-2 mt-2">
+                    <input type="text" id="new-city-name" placeholder="اسم المدينة" required class="bg-theme-bg border border-theme-accent/50 text-theme-primary text-sm rounded-full px-4 py-2 focus:outline-none focus:border-theme-primary w-28">
+                    <input type="number" step="any" id="new-city-lat" placeholder="خط العرض (Lat)" required class="bg-theme-bg border border-theme-accent/50 text-theme-primary text-sm rounded-full px-4 py-2 focus:outline-none focus:border-theme-primary w-32" dir="ltr">
+                    <input type="number" step="any" id="new-city-lng" placeholder="خط الطول (Lng)" required class="bg-theme-bg border border-theme-accent/50 text-theme-primary text-sm rounded-full px-4 py-2 focus:outline-none focus:border-theme-primary w-32" dir="ltr">
+                    <button type="submit" class="bg-theme-primary text-theme-bg text-sm font-bold rounded-full px-5 py-2 hover:opacity-80 transition-opacity">
                         إضافة
                     </button>
                 </form>
-                <div id="api-status" class="text-xs text-center text-red-500 hidden">حدث خطأ أثناء البحث عن المدينة.</div>
             </div>
 
-            <!-- معلومات المدينة الحالية -->
             <div class="w-full flex justify-between items-center text-xs font-sans text-theme-secondary mb-12 px-4">
                 <div class="flex flex-col gap-1">
                     <span class="text-theme-primary font-bold text-base tracking-wider" id="city-name">--</span>
-                    <span id="city-country">بيانات حية</span>
+                    <span id="city-country">بيانات حية من API</span>
                 </div>
                 <div class="flex flex-col items-end gap-1 font-mono text-left opacity-70" dir="ltr">
                     <span id="city-lat">Lat: --</span>
@@ -93,7 +63,6 @@
                 </div>
             </div>
 
-            <!-- التوقيت السواحلي -->
             <section class="text-center w-full flex flex-col items-center mb-12">
                 <div class="flex items-baseline gap-3 mb-2" dir="rtl">
                     <span class="font-sans font-light text-5xl md:text-6xl text-theme-secondary">الساعة</span>
@@ -107,7 +76,6 @@
                 </div>
             </section>
 
-            <!-- القوس الشمسي البصري (SVG) -->
             <div class="relative w-full max-w-[320px] h-[170px] flex justify-center items-center mb-10">
                 <svg viewBox="0 0 300 160" class="w-full h-full overflow-visible">
                     <line x1="0" y1="140" x2="300" y2="140" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="6 6" class="opacity-50" />
@@ -117,24 +85,19 @@
                 </svg>
             </div>
 
-            <!-- تذييل الأوقات القياسية (تم إصلاح المسافات بالكامل) -->
             <footer class="w-full flex items-center justify-between bg-theme-bg/50 rounded-2xl py-6 px-2 text-center border border-theme-accent/20">
-                
                 <div class="flex-1 flex flex-col gap-2">
                     <span class="font-sans text-[0.75rem] font-bold text-theme-secondary uppercase tracking-widest">الشروق</span>
                     <span class="font-mono text-sm text-theme-primary font-medium" id="sunrise-time">--:--</span>
                 </div>
-                
                 <div class="flex-1 flex flex-col gap-2 border-x border-theme-accent/20">
-                    <span class="font-sans text-[0.75rem] font-bold text-theme-secondary uppercase tracking-widest">المحلي</span>
+                    <span class="font-sans text-[0.75rem] font-bold text-theme-secondary uppercase tracking-widest">التوقيت المحلي للمدينة</span>
                     <span class="font-mono text-base font-bold text-theme-primary" id="standard-time" dir="ltr">--:--:--</span>
                 </div>
-                
                 <div class="flex-1 flex flex-col gap-2">
                     <span class="font-sans text-[0.75rem] font-bold text-theme-secondary uppercase tracking-widest">الغروب</span>
                     <span class="font-mono text-sm text-theme-primary font-medium" id="sunset-time">--:--</span>
                 </div>
-
             </footer>
         </main>
     </div>
