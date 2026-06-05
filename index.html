@@ -37,21 +37,21 @@
 
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="antialiased min-h-screen flex flex-col items-center py-10 px-4 transition-colors duration-1000 ease-in-out">
+<body class="antialiased min-h-screen flex flex-col items-center py-10 px-4 transition-colors duration-1000 ease-in-out relative">
     
     <!-- شاشة التحميل -->
-    <div id="loader" class="fixed inset-0 z-50 flex flex-col gap-4 items-center justify-center bg-theme-bg text-theme-secondary font-sans transition-opacity duration-500">
+    <div id="loader" class="fixed inset-0 z-[100] flex flex-col gap-4 items-center justify-center bg-theme-bg text-theme-secondary font-sans transition-opacity duration-500">
         <div class="w-8 h-8 border-4 border-theme-accent border-t-theme-primary rounded-full animate-spin"></div>
         <span class="tracking-widest text-sm">جاري معالجة البيانات الفلكية...</span>
     </div>
 
-    <!-- زر تبديل الوضع (Light/Dark Mode Toggle) -->
-    <button id="theme-toggle" class="absolute top-6 left-6 p-2 rounded-full border border-theme-accent text-theme-primary hover:bg-theme-surface transition-all">
+    <!-- زر تبديل الوضع (تم إصلاح الطبقة Z-Index والموقع) -->
+    <button id="theme-toggle" class="fixed top-6 left-6 z-50 p-3 rounded-full border border-theme-accent text-theme-primary bg-theme-surface/90 hover:bg-theme-accent/30 shadow-md backdrop-blur-sm transition-all cursor-pointer">
         <svg id="moon-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
         <svg id="sun-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 1.32a1 1 0 011.415 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM14.657 15.343a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM10 18a1 1 0 01-1-1v-1a1 1 0 112 0v1a1 1 0 01-1 1zM5.343 15.343a1 1 0 01-1.414 0l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM4 10a1 1 0 01-1 1H2a1 1 0 110-2h1a1 1 0 011 1zM5.343 4.657a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM10 5a5 5 0 100 10 5 5 0 000-10z" clip-rule="evenodd"></path></svg>
     </button>
 
-    <div class="w-full max-w-2xl flex flex-col gap-6 opacity-0 transition-opacity duration-1000" id="app-container">
+    <div class="w-full max-w-2xl flex flex-col gap-6 opacity-0 transition-opacity duration-1000 mt-12 md:mt-4" id="app-container">
         
         <!-- شرح التوقيت السواحلي -->
         <header class="bg-theme-surface/50 border border-theme-accent/30 rounded-2xl p-6 text-center shadow-sm backdrop-blur-md">
@@ -117,20 +117,24 @@
                 </svg>
             </div>
 
-            <!-- تذييل الأوقات القياسية -->
-            <footer class="w-full grid grid-cols-3 gap-2 bg-theme-bg/50 rounded-2xl p-6 text-center border border-theme-accent/20">
-                <div class="flex flex-col gap-2">
+            <!-- تذييل الأوقات القياسية (تم إصلاح المسافات بالكامل) -->
+            <footer class="w-full flex items-center justify-between bg-theme-bg/50 rounded-2xl py-6 px-2 text-center border border-theme-accent/20">
+                
+                <div class="flex-1 flex flex-col gap-2">
                     <span class="font-sans text-[0.75rem] font-bold text-theme-secondary uppercase tracking-widest">الشروق</span>
                     <span class="font-mono text-sm text-theme-primary font-medium" id="sunrise-time">--:--</span>
                 </div>
-                <div class="flex flex-col gap-2 border-l border-r border-theme-accent/20">
+                
+                <div class="flex-1 flex flex-col gap-2 border-x border-theme-accent/20">
                     <span class="font-sans text-[0.75rem] font-bold text-theme-secondary uppercase tracking-widest">المحلي</span>
                     <span class="font-mono text-base font-bold text-theme-primary" id="standard-time" dir="ltr">--:--:--</span>
                 </div>
-                <div class="flex flex-col gap-2">
+                
+                <div class="flex-1 flex flex-col gap-2">
                     <span class="font-sans text-[0.75rem] font-bold text-theme-secondary uppercase tracking-widest">الغروب</span>
                     <span class="font-mono text-sm text-theme-primary font-medium" id="sunset-time">--:--</span>
                 </div>
+
             </footer>
         </main>
     </div>
