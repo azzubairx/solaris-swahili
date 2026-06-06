@@ -1,4 +1,3 @@
-// قائمة المدن الافتراضية
 const cities = {
     tobruk: { name: "طبرق", lat: "32.077376", lng: "23.959999" },
     benghazi: { name: "بنغازي", lat: "32.1167", lng: "20.0667" },
@@ -21,7 +20,10 @@ const els = {
     phaseDisplay: document.getElementById('phase-display'),
     metricDisplay: document.getElementById('metric-display'),
     progressArc: document.getElementById('progress-arc'),
-    sunIndicator: document.getElementById('sun-indicator'),
+    celestialBody: document.getElementById('celestial-body'),
+    sunShape: document.getElementById('sun-shape'),
+    moonShape: document.getElementById('moon-shape'),
+    starsLayer: document.getElementById('stars-layer'),
     sunriseTime: document.getElementById('sunrise-time'),
     standardTime: document.getElementById('standard-time'),
     sunsetTime: document.getElementById('sunset-time'),
@@ -31,16 +33,20 @@ const els = {
     addCityForm: document.getElementById('add-city-form'),
     smartInput: document.getElementById('smart-city-input'),
     errorMsg: document.getElementById('error-msg'),
-    submitBtn: document.getElementById('submit-btn')
+    submitBtn: document.getElementById('submit-btn'),
+    // عناصر شريط المقارنة
+    dayBar: document.getElementById('day-bar'),
+    nightBar: document.getElementById('night-bar'),
+    dayLengthText: document.getElementById('day-length-text'),
+    nightLengthText: document.getElementById('night-length-text'),
+    comparisonText: document.getElementById('comparison-text')
 };
 
-// توليد التواريخ
 const getLocalDateString = (offsetDays = 0) => {
     const d = new Date(Date.now() + (offsetDays * 86400000));
     return d.toLocaleDateString('en-CA'); 
 };
 
-// تحويل الوقت إلى UTC بناء على الإزاحة
 const parseApiTimeToUTC = (dateStr, timeStr, offsetMinutes) => {
     if (!timeStr) return 0;
     const [time, modifier] = timeStr.split(' ');
@@ -50,9 +56,7 @@ const parseApiTimeToUTC = (dateStr, timeStr, offsetMinutes) => {
     const pad = (n) => n.toString().padStart(2, '0');
     
     const isoStr = `${dateStr}T${pad(hours)}:${pad(minutes)}:${pad(seconds)}Z`;
-    const localMs = new Date(isoStr).getTime();
-    
-    return localMs - (offsetMinutes * 60000);
+    return new Date(isoStr).getTime() - (offsetMinutes * 60000);
 };
 
 const formatMetric = (h, m, s) => {
@@ -60,7 +64,29 @@ const formatMetric = (h, m, s) => {
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
 };
 
-// جلب البيانات من API sunrisesunset.io
+// دالة ذكية لتحويل الميلي ثانية إلى نص عربي دقيق
+function formatDurationArabic(ms) {
+    const totalMinutes = Math.round(ms / 60000);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    
+    let hStr = '';
+    if (h === 1) hStr = 'ساعة';
+    else if (h === 2) hStr = 'ساعتين';
+    else if (h > 2 && h <= 10) hStr = `${h} ساعات`;
+    else if (h > 10) hStr = `${h} ساعة`;
+
+    let mStr = '';
+    if (m === 1) mStr = 'دقيقة';
+    else if (m === 2) mStr = 'دقيقتين';
+    else if (m > 2 && m <= 10) mStr = `${m} دقائق`;
+    else if (m > 10) mStr = `${m} دقيقة`;
+
+    if (h === 0) return mStr;
+    if (m === 0) return hStr;
+    return `${hStr} و ${mStr}`;
+}
+
 async function fetchSolarData(cityKey) {
     const city = cities[cityKey];
     const API_BASE = `https://api.sunrisesunset.io/json?lat=${city.lat}&lng=${city.lng}`;
@@ -80,9 +106,7 @@ async function fetchSolarData(cityKey) {
         };
 
         const [yData, tData, tmData] = await Promise.all([
-            fetchDay(dates.yesterday),
-            fetchDay(dates.today),
-            fetchDay(dates.tomorrow)
+            fetchDay(dates.yesterday), fetchDay(dates.today), fetchDay(dates.tomorrow)
         ]);
 
         const offset = tData.utc_offset; 
@@ -101,6 +125,31 @@ async function fetchSolarData(cityKey) {
     }
 }
 
+function updateComparisonBar() {
+    if (!solarBounds) return;
+    
+    const dayLengthMs = solarBounds.todaySunset - solarBounds.todaySunrise;
+    const nightLengthMs = (24 * 3600 * 1000) - dayLengthMs;
+    
+    const dayPct = (dayLengthMs / (24 * 3600 * 1000)) * 100;
+    const nightPct = 100 - dayPct;
+    
+    els.dayBar.style.width = `${dayPct}%`;
+    els.nightBar.style.width = `${nightPct}%`;
+    
+    els.dayLengthText.textContent = formatDurationArabic(dayLengthMs);
+    els.nightLengthText.textContent = formatDurationArabic(nightLengthMs);
+
+    const diff = Math.abs(dayLengthMs - nightLengthMs);
+    if (dayLengthMs > nightLengthMs) {
+        els.comparisonText.textContent = `النهار أطول بـ ${formatDurationArabic(diff)}`;
+    } else if (nightLengthMs > dayLengthMs) {
+        els.comparisonText.textContent = `الليل أطول بـ ${formatDurationArabic(diff)}`;
+    } else {
+        els.comparisonText.textContent = `النهار والليل متساويان`;
+    }
+}
+
 function updateClock() {
     if (!solarBounds) return;
 
@@ -116,14 +165,38 @@ function updateClock() {
         phase = 'الليل'; startMs = todaySunset; endMs = tomorrowSunrise;
     }
 
+    // إدارة الثيمات المتعددة (نهاري، ذهبي، ليلي)
+    let themeClass = 'theme-day';
+    const timeToSunrise = Math.abs(absoluteTimeMs - todaySunrise);
+    const timeToSunset = Math.abs(absoluteTimeMs - todaySunset);
+    
+    if (phase === 'الليل') {
+        themeClass = 'theme-night';
+    } else if (timeToSunrise < 45 * 60000 || timeToSunset < 45 * 60000) {
+        // وقت الغسق أو الشروق (45 دقيقة قبل/بعد)
+        themeClass = 'theme-golden';
+    }
+
     if (!manualThemeOverride) {
+        document.body.classList.remove('theme-night', 'theme-golden');
+        if (themeClass !== 'theme-day') document.body.classList.add(themeClass);
+
         if (phase === 'الليل') {
-            document.body.classList.add('theme-night');
             els.sunIcon.classList.add('hidden'); els.moonIcon.classList.remove('hidden');
+            els.starsLayer.style.opacity = '1';
         } else {
-            document.body.classList.remove('theme-night');
             els.sunIcon.classList.remove('hidden'); els.moonIcon.classList.add('hidden');
+            els.starsLayer.style.opacity = '0';
         }
+    }
+
+    // تغيير شكل المؤشر من شمس إلى هلال والعكس
+    if (phase === 'الليل') {
+        els.sunShape.style.opacity = '0';
+        els.moonShape.style.opacity = '1';
+    } else {
+        els.sunShape.style.opacity = '1';
+        els.moonShape.style.opacity = '0';
     }
 
     const phaseDuration = endMs - startMs;
@@ -152,8 +225,9 @@ function updateClock() {
     els.standardTime.textContent = standardTimeStr;
     
     els.progressArc.setAttribute('stroke-dashoffset', 100 - (progress * 100));
-    els.sunIndicator.setAttribute('cx', sunX);
-    els.sunIndicator.setAttribute('cy', sunY);
+    
+    // تحريك مجموعة الـ (G) بالكامل
+    els.celestialBody.setAttribute('transform', `translate(${sunX}, ${sunY})`);
 }
 
 async function loadCity(cityKey) {
@@ -179,6 +253,7 @@ async function loadCity(cityKey) {
     els.sunriseTime.textContent = cleanTime(solarBounds.todaySunriseStr);
     els.sunsetTime.textContent = cleanTime(solarBounds.todaySunsetStr);
 
+    updateComparisonBar(); // تحديث شريط النهار والليل
     updateClock();
     clockInterval = setInterval(updateClock, 1000);
 
@@ -198,7 +273,7 @@ function createCityButton(key, cityObj) {
     els.citySelector.appendChild(btn);
 }
 
-// === الذكاء في معالجة المدخل (الرابط أو الاسم) ===
+// الإضافة عبر كتابة الاسم بالإنجليزية فقط
 els.addCityForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     els.errorMsg.classList.add('hidden');
@@ -209,14 +284,12 @@ els.addCityForm.addEventListener('submit', async (e) => {
     els.submitBtn.textContent = 'جاري البحث...';
 
     try {
-        // البحث عن المدينة بالإنجليزية فقط
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(inputVal)}&limit=1`);
         const data = await res.json();
         
         if (data && data.length > 0) {
             const lat = data[0].lat;
             const lng = data[0].lon;
-            // استخدام اسم المدينة العائد من الخريطة
             const finalName = data[0].name || inputVal;
 
             const cityKey = `city_${Date.now()}`;
@@ -237,13 +310,18 @@ els.addCityForm.addEventListener('submit', async (e) => {
     }
 });
 
+// التبديل اليدوي للوضع بين النهاري والليلي
 els.themeToggle.addEventListener('click', () => {
     manualThemeOverride = true;
+    document.body.classList.remove('theme-golden'); // تعطيل المظهر الذهبي عند التدخل اليدوي
     const isNight = document.body.classList.toggle('theme-night');
+    
     if (isNight) {
         els.sunIcon.classList.add('hidden'); els.moonIcon.classList.remove('hidden');
+        els.starsLayer.style.opacity = '1';
     } else {
         els.sunIcon.classList.remove('hidden'); els.moonIcon.classList.add('hidden');
+        els.starsLayer.style.opacity = '0';
     }
 });
 
