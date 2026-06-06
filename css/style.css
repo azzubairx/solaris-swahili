@@ -1,83 +1,104 @@
 :root {
-/* المظهر النهاري الافتراضي (Day) - تباين عالي > 4.5:1 /
---bg-color: #F3F4F6;
---surface: #FFFFFF;
---text-primary: #111827;
---text-secondary: #4B5563; / تم تغميقه للتباين /
---accent: #D1D5DB;
---day-bar: #D97706; / Amber 600 /
---night-bar: #4338CA; / Indigo 700 */
+    /* المظهر النهاري (Day) - تباين مثالي ومريح للعين */
+    --bg-color: #F8FAFC;
+    --surface: #FFFFFF;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --accent: #CBD5E1;
+    --day-bar: #F59E0B; /* Amber 500 */
+    --night-bar: #4338CA; /* Indigo 700 */
 }
+
 body.theme-golden {
-/* مظهر الفجر/الغسق (Golden Hour) /
---bg-color: #FDF6E3;
---surface: #FFFDF8;
---text-primary: #451A03; / بني داكن */
---text-secondary: #78350F;
---accent: #E7E5E4;
---day-bar: #EA580C;
---night-bar: #3730A3;
+    /* مظهر الغسق/الفجر (Golden Hour) - دافئ */
+    --bg-color: #FFF7ED;
+    --surface: #FFFAF4;
+    --text-primary: #431407;
+    --text-secondary: #78350F;
+    --accent: #E7E5E4;
+    --day-bar: #EA580C;
+    --night-bar: #3730A3;
 }
+
 body.theme-night {
-/* المظهر الليلي (Night) - تباين عالي > 4.5:1 /
---bg-color: #0F172A;
---surface: #1E293B;
---text-primary: #F8FAFC;
---text-secondary: #94A3B8; / رمادي فاتح /
---accent: #334155;
---day-bar: #F59E0B; / Amber 500 /
---night-bar: #6366F1; / Indigo 500 */
+    /* المظهر الليلي (Night) - عميق وفاخر */
+    --bg-color: #020617;
+    --surface: #0F172A;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --accent: #1E293B;
+    --day-bar: #D97706; /* Amber 600 */
+    --night-bar: #6366F1; /* Indigo 500 */
 }
+
 body {
-background-color: var(--bg-color);
-color: var(--text-primary);
-overflow-x: hidden;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    overflow-x: hidden;
 }
-/* الخريطة الطبوغرافية */
+
+/* نمط الخريطة الطبوغرافية المائية لزيادة الفخامة الجغرافية */
 body::before {
-content: "";
-position: fixed;
-inset: 0;
-background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 50 Q 25 30, 50 50 T 100 50 M 0 70 Q 25 50, 50 70 T 100 70 M 0 30 Q 25 10, 50 30 T 100 30' fill='none' stroke='%23888888' stroke-width='0.5' opacity='0.1'/%3E%3C/svg%3E");
-background-size: 150px 150px;
-pointer-events: none;
-z-index: -2;
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 50 Q 25 30, 50 50 T 100 50 M 0 70 Q 25 50, 50 70 T 100 70 M 0 30 Q 25 10, 50 30 T 100 30' fill='none' stroke='%23888888' stroke-width='0.5' opacity='0.07'/%3E%3C/svg%3E");
+    background-size: 150px 150px;
+    pointer-events: none;
+    z-index: -2;
 }
-/* تنسيقات الأزرار مع تأثير تفاعلي (Accessibility & UX) */
+
+/* أزرار المدن: تأثير حركي أنيق جداً */
 .city-btn {
-font-family: 'Tajawal', sans-serif;
-font-size: 0.95rem;
-padding: 0.35rem 1.2rem;
-border-radius: 9999px;
-color: var(--text-secondary);
-background-color: var(--surface);
-border: 1px solid var(--accent);
-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-cursor: pointer;
-box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    font-family: 'Tajawal', sans-serif;
+    font-size: 0.95rem;
+    padding: 0.4rem 1.3rem;
+    border-radius: 9999px;
+    color: var(--text-secondary);
+    background-color: var(--surface);
+    border: 1px solid var(--accent);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
+
 .city-btn:hover, .city-btn:focus-visible {
-color: var(--text-primary);
-border-color: var(--text-secondary);
-outline: none;
-transform: translateY(-1px);
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+    outline: none;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
+
 .city-btn.active {
-color: var(--surface);
-background-color: var(--text-primary);
-border-color: var(--text-primary);
-font-weight: 700;
-transform: translateY(0);
+    color: var(--surface);
+    background-color: var(--text-primary);
+    border-color: var(--text-primary);
+    font-weight: 700;
+    transform: translateY(0);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
 }
-/* نقطة الصلاة على القوس */
+
+/* إجبار الأرقام التابولار لتجنب الاهتزاز عند التحديث المستمر */
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+/* حركة دوران مخصصة لعلامة التحميل */
+.direction-reverse {
+    animation-direction: reverse;
+}
+
+/* تفاعل نقاط الصلاة */
 .prayer-marker {
-fill: var(--surface);
-stroke: var(--text-secondary);
-stroke-width: 2;
-transition: all 0.3s;
-cursor: help;
+    fill: var(--surface);
+    stroke: var(--text-secondary);
+    stroke-width: 2.5;
+    transition: all 0.3s ease;
+    cursor: help;
 }
 .prayer-marker:hover {
-fill: var(--text-primary);
-r: 6;
+    fill: var(--text-primary);
+    stroke: var(--surface);
+    r: 6;
 }
