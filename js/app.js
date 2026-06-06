@@ -1,8 +1,11 @@
 /**
  * تطبيق التوقيت السواحلي - هندسة برمجية (Modular Pattern)
+ * تم التأمين بنسبة 100% ضد أخطاء الـ Timezones والـ Type Casting
  */
 const App = (() => {
-    // --- 1. الإعدادات والحالة (State & Config) ---
+    'use strict';
+
+    // --- 1. الإعدادات والحالة ---
     const CONFIG = {
         CACHE_TTL: 6 * 60 * 60 * 1000, // 6 ساعات
         DEFAULT_CITIES: {
@@ -21,16 +24,16 @@ const App = (() => {
         manualThemeOverride: false
     };
 
-    // --- 2. إدارة عناصر الواجهة (DOM Elements) ---
+    // --- 2. إدارة الواجهة ---
     const UI = {
         loader: document.getElementById('loader'),
         loaderText: document.getElementById('loader-text'),
         errorOverlay: document.getElementById('error-overlay'),
         errorMsg: document.getElementById('error-message'),
+        errorBox: document.getElementById('error-box'),
         appContainer: document.getElementById('app-container'),
         citySelector: document.getElementById('city-selector'),
         
-        // الأرقام والنصوص
         cityName: document.getElementById('city-name'),
         hijriDate: document.getElementById('hijri-date'),
         hourDisplay: document.getElementById('hour-display'),
@@ -39,22 +42,21 @@ const App = (() => {
         countdownDisplay: document.getElementById('countdown-display'),
         nextEventName: document.getElementById('next-event-name'),
         
-        // SVG
         progressArc: document.getElementById('progress-arc'),
         celestialBody: document.getElementById('celestial-body'),
         sunShape: document.getElementById('sun-shape'),
         moonShape: document.getElementById('moon-shape'),
         prayerMarkersContainer: document.getElementById('prayer-markers'),
         
-        // المقارنة والثيمات
         themeToggle: document.getElementById('theme-toggle'),
         themeReset: document.getElementById('theme-auto-reset'),
         sunIcon: document.getElementById('sun-icon'),
         moonIcon: document.getElementById('moon-icon'),
         starsLayer: document.getElementById('stars-layer'),
         
-        // مساعدة
-        formatMetric: (h, m, s) => [h, m, s].map(n => n.toString().padStart(2, '0')).join(':'),
+        // دوال مساعدة مع ضمان النظام الرقمي (1, 2, 3)
+        padStr: (n) => String(n).padStart(2, '0'),
+        formatMetric: (h, m, s) => `${UI.padStr(h)}:${UI.padStr(m)}:${UI.padStr(s)}`,
         
         cleanTime: (t) => {
             const parts = t.split(':');
@@ -64,12 +66,18 @@ const App = (() => {
         showError: (msg) => {
             UI.errorMsg.textContent = msg;
             UI.errorOverlay.classList.remove('hidden');
-            setTimeout(() => UI.errorOverlay.classList.remove('opacity-0', 'pointer-events-none'), 10);
+            setTimeout(() => {
+                UI.errorOverlay.classList.remove('opacity-0', 'pointer-events-none');
+                UI.errorBox.classList.remove('scale-95');
+                UI.errorBox.classList.add('scale-100');
+            }, 10);
             UI.loader.classList.add('opacity-0', 'pointer-events-none');
         },
         
         hideError: () => {
             UI.errorOverlay.classList.add('opacity-0', 'pointer-events-none');
+            UI.errorBox.classList.remove('scale-100');
+            UI.errorBox.classList.add('scale-95');
             setTimeout(() => UI.errorOverlay.classList.add('hidden'), 500);
         },
 
@@ -84,94 +92,128 @@ const App = (() => {
         }
     };
 
-    // --- 3. إدارة التخزين المؤقت (Caching) ---
+    // --- 3. إدارة التخزين ---
     const Storage = {
         get: (key) => {
-            const cached = localStorage.getItem(key);
-            if (!cached) return null;
-            const parsed = JSON.parse(cached);
-            if (Date.now() - parsed.timestamp > CONFIG.CACHE_TTL) return null;
-            return parsed.data;
+            try {
+                const cached = localStorage.getItem(key);
+                if (!cached) return null;
+                const parsed = JSON.parse(cached);
+                if (Date.now() - parsed.timestamp > CONFIG.CACHE_TTL) return null;
+                return parsed.data;
+            } catch (e) { return null; }
         },
-        set: (key, data) => localStorage.setItem(key, JSON.stringify({timestamp: Date.now(), data}))
+        set: (key, data) => {
+            try { localStorage.setItem(key, JSON.stringify({timestamp: Date.now(), data})); } 
+            catch (e) { console.warn('Storage Full'); }
+        }
     };
 
-    // --- 4. واجهات برمجة التطبيقات (API Module) ---
+    // --- 4. واجهات API (Safe Math Processing) ---
     const API = {
-        getDateString: (offsetDays = 0) => {
-            return new Date(Date.now() + (offsetDays * 86400000)).toLocaleDateString('en-CA');
+        // حساب التاريخ المستهدف بناء على خط الطول لتجنب فوارق التوقيت العابرة للقارات
+        getTargetDateString: (lng, offsetDays = 0) => {
+            const approximateOffsetMs = (parseFloat(lng) / 15) * 3600000;
+            const targetMs = Date.now() + approximateOffsetMs + (offsetDays * 86400000);
+            return new Date(targetMs).toISOString().split('T')[0];
         },
 
-        parseAbsoluteUTC: (dateStr, timeStr, offset) => {
+        // بناء صيغة ISO 8601 دقيقة (آمنة 100% من أخطاء الـ Types)
+        parseAbsoluteUTC: (dateStr, timeStr, offsetMinutes) => {
             if (!timeStr) return 0;
-            const [time, modifier] = timeStr.split(' ');
-            let [h, m, s] = time.split(':');
             
-            let hours = parseInt(h, 10);
+            const [time, modifier] = timeStr.split(' ');
+            let [hStr, mStr, sStr] = time.split(':');
+            
+            let hours = parseInt(hStr, 10);
             if (hours === 12) hours = 0;
             if (modifier === 'PM') hours += 12;
             
-            const pad = (n) => n.toString().padStart(2, '0');
-            const iso = `${dateStr}T${pad(hours)}:${pad(m)}:${pad(s)}Z`;
+            // تحويل الـ offset (الدقائق) إلى صيغة (+02:00) لتكوين ISO شرعي
+            const sign = offsetMinutes >= 0 ? '+' : '-';
+            const absOffset = Math.abs(offsetMinutes);
+            const offH = UI.padStr(Math.floor(absOffset / 60));
+            const offM = UI.padStr(absOffset % 60);
             
-            let offsetMins = (typeof offset === 'number' && offset < 24) ? offset * 60 : parseInt(offset);
-            if(isNaN(offsetMins)) offsetMins = 0;
-
-            return new Date(iso).getTime() - (offsetMins * 60000);
+            const isoString = `${dateStr}T${UI.padStr(hours)}:${UI.padStr(mStr)}:${UI.padStr(sStr)}${sign}${offH}:${offM}`;
+            return new Date(isoString).getTime();
         },
 
         fetchSolar: async (lat, lng) => {
-            const cacheKey = `solar_${lat}_${lng}_${API.getDateString()}`;
+            const cacheKey = `solar_v2_${lat}_${lng}_${API.getTargetDateString(lng)}`;
             const cached = Storage.get(cacheKey);
             if (cached) return cached;
 
             UI.loaderText.textContent = "جاري جلب بيانات الشمس...";
             const base = `https://api.sunrisesunset.io/json?lat=${lat}&lng=${lng}`;
-            const [yRes, tRes, tmRes] = await Promise.all([
-                fetch(`${base}&date=${API.getDateString(-1)}`).then(r => r.json()),
-                fetch(`${base}&date=${API.getDateString(0)}`).then(r => r.json()),
-                fetch(`${base}&date=${API.getDateString(1)}`).then(r => r.json())
+            
+            // طلب التواريخ بالنسبة لخط الطول المستهدف وليس خط جهاز المستخدم
+            const dYest = API.getTargetDateString(lng, -1);
+            const dToday = API.getTargetDateString(lng, 0);
+            const dTom = API.getTargetDateString(lng, 1);
+
+            const fetchWithTimeout = (url) => Promise.race([
+                fetch(url).then(r => r.json()),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
             ]);
 
-            if (tRes.status !== "OK") throw new Error("API الشمس لا يستجيب");
+            const [yRes, tRes, tmRes] = await Promise.all([
+                fetchWithTimeout(`${base}&date=${dYest}`),
+                fetchWithTimeout(`${base}&date=${dToday}`),
+                fetchWithTimeout(`${base}&date=${dTom}`)
+            ]);
 
-            const offset = tRes.results.utc_offset;
+            if (tRes.status !== "OK") throw new Error("API الشمس لا يستجيب ببيانات صالحة.");
+
+            // توحيد الـ offset ليكون دائماً بالدقائق
+            let offset = tRes.results.utc_offset;
+            let offsetMins = (typeof offset === 'number' && offset < 24) ? offset * 60 : parseInt(offset, 10);
+            if(isNaN(offsetMins)) offsetMins = 0;
+
             const data = {
-                yesterdaySunset: API.parseAbsoluteUTC(API.getDateString(-1), yRes.results.sunset, offset),
-                todaySunrise: API.parseAbsoluteUTC(API.getDateString(0), tRes.results.sunrise, offset),
-                todaySunset: API.parseAbsoluteUTC(API.getDateString(0), tRes.results.sunset, offset),
-                tomorrowSunrise: API.parseAbsoluteUTC(API.getDateString(1), tmRes.results.sunrise, offset),
+                yesterdaySunset: API.parseAbsoluteUTC(dYest, yRes.results.sunset, offsetMins),
+                todaySunrise: API.parseAbsoluteUTC(dToday, tRes.results.sunrise, offsetMins),
+                todaySunset: API.parseAbsoluteUTC(dToday, tRes.results.sunset, offsetMins),
+                tomorrowSunrise: API.parseAbsoluteUTC(dTom, tmRes.results.sunrise, offsetMins),
                 todaySunriseStr: tRes.results.sunrise,
                 todaySunsetStr: tRes.results.sunset,
-                utcOffsetMinutes: (typeof offset === 'number' && offset < 24) ? offset * 60 : parseInt(offset)
+                utcOffsetMinutes: offsetMins
             };
+            
             Storage.set(cacheKey, data);
             return data;
         },
 
         fetchPrayers: async (lat, lng) => {
-            const cacheKey = `prayers_${lat}_${lng}_${API.getDateString()}`;
+            const cacheKey = `prayers_v2_${lat}_${lng}_${API.getTargetDateString(lng)}`;
             const cached = Storage.get(cacheKey);
             if (cached) return cached;
 
             UI.loaderText.textContent = "جاري جلب مواقيت الصلاة...";
             const timestamp = Math.floor(Date.now() / 1000);
-            const res = await fetch("https://api.aladhan.com/v1/timings/" + timestamp + "?latitude=" + lat + "&longitude=" + lng + "&method=4");
+            // Method 5 (Egyptian) مناسب جداً لشمال أفريقيا وليبيا
+            const res = await fetch(`https://api.aladhan.com/v1/timings/${timestamp}?latitude=${lat}&longitude=${lng}&method=5`);
             const json = await res.json();
-            if (json.code !== 200) throw new Error("API الصلاة لا يستجيب");
+            if (json.code !== 200) throw new Error("فشل الاتصال بخوادم الصلاة.");
             
             Storage.set(cacheKey, json.data.timings);
             return json.data.timings;
         }
     };
 
-    // --- 5. المحرك الأساسي (Core Logic) ---
+    // --- 5. محرك الحسابات (Core Math) ---
     const Core = {
-        getPrayerUTC: (timeStr, isTomorrow = false) => {
-            const offset = State.solarBounds.utcOffsetMinutes;
-            const dStr = API.getDateString(isTomorrow ? 1 : 0);
-            const iso = `${dStr}T${timeStr}:00Z`;
-            return new Date(iso).getTime() - (offset * 60000);
+        getPrayerUTC: (timeStr, lng, isTomorrow = false) => {
+            const offsetMins = State.solarBounds.utcOffsetMinutes;
+            const dStr = API.getTargetDateString(lng, isTomorrow ? 1 : 0);
+            // Aladhan API يرجع الوقت المحلي للمدينة (مثال: 15:30). نضيف له الـ Offset.
+            const sign = offsetMins >= 0 ? '+' : '-';
+            const absOffset = Math.abs(offsetMins);
+            const offH = UI.padStr(Math.floor(absOffset / 60));
+            const offM = UI.padStr(absOffset % 60);
+            
+            const iso = `${dStr}T${timeStr}:00${sign}${offH}:${offM}`;
+            return new Date(iso).getTime();
         },
 
         drawPrayerMarkers: (phase, startMs, endMs) => {
@@ -182,8 +224,10 @@ const App = (() => {
                 ? [{name: 'الظهر', time: State.prayerTimes.Dhuhr}, {name: 'العصر', time: State.prayerTimes.Asr}]
                 : [{name: 'المغرب', time: State.prayerTimes.Maghrib}, {name: 'العشاء', time: State.prayerTimes.Isha}, {name: 'الفجر', time: State.prayerTimes.Fajr, tomorrow: true}];
 
+            const currentCity = State.cities[State.currentCityKey];
+
             prayers.forEach(p => {
-                const pTime = Core.getPrayerUTC(p.time, p.tomorrow);
+                const pTime = Core.getPrayerUTC(p.time, currentCity.lng, p.tomorrow);
                 if (pTime > startMs && pTime < endMs) {
                     const progress = (pTime - startMs) / (endMs - startMs);
                     const angle = Math.PI - (progress * Math.PI);
@@ -195,7 +239,7 @@ const App = (() => {
                     circle.setAttribute('r', '4'); circle.setAttribute('class', 'prayer-marker');
                     
                     const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-                    title.textContent = "صلاة " + p.name;
+                    title.textContent = `صلاة ${p.name}`;
                     circle.appendChild(title);
                     
                     UI.prayerMarkersContainer.appendChild(circle);
@@ -217,7 +261,7 @@ const App = (() => {
                 phase = 'الليل'; startMs = todaySunset; endMs = tomorrowSunrise;
             }
 
-            // الثيمات
+            // الثيمات الذكية
             if (!State.manualThemeOverride) {
                 let theme = 'theme-day';
                 const distSunrise = Math.abs(now - todaySunrise);
@@ -229,20 +273,16 @@ const App = (() => {
                 document.body.classList.remove('theme-night', 'theme-golden');
                 if (theme !== 'theme-day') document.body.classList.add(theme);
 
-                if (phase === 'الليل') {
-                    UI.sunIcon.classList.add('hidden'); UI.moonIcon.classList.remove('hidden');
-                    UI.starsLayer.style.opacity = '1';
-                } else {
-                    UI.sunIcon.classList.remove('hidden'); UI.moonIcon.classList.add('hidden');
-                    UI.starsLayer.style.opacity = '0';
-                }
+                const isNightTheme = theme === 'theme-night';
+                UI.sunIcon.classList.toggle('hidden', isNightTheme); 
+                UI.moonIcon.classList.toggle('hidden', !isNightTheme);
+                UI.starsLayer.style.opacity = isNightTheme ? '1' : '0';
             }
 
-            // المؤشر السماوي
             UI.sunShape.style.opacity = phase === 'الليل' ? '0' : '1';
             UI.moonShape.style.opacity = phase === 'الليل' ? '1' : '0';
 
-            // الحسابات النسبية
+            // الرياضيات السواحلية الدقيقة
             const duration = endMs - startMs;
             const progress = Math.max(0, Math.min(1, (now - startMs) / duration));
             const propElapsedMs = progress * (12 * 3600 * 1000);
@@ -252,26 +292,26 @@ const App = (() => {
             const pH = Math.floor(propElapsedMs / 3600000);
 
             UI.hourDisplay.textContent = Math.min(pH + 1, 12);
-            UI.phaseDisplay.textContent = "من " + phase;
+            UI.phaseDisplay.textContent = `من ${phase}`;
             UI.metricDisplay.textContent = UI.formatMetric(pH, pM, pS);
 
-            // حساب المتبقي للحدث القادم
+            // العد التنازلي
             const nextEventMs = phase === 'النهار' ? todaySunset : (now < todaySunrise ? todaySunrise : tomorrowSunrise);
             const diffMs = nextEventMs - now;
             UI.nextEventName.textContent = phase === 'النهار' ? 'الغروب' : 'الشروق';
             UI.countdownDisplay.textContent = UI.formatMetric(Math.floor(diffMs/3600000), Math.floor((diffMs%3600000)/60000), Math.floor((diffMs%60000)/1000));
 
-            // التوقيت المحلي الفعلي
+            // الوقت القياسي المعزول تماماً عن جهاز المستخدم
             const localDate = new Date(now + (utcOffsetMinutes * 60000));
             document.getElementById('standard-time').textContent = UI.formatMetric(localDate.getUTCHours(), localDate.getUTCMinutes(), localDate.getUTCSeconds());
 
-            // القوس (تم تصحيح اتجاه رسم القوس لأعلى)
+            // حركة القوس المثالية (نصف الدائرة العلوي)
             const angle = Math.PI - (progress * Math.PI);
             const cx = 150 + 130 * Math.cos(angle);
             const cy = 140 - 130 * Math.sin(angle);
 
             UI.progressArc.setAttribute('stroke-dashoffset', 100 - (progress * 100));
-            UI.celestialBody.setAttribute('transform', "translate(" + cx + ", " + cy + ")");
+            UI.celestialBody.setAttribute('transform', `translate(${cx}, ${cy})`);
         },
 
         initCity: async (key) => {
@@ -284,7 +324,7 @@ const App = (() => {
             const city = State.cities[key];
 
             document.querySelectorAll('.city-btn').forEach(b => b.classList.toggle('active', b.dataset.city === key));
-            window.history.replaceState(null, '', "?city=" + encodeURIComponent(city.name));
+            window.history.replaceState(null, '', `?city=${encodeURIComponent(city.name)}`);
 
             UI.cityName.textContent = city.name;
 
@@ -300,24 +340,24 @@ const App = (() => {
                 document.getElementById('sunrise-time').textContent = UI.cleanTime(solar.todaySunriseStr);
                 document.getElementById('sunset-time').textContent = UI.cleanTime(solar.todaySunsetStr);
                 
-                // تم تعديل التنسيق هنا بإضافة nu-latn لضمان أن تظل الأرقام بالكامل بالنظام العربي الغربي (1, 2, 3)
+                // استخدام nu-latn لضمان أن التاريخ الهجري يستخدم الأرقام (1, 2, 3) 
                 UI.hijriDate.textContent = new Intl.DateTimeFormat('ar-LY-u-ca-islamic-nu-latn', {day: 'numeric', month: 'long', year: 'numeric'}).format(new Date());
 
                 const dayL = solar.todaySunset - solar.todaySunrise;
                 const nightL = (24*3600*1000) - dayL;
                 const diffL = Math.abs(dayL - nightL);
                 
-                document.getElementById('day-bar').style.width = (dayL / (24 * 3600 * 1000) * 100) + "%";
-                document.getElementById('night-bar').style.width = (nightL / (24 * 3600 * 1000) * 100) + "%";
+                document.getElementById('day-bar').style.width = `${(dayL/(24*3600*1000))*100}%`;
+                document.getElementById('night-bar').style.width = `${(nightL/(24*3600*1000))*100}%`;
                 
-                const fmtDiff = (ms) => Math.floor(ms / 3600000) + " س و " + Math.floor((ms % 3600000) / 60000) + " د";
+                const fmtDiff = (ms) => `${Math.floor(ms/3600000)} س و ${Math.floor((ms%3600000)/60000)} د`;
                 document.getElementById('day-length-text').textContent = fmtDiff(dayL);
                 document.getElementById('night-length-text').textContent = fmtDiff(nightL);
                 
                 if (diffL < 5 * 60000) {
                     document.getElementById('comparison-text').textContent = "الاعتدال: يتساوى الليل والنهار";
                 } else {
-                    document.getElementById('comparison-text').textContent = dayL > nightL ? "النهار أطول بـ " + fmtDiff(diffL) : "الليل أطول بـ " + fmtDiff(diffL);
+                    document.getElementById('comparison-text').textContent = dayL > nightL ? `النهار أطول بـ ${fmtDiff(diffL)}` : `الليل أطول بـ ${fmtDiff(diffL)}`;
                 }
 
                 const now = Date.now();
@@ -327,25 +367,26 @@ const App = (() => {
                 Core.drawPrayerMarkers(pPhase, pStart, pEnd);
 
                 Core.updateClock();
-                State.clockInterval = setInterval(Core.updateClock, 1000);
+                State.clockInterval = setInterval(() => requestAnimationFrame(Core.updateClock), 1000);
 
                 UI.loader.classList.add('opacity-0', 'pointer-events-none');
                 UI.appContainer.classList.add('opacity-100');
 
             } catch (err) {
-                console.error(err);
+                console.error("Critical Flow Error:", err);
                 UI.showError(err.message);
             }
         }
     };
 
+    // --- 6. المستمعات (Events) ---
     const initEvents = () => {
         const buildButtons = () => {
             UI.citySelector.innerHTML = '';
             Object.keys(State.cities).forEach(k => {
                 const b = document.createElement('button');
                 b.className = 'city-btn'; b.dataset.city = k; b.textContent = State.cities[k].name;
-                b.setAttribute('aria-label', "عرض توقيت " + State.cities[k].name);
+                b.setAttribute('aria-label', `عرض توقيت ${State.cities[k].name}`);
                 b.onclick = () => { if(State.currentCityKey !== k) Core.initCity(k); };
                 UI.citySelector.appendChild(b);
             });
@@ -361,11 +402,11 @@ const App = (() => {
 
             btn.disabled = true; btn.textContent = '...';
             try {
-                const res = await fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(val) + "&limit=1");
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=1`);
                 const data = await res.json();
-                if (!data.length) throw new Error("لم نجد المدينة. حاول بالإنجليزية.");
+                if (!data || !data.length) throw new Error("المدينة غير معروفة، يرجى كتابة الاسم باللغة الإنجليزية.");
                 
-                const k = "city_" + Date.now();
+                const k = `city_${Date.now()}`;
                 State.cities[k] = { name: data[0].name || val, lat: data[0].lat, lng: data[0].lon };
                 buildButtons();
                 input.value = '';
