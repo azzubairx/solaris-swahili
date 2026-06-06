@@ -1,15 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<!-- 1. ربط ملف المانيفست -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- 2. تحديد لون شريط المتصفح العلوي في الهواتف -->
-    <meta name="theme-color" content="#F8FAFC">
-    
-    <!-- 3. أيقونة أجهزة Apple -->
-    <link rel="apple-touch-icon" href="icon-192.png">
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="ساعة التوقيت السواحلي — وقت حقيقي مبني على حركة الشمس في مدينتك">
@@ -436,19 +427,5 @@
     </div><!-- /app-container -->
 
     <script src="js/app.js"></script>
-<!-- تسجيل الـ Service Worker لتفعيل وضع الـ Offline -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(registration => {
-                        console.log('Service Worker Registered Successfully', registration.scope);
-                    })
-                    .catch(error => {
-                        console.error('Service Worker Registration Failed', error);
-                    });
-            });
-        }
-    </script>
 </body>
 </html>
