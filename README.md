@@ -97,6 +97,3 @@ This project is built to be:
 Copyright © 2026 Azzubair
 
 All rights reserved.
-
-```
-```
