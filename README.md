@@ -1,4 +1,3 @@
-````md
 # SolarisSwahili — Dynamic Swahili Time System for Libya
 
 SolarisSwahili is a lightweight single-page web application that calculates and displays the dynamic Swahili time based on the user's geographical location and the real movement of the sun, specifically sunrise and sunset. The application is designed to provide a clean, responsive, and modern interface that works directly in the browser without any build step or dependency installation.
