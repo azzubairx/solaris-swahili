@@ -102,16 +102,19 @@ const App = (() => {
             return new Date(Date.now() + (offsetDays * 86400000)).toLocaleDateString('en-CA');
         },
 
-        // إصلاح التعامل مع utc_offset سواء أكان رقماً (ساعات) أم دقائق
+        // تم إصلاح الدالة هنا لتعالج التحويل النصي والأرقام بشكل آمن لمنع الانهيار
         parseAbsoluteUTC: (dateStr, timeStr, offset) => {
             if (!timeStr) return 0;
             const [time, modifier] = timeStr.split(' ');
             let [h, m, s] = time.split(':');
-            if (h === '12') h = '00';
-            if (modifier === 'PM') h = parseInt(h, 10) + 12;
-            const iso = `${dateStr}T${h.padStart(2,'0')}:${m.padStart(2,'0')}:${s.padStart(2,'0')}Z`;
             
-            // تحقق من نوع offset (هل هو 2 أي ساعتين أم 120 أي دقيقة؟)
+            let hours = parseInt(h, 10);
+            if (modifier === 'PM' && hours !== 12) hours += 12;
+            if (modifier === 'AM' && hours === 12) hours = 0;
+            
+            const pad = (n) => n.toString().padStart(2, '0');
+            const iso = `${dateStr}T${pad(hours)}:${pad(m)}:${pad(s)}Z`;
+            
             let offsetMins = (typeof offset === 'number' && offset < 24) ? offset * 60 : parseInt(offset);
             if(isNaN(offsetMins)) offsetMins = 0;
 
@@ -153,7 +156,6 @@ const App = (() => {
             if (cached) return cached;
 
             UI.loaderText.textContent = "جاري جلب مواقيت الصلاة...";
-            // Method 4 = Umm Al-Qura
             const timestamp = Math.floor(Date.now() / 1000);
             const res = await fetch(`https://api.aladhan.com/v1/timings/${timestamp}?latitude=${lat}&longitude=${lng}&method=4`);
             const json = await res.json();
@@ -166,7 +168,6 @@ const App = (() => {
 
     // --- 5. المحرك الأساسي (Core Logic) ---
     const Core = {
-        // تحويل وقت صلاة (HH:MM) إلى UTC بناءً على إزاحة المدينة
         getPrayerUTC: (timeStr, isTomorrow = false) => {
             const offset = State.solarBounds.utcOffsetMinutes;
             const dStr = API.getDateString(isTomorrow ? 1 : 0);
@@ -188,7 +189,6 @@ const App = (() => {
                     const progress = (pTime - startMs) / (endMs - startMs);
                     const angle = Math.PI - (progress * Math.PI);
                     const cx = 150 + 130 * Math.cos(angle);
-                    // يجب أن نستخدم الطرح هنا لأن Y يزداد للأسفل والـ Sweep-flag = 0
                     const cy = 140 - 130 * Math.sin(angle); 
                     
                     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -218,7 +218,6 @@ const App = (() => {
                 phase = 'الليل'; startMs = todaySunset; endMs = tomorrowSunrise;
             }
 
-            // الثيمات
             if (!State.manualThemeOverride) {
                 let theme = 'theme-day';
                 const distSunrise = Math.abs(now - todaySunrise);
@@ -239,11 +238,9 @@ const App = (() => {
                 }
             }
 
-            // المؤشر السماوي
             UI.sunShape.style.opacity = phase === 'الليل' ? '0' : '1';
             UI.moonShape.style.opacity = phase === 'الليل' ? '1' : '0';
 
-            // الحسابات النسبية
             const duration = endMs - startMs;
             const progress = Math.max(0, Math.min(1, (now - startMs) / duration));
             const propElapsedMs = progress * (12 * 3600 * 1000);
@@ -252,22 +249,18 @@ const App = (() => {
             const pM = Math.floor((propElapsedMs / 60000) % 60);
             const pH = Math.floor(propElapsedMs / 3600000);
 
-            // إصلاح عرض الساعة 13 بحد أقصى 12
             UI.hourDisplay.textContent = Math.min(pH + 1, 12);
             UI.phaseDisplay.textContent = `من ${phase}`;
             UI.metricDisplay.textContent = UI.formatMetric(pH, pM, pS);
 
-            // حساب المتبقي للحدث القادم (الشروق أو الغروب)
             const nextEventMs = phase === 'النهار' ? todaySunset : (now < todaySunrise ? todaySunrise : tomorrowSunrise);
             const diffMs = nextEventMs - now;
             UI.nextEventName.textContent = phase === 'النهار' ? 'الغروب' : 'الشروق';
             UI.countdownDisplay.textContent = UI.formatMetric(Math.floor(diffMs/3600000), Math.floor((diffMs%3600000)/60000), Math.floor((diffMs%60000)/1000));
 
-            // التوقيت المحلي الفعلي
             const localDate = new Date(now + (utcOffsetMinutes * 60000));
             document.getElementById('standard-time').textContent = UI.formatMetric(localDate.getUTCHours(), localDate.getUTCMinutes(), localDate.getUTCSeconds());
 
-            // القوس (Sweep-flag is 0 -> Angle goes from Pi to 0)
             const angle = Math.PI - (progress * Math.PI);
             const cx = 150 + 130 * Math.cos(angle);
             const cy = 140 - 130 * Math.sin(angle);
@@ -285,14 +278,12 @@ const App = (() => {
             State.currentCityKey = key;
             const city = State.cities[key];
 
-            // تحديث الأزرار والـ URL
             document.querySelectorAll('.city-btn').forEach(b => b.classList.toggle('active', b.dataset.city === key));
             window.history.replaceState(null, '', `?city=${encodeURIComponent(city.name)}`);
 
             UI.cityName.textContent = city.name;
 
             try {
-                // جلب البيانات بشكل متوازي
                 const [solar, prayers] = await Promise.all([
                     API.fetchSolar(city.lat, city.lng),
                     API.fetchPrayers(city.lat, city.lng)
@@ -301,14 +292,11 @@ const App = (() => {
                 State.solarBounds = solar;
                 State.prayerTimes = prayers;
 
-                // التواريخ والأوقات
                 document.getElementById('sunrise-time').textContent = UI.cleanTime(solar.todaySunriseStr);
                 document.getElementById('sunset-time').textContent = UI.cleanTime(solar.todaySunsetStr);
                 
-                // التاريخ الهجري
                 UI.hijriDate.textContent = new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {day: 'numeric', month: 'long', year: 'numeric'}).format(new Date());
 
-                // المقارنة (الاعتدال)
                 const dayL = solar.todaySunset - solar.todaySunrise;
                 const nightL = (24*3600*1000) - dayL;
                 const diffL = Math.abs(dayL - nightL);
@@ -326,7 +314,6 @@ const App = (() => {
                     document.getElementById('comparison-text').textContent = dayL > nightL ? `النهار أطول بـ ${fmtDiff(diffL)}` : `الليل أطول بـ ${fmtDiff(diffL)}`;
                 }
 
-                // رسم نقاط الصلاة
                 const now = Date.now();
                 let pStart, pEnd, pPhase;
                 if (now >= solar.todaySunrise && now < solar.todaySunset) { pPhase = 'النهار'; pStart = solar.todaySunrise; pEnd = solar.todaySunset; }
@@ -348,7 +335,6 @@ const App = (() => {
 
     // --- 6. الإعداد المبدئي والأحداث (Init & Events) ---
     const initEvents = () => {
-        // إضافة الأزرار الافتراضية
         const buildButtons = () => {
             UI.citySelector.innerHTML = '';
             Object.keys(State.cities).forEach(k => {
@@ -361,7 +347,6 @@ const App = (() => {
         };
         buildButtons();
 
-        // فورم إضافة مدينة
         document.getElementById('add-city-form').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submit-btn');
@@ -387,7 +372,6 @@ const App = (() => {
             }
         };
 
-        // الثيمات
         UI.themeToggle.onclick = () => {
             State.manualThemeOverride = true;
             document.body.classList.remove('theme-golden');
@@ -395,8 +379,6 @@ const App = (() => {
             UI.sunIcon.classList.toggle('hidden', isNight);
             UI.moonIcon.classList.toggle('hidden', !isNight);
             UI.starsLayer.style.opacity = isNight ? '1' : '0';
-            
-            // إظهار زر الإعادة للوضع التلقائي
             UI.themeReset.classList.remove('hidden', 'opacity-0', 'translate-x-4');
         };
 
@@ -404,13 +386,11 @@ const App = (() => {
             State.manualThemeOverride = false;
             UI.themeReset.classList.add('opacity-0', 'translate-x-4');
             setTimeout(() => UI.themeReset.classList.add('hidden'), 300);
-            Core.updateClock(); // سيقوم بضبط الثيم الصحيح فوراً
+            Core.updateClock();
         };
 
-        // إعادة المحاولة
         document.getElementById('retry-btn').onclick = () => Core.initCity(State.currentCityKey);
 
-        // قراءة الـ URL Parameter
         const urlParams = new URLSearchParams(window.location.search);
         const cityParam = urlParams.get('city');
         let startKey = 'tobruk';
@@ -419,7 +399,6 @@ const App = (() => {
             const foundKey = Object.keys(State.cities).find(k => State.cities[k].name.toLowerCase() === cityParam.toLowerCase());
             if (foundKey) startKey = foundKey;
             else {
-                // إذا تم تمرير مدينة غير موجودة في الـ URL، نبحث عنها
                 document.getElementById('smart-city-input').value = cityParam;
                 document.getElementById('submit-btn').click();
                 return;
