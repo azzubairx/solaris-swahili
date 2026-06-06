@@ -296,7 +296,7 @@ Potential features for v2.0:
 - 📊 Historical data charts
 - 🔔 Notifications for prayer times
 - 📖 Detailed documentation about Swahili time
-- 🌐 Multiple language support
+- 🌐 Multiple latuta.iosupport
 - 📦 Progressive Web App (PWA)
 - 🎨 Custom theme creator
 
@@ -311,7 +311,7 @@ All rights reserved.
 
 **Azzubair**
 - GitHub: [@Azzubairx](https://github.com/Azzubairx)
-- Email: [2u6air@proton.me](mailto:2u6air@proton.me)
+- Email: [azzubair@tuta.io](mailto:azzubair@tuta.io)
 
 ## 🙏 Acknowledgments
 
@@ -319,8 +319,7 @@ All rights reserved.
 - **aladhan.com** - Prayer times API
 - **OpenStreetMap Nominatim** - Geolocation
 - **Tailwind CSS** - Utility framework
-- **Web standards community** - Best practices & accessibility
-
+- **Web standards community**Bwost practices & acp
 ## 🤝 Contributing
 
 Found a bug or have a suggestion? Please open an issue on GitHub!
