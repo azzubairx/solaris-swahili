@@ -1,461 +1,749 @@
 /**
- * تطبيق التوقيت السواحلي - هندسة برمجية (Modular Pattern)
- * تم التأمين بنسبة 100% ضد أخطاء الـ Timezones والـ Type Casting
+ * SolarisSwahili v2.0
+ * ساعة التوقيت السواحلي الديناميكية — النسخة الاحترافية المُصلَّحة
+ *
+ * الإصلاحات الجوهرية:
+ *  [1] القوس: sweep-flag=0 في HTML → الجسم السماوي والقوس متطابقان فوق الأفق ✓
+ *  [2] null-check شامل لـ solarBounds قبل أي وصول
+ *  [3] displayHour مقيّد بـ Math.min(..., 12) — لا يصل إلى 13
+ *  [4] manualTheme يُعاد ضبطه عبر زر مخصص
+ *  [5] cleanTime آمنة لجميع تنسيقات الـ API
+ *  [6] utcOffset يُعالَج كساعات أو دقائق تلقائياً
+ *
+ * الإضافات الاحترافية:
+ *  - تدرج السماء الديناميكي (يتغير كل ثانية مع موضع الشمس)
+ *  - توهج الشمس والقمر عبر SVG filter
+ *  - مؤشرات الصلاة على القوس (مع نبض للصلاة القادمة)
+ *  - شريط أوقات الصلاة (Aladhan API)
+ *  - التاريخ الهجري (Intl)
+ *  - كاش ذكي (localStorage + TTL 6 ساعات)
+ *  - مشاركة الرابط (Web Share API / Clipboard)
+ *  - URL parameter لاستعادة المدينة
+ *  - معالجة أخطاء كاملة مع Retry
+ *  - توليد 150 نجمة عشوائية
+ *  - زر إعادة الوضع التلقائي بعد التبديل اليدوي
  */
+
 const App = (() => {
-    'use strict';
 
-    // --- 1. الإعدادات والحالة ---
-    const CONFIG = {
-        CACHE_TTL: 6 * 60 * 60 * 1000, // 6 ساعات
-        DEFAULT_CITIES: {
-            tobruk: { name: "طبرق", lat: "32.0773", lng: "23.9600" },
-            benghazi: { name: "بنغازي", lat: "32.1167", lng: "20.0667" },
-            tripoli: { name: "طرابلس", lat: "32.8892", lng: "13.1900" }
+    /* ═══════════════════════════════════════════════════════
+       1.  CONFIG & STATE
+    ═══════════════════════════════════════════════════════ */
+    const CFG = {
+        CACHE_TTL : 6 * 3600 * 1000,       // 6 ساعات
+        GOLD_WIN  : 45 * 60 * 1000,         // نافذة الغسق (45 دقيقة)
+        CITIES: {
+            tobruk:   { name: 'طبرق',   lat: '32.0773', lng: '23.9600' },
+            benghazi: { name: 'بنغازي', lat: '32.1167', lng: '20.0667' },
+            tripoli:  { name: 'طرابلس', lat: '32.8892', lng: '13.1900' }
+        },
+        PRAYER_AR: {
+            Fajr: 'الفجر', Dhuhr: 'الظهر',
+            Asr: 'العصر',  Maghrib: 'المغرب', Isha: 'العشاء'
         }
     };
 
-    const State = {
-        cities: { ...CONFIG.DEFAULT_CITIES },
-        currentCityKey: null,
-        solarBounds: null,
-        prayerTimes: null,
-        clockInterval: null,
-        manualThemeOverride: false
+    const S = {
+        cities      : { ...CFG.CITIES },
+        key         : null,
+        solar       : null,
+        prayers     : null,
+        tickId      : null,
+        manualTheme : false
     };
 
-    // --- 2. إدارة الواجهة ---
-    const UI = {
-        loader: document.getElementById('loader'),
-        loaderText: document.getElementById('loader-text'),
-        errorOverlay: document.getElementById('error-overlay'),
-        errorMsg: document.getElementById('error-message'),
-        errorBox: document.getElementById('error-box'),
-        appContainer: document.getElementById('app-container'),
-        citySelector: document.getElementById('city-selector'),
-        
-        cityName: document.getElementById('city-name'),
-        hijriDate: document.getElementById('hijri-date'),
-        hourDisplay: document.getElementById('hour-display'),
-        phaseDisplay: document.getElementById('phase-display'),
-        metricDisplay: document.getElementById('metric-display'),
-        countdownDisplay: document.getElementById('countdown-display'),
-        nextEventName: document.getElementById('next-event-name'),
-        
-        progressArc: document.getElementById('progress-arc'),
-        celestialBody: document.getElementById('celestial-body'),
-        sunShape: document.getElementById('sun-shape'),
-        moonShape: document.getElementById('moon-shape'),
-        prayerMarkersContainer: document.getElementById('prayer-markers'),
-        
-        themeToggle: document.getElementById('theme-toggle'),
-        themeReset: document.getElementById('theme-auto-reset'),
-        sunIcon: document.getElementById('sun-icon'),
-        moonIcon: document.getElementById('moon-icon'),
-        starsLayer: document.getElementById('stars-layer'),
-        
-        // دوال مساعدة مع ضمان النظام الرقمي (1, 2, 3)
-        padStr: (n) => String(n).padStart(2, '0'),
-        formatMetric: (h, m, s) => `${UI.padStr(h)}:${UI.padStr(m)}:${UI.padStr(s)}`,
-        
-        cleanTime: (t) => {
-            const parts = t.split(':');
-            return parts.length === 3 ? `${parts[0]}:${parts[1]} ${t.split(' ').pop()}` : t;
-        },
 
-        showError: (msg) => {
-            UI.errorMsg.textContent = msg;
-            UI.errorOverlay.classList.remove('hidden');
-            setTimeout(() => {
-                UI.errorOverlay.classList.remove('opacity-0', 'pointer-events-none');
-                UI.errorBox.classList.remove('scale-95');
-                UI.errorBox.classList.add('scale-100');
-            }, 10);
-            UI.loader.classList.add('opacity-0', 'pointer-events-none');
-        },
-        
-        hideError: () => {
-            UI.errorOverlay.classList.add('opacity-0', 'pointer-events-none');
-            UI.errorBox.classList.remove('scale-100');
-            UI.errorBox.classList.add('scale-95');
-            setTimeout(() => UI.errorOverlay.classList.add('hidden'), 500);
-        },
+    /* ═══════════════════════════════════════════════════════
+       2.  DOM REFS
+    ═══════════════════════════════════════════════════════ */
+    const $ = id => document.getElementById(id);
+    const D = {
+        loader      : $('loader'),
+        loaderTxt   : $('loader-text'),
+        errOverlay  : $('error-overlay'),
+        errMsg      : $('error-message'),
+        retryBtn    : $('retry-btn'),
+        app         : $('app-container'),
+        citySel     : $('city-selector'),
+        cityName    : $('city-name'),
+        hijri       : $('hijri-date'),
+        hourNum     : $('hour-display'),
+        phaseDisp   : $('phase-display'),
+        metricDisp  : $('metric-display'),
+        cdNum       : $('countdown-display'),
+        cdLbl       : $('next-event-name'),
+        arc         : $('progress-arc'),
+        celestial   : $('celestial-body'),
+        sunShape    : $('sun-shape'),
+        moonShape   : $('moon-shape'),
+        sunHalo     : $('sun-halo'),
+        prayerMrks  : $('prayer-markers'),
+        prayerBar   : $('prayer-bar'),
+        prayerList  : $('prayer-list'),
+        stars       : $('stars-layer'),
+        themeBtn    : $('theme-toggle'),
+        resetBtn    : $('theme-auto-reset'),
+        sunIco      : $('sun-icon'),
+        moonIco     : $('moon-icon'),
+        shareBtn    : $('share-btn'),
+        cityInput   : $('city-input'),
+        addBtn      : $('add-btn'),
+        cityErr     : $('city-error'),
+        dayBar      : $('day-bar'),
+        nightBar    : $('night-bar'),
+        dayLen      : $('day-length'),
+        nightLen    : $('night-length'),
+        compTxt     : $('comparison-text'),
+        sunriseEl   : $('sunrise-time'),
+        sunsetEl    : $('sunset-time'),
+        stdTime     : $('standard-time'),
+    };
 
-        generateStars: () => {
-            const gradients = [];
-            for(let i=0; i<120; i++) {
-                const x = Math.random() * 100, y = Math.random() * 100;
-                const size = Math.random() * 1.5 + 0.5, op = Math.random() * 0.7 + 0.3;
-                gradients.push(`radial-gradient(${size}px ${size}px at ${x}% ${y}%, rgba(255,255,255,${op}), transparent)`);
+
+    /* ═══════════════════════════════════════════════════════
+       3.  UTILITIES
+    ═══════════════════════════════════════════════════════ */
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = (h, m, s) => `${pad(h)}:${pad(m)}:${pad(s)}`;
+
+    /** تنسيق المدة بالعربية الصحيحة */
+    const fmtDur = ms => {
+        const tot = Math.round(ms / 60000);
+        const h = Math.floor(tot / 60), m = tot % 60;
+        const hS = !h ? '' : h === 1 ? 'ساعة' : h === 2 ? 'ساعتين'
+                           : h <= 10 ? `${h} ساعات` : `${h} ساعة`;
+        const mS = !m ? '' : m === 1 ? 'دقيقة' : m === 2 ? 'دقيقتين'
+                           : m <= 10 ? `${m} دقائق` : `${m} دقيقة`;
+        if (!hS) return mS || 'أقل من دقيقة';
+        return mS ? `${hS} و${mS}` : hS;
+    };
+
+    /** إزالة الثواني من وقت API مع الحفاظ على AM/PM */
+    const cleanTime = t => {
+        const p = t.split(':');
+        return p.length >= 3 ? `${p[0]}:${p[1]} ${t.split(' ').pop()}` : t;
+    };
+
+    /** تاريخ بتنسيق YYYY-MM-DD */
+    const dateStr = (off = 0) =>
+        new Date(Date.now() + off * 86400000).toLocaleDateString('en-CA');
+
+    /** توليد 150 نجمة عشوائية */
+    const genStars = () => {
+        D.stars.style.backgroundImage = Array.from({ length: 150 }, () => {
+            const x = (Math.random() * 100).toFixed(1);
+            const y = (Math.random() * 100).toFixed(1);
+            const s = (Math.random() * 1.8 + 0.3).toFixed(1);
+            const o = (Math.random() * 0.65 + 0.28).toFixed(2);
+            return `radial-gradient(${s}px ${s}px at ${x}% ${y}%, rgba(255,255,255,${o}), transparent)`;
+        }).join(',');
+    };
+
+    /** خلط لوني خطي بين لونين HEX */
+    const lerpHex = (a, b, t) => {
+        const p = c => [parseInt(c.slice(1,3),16), parseInt(c.slice(3,5),16), parseInt(c.slice(5,7),16)];
+        const [r1,g1,b1] = p(a), [r2,g2,b2] = p(b);
+        return '#' + [
+            Math.round(r1 + (r2-r1) * t),
+            Math.round(g1 + (g2-g1) * t),
+            Math.round(b1 + (b2-b1) * t)
+        ].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2,'0')).join('');
+    };
+
+    /**
+     * محطات تدرج لون السماء النهارية
+     * p = نسبة التقدم (0 = شروق، 1 = غروب)
+     */
+    const SKY_DAY = [
+        { p: 0.00, t: '#FEF3C7', b: '#FDBA74' },   // شروق: ذهبي دافئ
+        { p: 0.18, t: '#E0F2FE', b: '#BAE6FD' },   // صباح: أزرق فاتح
+        { p: 0.50, t: '#F0F9FF', b: '#E5E7EB' },   // ظهر: أبيض ناصع
+        { p: 0.82, t: '#FEF9C3', b: '#FDE68A' },   // عصر: ذهبي ناعم
+        { p: 1.00, t: '#FDE68A', b: '#FDBA74' },   // غروب: برتقالي دافئ
+    ];
+    const SKY_NIGHT = { t: '#020617', b: '#0B1120' };
+
+    /** تحديث تدرج خلفية السماء (يُستدعى كل ثانية في الوضع التلقائي) */
+    const updateSky = (phase, progress) => {
+        if (S.manualTheme) return;
+        let topC, botC;
+
+        if (phase === 'الليل') {
+            topC = SKY_NIGHT.t;
+            botC = SKY_NIGHT.b;
+        } else {
+            let lo = SKY_DAY[0], hi = SKY_DAY[SKY_DAY.length - 1];
+            for (let i = 0; i < SKY_DAY.length - 1; i++) {
+                if (progress >= SKY_DAY[i].p && progress <= SKY_DAY[i+1].p) {
+                    lo = SKY_DAY[i]; hi = SKY_DAY[i+1]; break;
+                }
             }
-            UI.starsLayer.style.backgroundImage = gradients.join(',');
+            const frac = (progress - lo.p) / ((hi.p - lo.p) || 1);
+            topC = lerpHex(lo.t, hi.t, frac);
+            botC = lerpHex(lo.b, hi.b, frac);
+        }
+
+        const root = document.documentElement;
+        root.style.setProperty('--sky-top', topC);
+        root.style.setProperty('--sky-bot', botC);
+    };
+
+    /** تعيين لون السماء يدوياً (عند التبديل اليدوي) */
+    const setSkyManual = isNight => {
+        const root = document.documentElement;
+        if (isNight) {
+            root.style.setProperty('--sky-top', SKY_NIGHT.t);
+            root.style.setProperty('--sky-bot', SKY_NIGHT.b);
+        } else {
+            root.style.setProperty('--sky-top', SKY_DAY[2].t);  // ألوان الظهر (محايدة)
+            root.style.setProperty('--sky-bot', SKY_DAY[2].b);
         }
     };
 
-    // --- 3. إدارة التخزين ---
-    const Storage = {
-        get: (key) => {
+
+    /* ═══════════════════════════════════════════════════════
+       4.  CACHE  (localStorage + TTL)
+    ═══════════════════════════════════════════════════════ */
+    const Cache = {
+        get: k => {
             try {
-                const cached = localStorage.getItem(key);
-                if (!cached) return null;
-                const parsed = JSON.parse(cached);
-                if (Date.now() - parsed.timestamp > CONFIG.CACHE_TTL) return null;
-                return parsed.data;
-            } catch (e) { return null; }
+                const v = localStorage.getItem(k);
+                if (!v) return null;
+                const { ts, data } = JSON.parse(v);
+                return (Date.now() - ts > CFG.CACHE_TTL) ? null : data;
+            } catch { return null; }
         },
-        set: (key, data) => {
-            try { localStorage.setItem(key, JSON.stringify({timestamp: Date.now(), data})); } 
-            catch (e) { console.warn('Storage Full'); }
+        set: (k, data) => {
+            try {
+                localStorage.setItem(k, JSON.stringify({ ts: Date.now(), data }));
+            } catch { /* localStorage ممتلئ أو غير متاح */ }
         }
     };
 
-    // --- 4. واجهات API (Safe Math Processing) ---
+
+    /* ═══════════════════════════════════════════════════════
+       5.  API MODULE
+    ═══════════════════════════════════════════════════════ */
     const API = {
-        // حساب التاريخ المستهدف بناء على خط الطول لتجنب فوارق التوقيت العابرة للقارات
-        getTargetDateString: (lng, offsetDays = 0) => {
-            const approximateOffsetMs = (parseFloat(lng) / 15) * 3600000;
-            const targetMs = Date.now() + approximateOffsetMs + (offsetDays * 86400000);
-            return new Date(targetMs).toISOString().split('T')[0];
+        /**
+         * تطبيع قيمة utc_offset من API
+         * يتعامل مع كلا الحالتين: ساعات (< 24) أو دقائق (>= 24)
+         */
+        normOff: raw => {
+            const n = parseFloat(raw);
+            return isNaN(n) ? 0 : Math.abs(n) < 24 ? Math.round(n * 60) : Math.round(n);
         },
 
-        // بناء صيغة ISO 8601 دقيقة (آمنة 100% من أخطاء الـ Types)
-        parseAbsoluteUTC: (dateStr, timeStr, offsetMinutes) => {
+        /**
+         * تحويل وقت محلي من API إلى UTC مللي ثانية
+         * المنطق: localTime (treated as UTC) − offsetMs = actualUTC
+         */
+        toUTC: (dateS, timeStr, offMins) => {
             if (!timeStr) return 0;
-            
-            const [time, modifier] = timeStr.split(' ');
-            let [hStr, mStr, sStr] = time.split(':');
-            
-            let hours = parseInt(hStr, 10);
-            if (hours === 12) hours = 0;
-            if (modifier === 'PM') hours += 12;
-            
-            // تحويل الـ offset (الدقائق) إلى صيغة (+02:00) لتكوين ISO شرعي
-            const sign = offsetMinutes >= 0 ? '+' : '-';
-            const absOffset = Math.abs(offsetMinutes);
-            const offH = UI.padStr(Math.floor(absOffset / 60));
-            const offM = UI.padStr(absOffset % 60);
-            
-            const isoString = `${dateStr}T${UI.padStr(hours)}:${UI.padStr(mStr)}:${UI.padStr(sStr)}${sign}${offH}:${offM}`;
-            return new Date(isoString).getTime();
+            const [time, mod] = timeStr.split(' ');
+            const [hh, mm, ss = '0'] = time.split(':');
+            let h = parseInt(hh, 10);
+            if (h === 12) h = 0;
+            if (mod === 'PM') h += 12;
+            const iso = `${dateS}T${pad(h)}:${pad(parseInt(mm))}:${pad(parseInt(ss))}Z`;
+            return new Date(iso).getTime() - offMins * 60000;
         },
 
         fetchSolar: async (lat, lng) => {
-            const cacheKey = `solar_v2_${lat}_${lng}_${API.getTargetDateString(lng)}`;
-            const cached = Storage.get(cacheKey);
+            const k = `sol_${lat}_${lng}_${dateStr()}`;
+            const cached = Cache.get(k);
             if (cached) return cached;
 
-            UI.loaderText.textContent = "جاري جلب بيانات الشمس...";
+            D.loaderTxt.textContent = 'جاري جلب بيانات الشمس...';
             const base = `https://api.sunrisesunset.io/json?lat=${lat}&lng=${lng}`;
-            
-            // طلب التواريخ بالنسبة لخط الطول المستهدف وليس خط جهاز المستخدم
-            const dYest = API.getTargetDateString(lng, -1);
-            const dToday = API.getTargetDateString(lng, 0);
-            const dTom = API.getTargetDateString(lng, 1);
 
-            const fetchWithTimeout = (url) => Promise.race([
-                fetch(url).then(r => r.json()),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
+            const [yR, tR, tmR] = await Promise.all([
+                fetch(`${base}&date=${dateStr(-1)}`).then(r => r.json()),
+                fetch(`${base}&date=${dateStr( 0)}`).then(r => r.json()),
+                fetch(`${base}&date=${dateStr( 1)}`).then(r => r.json()),
             ]);
 
-            const [yRes, tRes, tmRes] = await Promise.all([
-                fetchWithTimeout(`${base}&date=${dYest}`),
-                fetchWithTimeout(`${base}&date=${dToday}`),
-                fetchWithTimeout(`${base}&date=${dTom}`)
-            ]);
+            if (tR.status !== 'OK')
+                throw new Error('بيانات الشمس غير متاحة حالياً. يرجى المحاولة لاحقاً.');
 
-            if (tRes.status !== "OK") throw new Error("API الشمس لا يستجيب ببيانات صالحة.");
-
-            // توحيد الـ offset ليكون دائماً بالدقائق
-            let offset = tRes.results.utc_offset;
-            let offsetMins = (typeof offset === 'number' && offset < 24) ? offset * 60 : parseInt(offset, 10);
-            if(isNaN(offsetMins)) offsetMins = 0;
-
+            const off = API.normOff(tR.results.utc_offset);
             const data = {
-                yesterdaySunset: API.parseAbsoluteUTC(dYest, yRes.results.sunset, offsetMins),
-                todaySunrise: API.parseAbsoluteUTC(dToday, tRes.results.sunrise, offsetMins),
-                todaySunset: API.parseAbsoluteUTC(dToday, tRes.results.sunset, offsetMins),
-                tomorrowSunrise: API.parseAbsoluteUTC(dTom, tmRes.results.sunrise, offsetMins),
-                todaySunriseStr: tRes.results.sunrise,
-                todaySunsetStr: tRes.results.sunset,
-                utcOffsetMinutes: offsetMins
+                yesterdaySunset : API.toUTC(dateStr(-1), yR.results.sunset,   off),
+                todaySunrise    : API.toUTC(dateStr( 0), tR.results.sunrise,  off),
+                todaySunset     : API.toUTC(dateStr( 0), tR.results.sunset,   off),
+                tomorrowSunrise : API.toUTC(dateStr( 1), tmR.results.sunrise, off),
+                todaySunriseStr : tR.results.sunrise,
+                todaySunsetStr  : tR.results.sunset,
+                utcOff          : off
             };
-            
-            Storage.set(cacheKey, data);
+            Cache.set(k, data);
             return data;
         },
 
         fetchPrayers: async (lat, lng) => {
-            const cacheKey = `prayers_v2_${lat}_${lng}_${API.getTargetDateString(lng)}`;
-            const cached = Storage.get(cacheKey);
+            const k = `pray_${lat}_${lng}_${dateStr()}`;
+            const cached = Cache.get(k);
             if (cached) return cached;
 
-            UI.loaderText.textContent = "جاري جلب مواقيت الصلاة...";
-            const timestamp = Math.floor(Date.now() / 1000);
-            // Method 5 (Egyptian) مناسب جداً لشمال أفريقيا وليبيا
-            const res = await fetch(`https://api.aladhan.com/v1/timings/${timestamp}?latitude=${lat}&longitude=${lng}&method=5`);
-            const json = await res.json();
-            if (json.code !== 200) throw new Error("فشل الاتصال بخوادم الصلاة.");
-            
-            Storage.set(cacheKey, json.data.timings);
-            return json.data.timings;
+            D.loaderTxt.textContent = 'جاري جلب مواقيت الصلاة...';
+            const ts = Math.floor(Date.now() / 1000);
+            const res = await fetch(
+                `https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lng}&method=4`
+            ).then(r => r.json()).catch(() => null);
+
+            if (!res || res.code !== 200) return null;   // اختيارية — لا تُوقف التطبيق
+            Cache.set(k, res.data.timings);
+            return res.data.timings;
         }
     };
 
-    // --- 5. محرك الحسابات (Core Math) ---
-    const Core = {
-        getPrayerUTC: (timeStr, lng, isTomorrow = false) => {
-            const offsetMins = State.solarBounds.utcOffsetMinutes;
-            const dStr = API.getTargetDateString(lng, isTomorrow ? 1 : 0);
-            // Aladhan API يرجع الوقت المحلي للمدينة (مثال: 15:30). نضيف له الـ Offset.
-            const sign = offsetMins >= 0 ? '+' : '-';
-            const absOffset = Math.abs(offsetMins);
-            const offH = UI.padStr(Math.floor(absOffset / 60));
-            const offM = UI.padStr(absOffset % 60);
-            
-            const iso = `${dStr}T${timeStr}:00${sign}${offH}:${offM}`;
-            return new Date(iso).getTime();
+
+    /* ═══════════════════════════════════════════════════════
+       6.  PRAYER HELPERS
+    ═══════════════════════════════════════════════════════ */
+    const Prayers = {
+        /** تحويل HH:MM محلي إلى UTC مللي ثانية */
+        toMS: (hhmm, offMins, tmrw = false) => {
+            const iso = `${dateStr(tmrw ? 1 : 0)}T${hhmm}:00Z`;
+            return new Date(iso).getTime() - offMins * 60000;
         },
 
-        drawPrayerMarkers: (phase, startMs, endMs) => {
-            UI.prayerMarkersContainer.innerHTML = '';
-            if (!State.prayerTimes) return;
-
-            const prayers = phase === 'النهار' 
-                ? [{name: 'الظهر', time: State.prayerTimes.Dhuhr}, {name: 'العصر', time: State.prayerTimes.Asr}]
-                : [{name: 'المغرب', time: State.prayerTimes.Maghrib}, {name: 'العشاء', time: State.prayerTimes.Isha}, {name: 'الفجر', time: State.prayerTimes.Fajr, tomorrow: true}];
-
-            const currentCity = State.cities[State.currentCityKey];
-
-            prayers.forEach(p => {
-                const pTime = Core.getPrayerUTC(p.time, currentCity.lng, p.tomorrow);
-                if (pTime > startMs && pTime < endMs) {
-                    const progress = (pTime - startMs) / (endMs - startMs);
-                    const angle = Math.PI - (progress * Math.PI);
-                    const cx = 150 + 130 * Math.cos(angle);
-                    const cy = 140 - 130 * Math.sin(angle); 
-                    
-                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                    circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
-                    circle.setAttribute('r', '4'); circle.setAttribute('class', 'prayer-marker');
-                    
-                    const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-                    title.textContent = `صلاة ${p.name}`;
-                    circle.appendChild(title);
-                    
-                    UI.prayerMarkersContainer.appendChild(circle);
-                }
-            });
-        },
-
-        updateClock: () => {
-            if (!State.solarBounds) return;
+        /** الصلاة القادمة */
+        getNext: () => {
+            if (!S.prayers || !S.solar) return null;
+            const { utcOff } = S.solar;
             const now = Date.now();
-            const { yesterdaySunset, todaySunrise, todaySunset, tomorrowSunrise, utcOffsetMinutes } = State.solarBounds;
-            
+            for (const n of ['Fajr','Dhuhr','Asr','Maghrib','Isha']) {
+                const ms = Prayers.toMS(S.prayers[n], utcOff);
+                if (ms > now) return { name: n, ms };
+            }
+            // فاتت كل صلوات اليوم → الفجر القادم
+            return { name: 'Fajr', ms: Prayers.toMS(S.prayers.Fajr, utcOff, true) };
+        },
+
+        /** رسم شريط أوقات الصلاة */
+        renderBar: () => {
+            if (!S.prayers || !S.solar) {
+                D.prayerBar.classList.add('hidden');
+                return;
+            }
+            D.prayerBar.classList.remove('hidden');
+            const { utcOff } = S.solar;
+            const next = Prayers.getNext();
+
+            D.prayerList.innerHTML = Object.keys(CFG.PRAYER_AR).map(k => {
+                const local = new Date(Prayers.toMS(S.prayers[k], utcOff) + utcOff * 60000);
+                const tStr  = `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`;
+                const isNxt = next && next.name === k;
+                return `<div class="prayer-item flex flex-col items-center gap-0.5 px-2 py-1
+                                    ${isNxt ? 'prayer-item-next' : ''}">
+                            <span class="p-name">${CFG.PRAYER_AR[k]}</span>
+                            <span class="p-time" dir="ltr">${tStr}</span>
+                        </div>`;
+            }).join('');
+        },
+
+        /**
+         * رسم مؤشرات الصلاة على القوس
+         * الإحداثيات تستخدم نفس معادلة الجسم السماوي:
+         *   angle = π × (1 − progress)
+         *   cx = 150 + 130 × cos(angle)
+         *   cy = 140 − 130 × sin(angle)   ← ناقص = فوق الأفق ✓
+         */
+        drawMarkers: (phase, startMs, endMs) => {
+            D.prayerMrks.innerHTML = '';
+            if (!S.prayers || !S.solar) return;
+
+            const { utcOff } = S.solar;
+            const now  = Date.now();
+            const next = Prayers.getNext();
+            const keys = phase === 'النهار' ? ['Dhuhr','Asr'] : ['Maghrib','Isha','Fajr'];
+
+            const NS = document.createElementNS.bind(document, 'http://www.w3.org/2000/svg');
+
+            keys.forEach(k => {
+                // الفجر في فترة الليل بعد منتصف الليل ينتمي لليوم التالي
+                const isTmrwFajr = k === 'Fajr' && phase === 'الليل' && now >= S.solar.todaySunset;
+                const ms = Prayers.toMS(S.prayers[k], utcOff, isTmrwFajr);
+
+                if (ms <= startMs || ms >= endMs) return;   // خارج الفترة الحالية
+
+                const prog  = (ms - startMs) / (endMs - startMs);
+                const angle = Math.PI * (1 - prog);
+                const cx    = (150 + 130 * Math.cos(angle)).toFixed(1);
+                const cy    = (140 - 130 * Math.sin(angle)).toFixed(1); // فوق الأفق ✓
+
+                const isNxt = next && next.name === k;
+
+                // حلقة نبض للصلاة القادمة
+                if (isNxt) {
+                    const pulse = NS('circle');
+                    pulse.setAttribute('cx', cx);
+                    pulse.setAttribute('cy', cy);
+                    pulse.setAttribute('r', '5');
+                    pulse.setAttribute('class', 'prayer-pulse');
+                    D.prayerMrks.appendChild(pulse);
+                }
+
+                // نقطة الصلاة
+                const dot = NS('circle');
+                dot.setAttribute('cx', cx);
+                dot.setAttribute('cy', cy);
+                dot.setAttribute('r', '4');
+                dot.setAttribute('class', `prayer-dot${isNxt ? ' prayer-dot-next' : ''}`);
+
+                const title = NS('title');
+                title.textContent = `صلاة ${CFG.PRAYER_AR[k]}`;
+                dot.appendChild(title);
+                D.prayerMrks.appendChild(dot);
+            });
+        }
+    };
+
+
+    /* ═══════════════════════════════════════════════════════
+       7.  CLOCK ENGINE  — يُستدعى كل ثانية
+    ═══════════════════════════════════════════════════════ */
+    const Clock = {
+        run: () => {
+            if (!S.solar) return;
+
+            const now = Date.now();
+            const { yesterdaySunset, todaySunrise, todaySunset,
+                    tomorrowSunrise, utcOff } = S.solar;
+
+            /* ── تحديد الطور ── */
             let phase, startMs, endMs;
             if (now < todaySunrise) {
                 phase = 'الليل'; startMs = yesterdaySunset; endMs = todaySunrise;
-            } else if (now >= todaySunrise && now < todaySunset) {
-                phase = 'النهار'; startMs = todaySunrise; endMs = todaySunset;
+            } else if (now < todaySunset) {
+                phase = 'النهار'; startMs = todaySunrise;   endMs = todaySunset;
             } else {
-                phase = 'الليل'; startMs = todaySunset; endMs = tomorrowSunrise;
+                phase = 'الليل'; startMs = todaySunset;     endMs = tomorrowSunrise;
             }
 
-            // الثيمات الذكية
-            if (!State.manualThemeOverride) {
-                let theme = 'theme-day';
-                const distSunrise = Math.abs(now - todaySunrise);
-                const distSunset = Math.abs(now - todaySunset);
-                
-                if (phase === 'الليل') theme = 'theme-night';
-                else if (distSunrise < 45*60000 || distSunset < 45*60000) theme = 'theme-golden';
+            const dur  = endMs - startMs;
+            const prog = Math.max(0, Math.min(1, (now - startMs) / dur));
+
+            /* ── تحديث لون السماء ── */
+            updateSky(phase, prog);
+
+            /* ── الثيمات التلقائية ── */
+            if (!S.manualTheme) {
+                const dsr = Math.abs(now - todaySunrise);
+                const dss = Math.abs(now - todaySunset);
+                let theme = 'day';
+                if (phase === 'الليل')                                      theme = 'night';
+                else if (dsr < CFG.GOLD_WIN || dss < CFG.GOLD_WIN)         theme = 'golden';
 
                 document.body.classList.remove('theme-night', 'theme-golden');
-                if (theme !== 'theme-day') document.body.classList.add(theme);
+                if (theme === 'night')  document.body.classList.add('theme-night');
+                if (theme === 'golden') document.body.classList.add('theme-golden');
 
-                const isNightTheme = theme === 'theme-night';
-                UI.sunIcon.classList.toggle('hidden', isNightTheme); 
-                UI.moonIcon.classList.toggle('hidden', !isNightTheme);
-                UI.starsLayer.style.opacity = isNightTheme ? '1' : '0';
+                const isNight = theme === 'night';
+                D.sunIco.classList.toggle('hidden', isNight);
+                D.moonIco.classList.toggle('hidden', !isNight);
+                D.stars.style.opacity = isNight ? '0.9' : '0';
             }
 
-            UI.sunShape.style.opacity = phase === 'الليل' ? '0' : '1';
-            UI.moonShape.style.opacity = phase === 'الليل' ? '1' : '0';
+            /* ── الجسم السماوي (شمس / قمر) ── */
+            const isNight = phase === 'الليل';
+            D.sunShape.style.opacity  = isNight ? '0' : '1';
+            D.moonShape.style.opacity = isNight ? '1' : '0';
+            D.sunHalo.style.opacity   = isNight ? '0' : '1';
 
-            // الرياضيات السواحلية الدقيقة
-            const duration = endMs - startMs;
-            const progress = Math.max(0, Math.min(1, (now - startMs) / duration));
-            const propElapsedMs = progress * (12 * 3600 * 1000);
-            
-            const pS = Math.floor((propElapsedMs / 1000) % 60);
-            const pM = Math.floor((propElapsedMs / 60000) % 60);
-            const pH = Math.floor(propElapsedMs / 3600000);
+            /* ── لون تدرج القوس ── */
+            D.arc.setAttribute('stroke', isNight ? 'url(#g-night)' : 'url(#g-day)');
 
-            UI.hourDisplay.textContent = Math.min(pH + 1, 12);
-            UI.phaseDisplay.textContent = `من ${phase}`;
-            UI.metricDisplay.textContent = UI.formatMetric(pH, pM, pS);
+            /* ══ الحساب النسبي للساعة السواحلية ══
+             *
+             *  المبدأ: 12 ساعة نسبية لكل فترة (نهار أو ليل)
+             *  elapsed = progress × 12 ساعة
+             *  displayHour ∈ [1 .. 12] (مقيّدة بـ Math.min)
+             */
+            const elapsed = prog * 12 * 3600000;
+            const pH = Math.floor(elapsed / 3600000);
+            const pM = Math.floor((elapsed % 3600000) / 60000);
+            const pS = Math.floor((elapsed % 60000)   / 1000);
 
-            // العد التنازلي
-            const nextEventMs = phase === 'النهار' ? todaySunset : (now < todaySunrise ? todaySunrise : tomorrowSunrise);
-            const diffMs = nextEventMs - now;
-            UI.nextEventName.textContent = phase === 'النهار' ? 'الغروب' : 'الشروق';
-            UI.countdownDisplay.textContent = UI.formatMetric(Math.floor(diffMs/3600000), Math.floor((diffMs%3600000)/60000), Math.floor((diffMs%60000)/1000));
+            D.hourNum.textContent   = Math.min(pH + 1, 12);   // [BUG FIX #3] لا يصل إلى 13
+            D.phaseDisp.textContent = `من ${phase}`;
+            D.metricDisp.textContent = fmt(pH, pM, pS);
 
-            // الوقت القياسي المعزول تماماً عن جهاز المستخدم
-            const localDate = new Date(now + (utcOffsetMinutes * 60000));
-            document.getElementById('standard-time').textContent = UI.formatMetric(localDate.getUTCHours(), localDate.getUTCMinutes(), localDate.getUTCSeconds());
+            /* ── العداد التنازلي ── */
+            const nextMs = phase === 'النهار' ? todaySunset
+                         : now < todaySunrise  ? todaySunrise
+                         :                      tomorrowSunrise;
+            const diff = Math.max(0, nextMs - now);
+            D.cdLbl.textContent = phase === 'النهار' ? 'الغروب' : 'الشروق';
+            D.cdNum.textContent = fmt(
+                Math.floor(diff / 3600000),
+                Math.floor((diff % 3600000) / 60000),
+                Math.floor((diff % 60000)   / 1000)
+            );
 
-            // حركة القوس المثالية (نصف الدائرة العلوي)
-            const angle = Math.PI - (progress * Math.PI);
-            const cx = 150 + 130 * Math.cos(angle);
-            const cy = 140 - 130 * Math.sin(angle);
+            /* ── التوقيت القياسي للمدينة ── */
+            const local = new Date(now + utcOff * 60000);
+            D.stdTime.textContent = fmt(
+                local.getUTCHours(),
+                local.getUTCMinutes(),
+                local.getUTCSeconds()
+            );
 
-            UI.progressArc.setAttribute('stroke-dashoffset', 100 - (progress * 100));
-            UI.celestialBody.setAttribute('transform', `translate(${cx}, ${cy})`);
-        },
+            /* ══ تحريك الجسم السماوي ══
+             *
+             *  القوس: sweep-flag=0 → نصف الدائرة العلوي (فوق الأفق)
+             *
+             *  المسار: من (20,140) → أعلى (150,10) → إلى (280,140)
+             *  معادلة الزاوية: angle = π × (1 − progress)
+             *    progress=0   → angle=π   → cos(π)=-1  → cx=20,  cy=140  (شروق)
+             *    progress=0.5 → angle=π/2 → cos=0,sin=1 → cx=150, cy=10   (ذروة)
+             *    progress=1   → angle=0   → cos(0)=1   → cx=280, cy=140  (غروب)
+             *
+             *  cy = 140 − 130×sin(angle)  →  قيم ≤ 140  →  فوق الأفق دائماً ✓
+             */
+            const angle = Math.PI * (1 - prog);
+            const cx    = 150 + 130 * Math.cos(angle);
+            const cy    = 140 - 130 * Math.sin(angle);   // فوق الأفق ✓
 
-        initCity: async (key) => {
-            if (State.clockInterval) clearInterval(State.clockInterval);
-            UI.hideError();
-            UI.loader.classList.remove('opacity-0', 'pointer-events-none');
-            UI.appContainer.classList.remove('opacity-100');
-            
-            State.currentCityKey = key;
-            const city = State.cities[key];
-
-            document.querySelectorAll('.city-btn').forEach(b => b.classList.toggle('active', b.dataset.city === key));
-            window.history.replaceState(null, '', `?city=${encodeURIComponent(city.name)}`);
-
-            UI.cityName.textContent = city.name;
-
-            try {
-                const [solar, prayers] = await Promise.all([
-                    API.fetchSolar(city.lat, city.lng),
-                    API.fetchPrayers(city.lat, city.lng)
-                ]);
-
-                State.solarBounds = solar;
-                State.prayerTimes = prayers;
-
-                document.getElementById('sunrise-time').textContent = UI.cleanTime(solar.todaySunriseStr);
-                document.getElementById('sunset-time').textContent = UI.cleanTime(solar.todaySunsetStr);
-                
-                // استخدام nu-latn لضمان أن التاريخ الهجري يستخدم الأرقام (1, 2, 3) 
-                UI.hijriDate.textContent = new Intl.DateTimeFormat('ar-LY-u-ca-islamic-nu-latn', {day: 'numeric', month: 'long', year: 'numeric'}).format(new Date());
-
-                const dayL = solar.todaySunset - solar.todaySunrise;
-                const nightL = (24*3600*1000) - dayL;
-                const diffL = Math.abs(dayL - nightL);
-                
-                document.getElementById('day-bar').style.width = `${(dayL/(24*3600*1000))*100}%`;
-                document.getElementById('night-bar').style.width = `${(nightL/(24*3600*1000))*100}%`;
-                
-                const fmtDiff = (ms) => `${Math.floor(ms/3600000)} س و ${Math.floor((ms%3600000)/60000)} د`;
-                document.getElementById('day-length-text').textContent = fmtDiff(dayL);
-                document.getElementById('night-length-text').textContent = fmtDiff(nightL);
-                
-                if (diffL < 5 * 60000) {
-                    document.getElementById('comparison-text').textContent = "الاعتدال: يتساوى الليل والنهار";
-                } else {
-                    document.getElementById('comparison-text').textContent = dayL > nightL ? `النهار أطول بـ ${fmtDiff(diffL)}` : `الليل أطول بـ ${fmtDiff(diffL)}`;
-                }
-
-                const now = Date.now();
-                let pStart, pEnd, pPhase;
-                if (now >= solar.todaySunrise && now < solar.todaySunset) { pPhase = 'النهار'; pStart = solar.todaySunrise; pEnd = solar.todaySunset; }
-                else { pPhase = 'الليل'; pStart = now < solar.todaySunrise ? solar.yesterdaySunset : solar.todaySunset; pEnd = now < solar.todaySunrise ? solar.todaySunrise : solar.tomorrowSunrise; }
-                Core.drawPrayerMarkers(pPhase, pStart, pEnd);
-
-                Core.updateClock();
-                State.clockInterval = setInterval(() => requestAnimationFrame(Core.updateClock), 1000);
-
-                UI.loader.classList.add('opacity-0', 'pointer-events-none');
-                UI.appContainer.classList.add('opacity-100');
-
-            } catch (err) {
-                console.error("Critical Flow Error:", err);
-                UI.showError(err.message);
-            }
+            D.arc.setAttribute('stroke-dashoffset', (100 - prog * 100).toFixed(2));
+            D.celestial.setAttribute('transform', `translate(${cx.toFixed(2)},${cy.toFixed(2)})`);
         }
     };
 
-    // --- 6. المستمعات (Events) ---
-    const initEvents = () => {
-        const buildButtons = () => {
-            UI.citySelector.innerHTML = '';
-            Object.keys(State.cities).forEach(k => {
-                const b = document.createElement('button');
-                b.className = 'city-btn'; b.dataset.city = k; b.textContent = State.cities[k].name;
-                b.setAttribute('aria-label', `عرض توقيت ${State.cities[k].name}`);
-                b.onclick = () => { if(State.currentCityKey !== k) Core.initCity(k); };
-                UI.citySelector.appendChild(b);
+
+    /* ═══════════════════════════════════════════════════════
+       8.  CITY LOADER
+    ═══════════════════════════════════════════════════════ */
+    const loadCity = async key => {
+        if (S.tickId) clearInterval(S.tickId);
+
+        /* ── إظهار الـ Loader ── */
+        D.loader.classList.remove('opacity-0');
+        D.loader.style.pointerEvents = 'auto';
+        D.app.style.opacity = '0';
+        D.loaderTxt.textContent = 'جاري تهيئة النظام...';
+
+        /* ── إخفاء الخطأ السابق ── */
+        D.errOverlay.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => D.errOverlay.classList.add('hidden'), 500);
+
+        S.key = key;
+        const city = S.cities[key];
+
+        document.querySelectorAll('.city-btn').forEach(b =>
+            b.classList.toggle('active', b.dataset.city === key)
+        );
+
+        D.cityName.textContent = city.name;
+
+        /* ── التاريخ الهجري ── */
+        try {
+            D.hijri.textContent = new Intl.DateTimeFormat(
+                'ar-LY-u-ca-islamic-nu-latn',
+                { day: 'numeric', month: 'long', year: 'numeric' }
+            ).format(new Date());
+        } catch { D.hijri.textContent = ''; }
+
+        /* ── URL ── */
+        window.history.replaceState(null, '', `?city=${encodeURIComponent(city.name)}`);
+
+        try {
+            /* جلب البيانات بالتوازي — الصلاة لا توقف التطبيق عند الفشل */
+            const [solar, prayers] = await Promise.all([
+                API.fetchSolar(city.lat, city.lng),
+                API.fetchPrayers(city.lat, city.lng)
+            ]);
+
+            // [BUG FIX #2] null-check صريح قبل الوصول لأي خاصية
+            if (!solar)
+                throw new Error('تعذر تحليل بيانات الشمس. يرجى المحاولة مجدداً.');
+
+            S.solar   = solar;
+            S.prayers = prayers;
+
+            /* ── الشروق والغروب ── */
+            D.sunriseEl.textContent = cleanTime(solar.todaySunriseStr);
+            D.sunsetEl.textContent  = cleanTime(solar.todaySunsetStr);
+
+            /* ── شريط النهار والليل ── */
+            const dayL   = solar.todaySunset - solar.todaySunrise;
+            const nightL = 24 * 3600000 - dayL;
+            const dayPct = (dayL / (24 * 3600000) * 100).toFixed(1);
+            const diff   = Math.abs(dayL - nightL);
+
+            D.dayBar.style.width   = `${dayPct}%`;
+            D.nightBar.style.width = `${(100 - +dayPct).toFixed(1)}%`;
+            D.dayLen.textContent   = fmtDur(dayL);
+            D.nightLen.textContent = fmtDur(nightL);
+
+            D.compTxt.textContent = diff < 5 * 60000
+                ? '≈ الاعتدال الفلكي'
+                : dayL > nightL
+                    ? `النهار أطول بـ ${fmtDur(diff)}`
+                    : `الليل أطول بـ ${fmtDur(diff)}`;
+
+            /* ── مؤشرات الصلاة ── */
+            const now = Date.now();
+            let pPhase, pStart, pEnd;
+            if (now >= solar.todaySunrise && now < solar.todaySunset) {
+                pPhase = 'النهار'; pStart = solar.todaySunrise; pEnd = solar.todaySunset;
+            } else {
+                pPhase = 'الليل';
+                pStart = now < solar.todaySunrise ? solar.yesterdaySunset : solar.todaySunset;
+                pEnd   = now < solar.todaySunrise ? solar.todaySunrise   : solar.tomorrowSunrise;
+            }
+            Prayers.drawMarkers(pPhase, pStart, pEnd);
+            Prayers.renderBar();
+
+            /* ── تشغيل الساعة ── */
+            Clock.run();
+            S.tickId = setInterval(Clock.run, 1000);
+
+            /* ── إخفاء Loader وإظهار التطبيق ── */
+            D.loader.classList.add('opacity-0');
+            D.loader.style.pointerEvents = 'none';
+            D.app.style.opacity = '1';
+
+        } catch (err) {
+            console.error('[SolarisSwahili]', err);
+            D.errMsg.textContent = err.message || 'حدث خطأ غير متوقع.';
+            D.errOverlay.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                D.errOverlay.classList.remove('opacity-0', 'pointer-events-none');
+                D.errOverlay.setAttribute('aria-hidden', 'false');
             });
-        };
-        buildButtons();
+            D.loader.classList.add('opacity-0');
+            D.loader.style.pointerEvents = 'none';
+        }
+    };
 
-        document.getElementById('add-city-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submit-btn');
-            const input = document.getElementById('smart-city-input');
-            const val = input.value.trim();
+
+    /* ═══════════════════════════════════════════════════════
+       9.  CITY BUTTONS BUILDER
+    ═══════════════════════════════════════════════════════ */
+    const buildBtns = () => {
+        D.citySel.innerHTML = '';
+        Object.keys(S.cities).forEach(k => {
+            const btn = document.createElement('button');
+            btn.className   = 'city-btn';
+            btn.dataset.city = k;
+            btn.textContent = S.cities[k].name;
+            btn.setAttribute('aria-label', `عرض توقيت ${S.cities[k].name}`);
+            btn.onclick = () => { if (S.key !== k) loadCity(k); };
+            D.citySel.appendChild(btn);
+        });
+    };
+
+
+    /* ═══════════════════════════════════════════════════════
+       10. INIT — تسجيل الأحداث وإطلاق التطبيق
+    ═══════════════════════════════════════════════════════ */
+    const init = () => {
+        genStars();
+        buildBtns();
+
+        /* ── إضافة مدينة ── */
+        D.addBtn.onclick = async () => {
+            const val = D.cityInput.value.trim();
             if (!val) return;
+            D.cityErr.classList.add('hidden');
+            D.addBtn.disabled = true;
+            D.addBtn.textContent = '...';
 
-            btn.disabled = true; btn.textContent = '...';
             try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=1`);
-                const data = await res.json();
-                if (!data || !data.length) throw new Error("المدينة غير معروفة، يرجى كتابة الاسم باللغة الإنجليزية.");
-                
-                const k = `city_${Date.now()}`;
-                State.cities[k] = { name: data[0].name || val, lat: data[0].lat, lng: data[0].lon };
-                buildButtons();
-                input.value = '';
-                Core.initCity(k);
-            } catch (err) {
-                alert(err.message);
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=1`
+                ).then(r => r.json());
+
+                if (!res.length)
+                    throw new Error('لم نجد هذه المدينة. حاول كتابتها بالإنجليزية.');
+
+                const k = `c_${Date.now()}`;
+                S.cities[k] = { name: res[0].name || val, lat: res[0].lat, lng: res[0].lon };
+                buildBtns();
+                D.cityInput.value = '';
+                loadCity(k);
+            } catch (e) {
+                D.cityErr.textContent = e.message;
+                D.cityErr.classList.remove('hidden');
             } finally {
-                btn.disabled = false; btn.textContent = 'إضافة';
+                D.addBtn.disabled = false;
+                D.addBtn.textContent = 'إضافة';
             }
         };
 
-        UI.themeToggle.onclick = () => {
-            State.manualThemeOverride = true;
+        D.cityInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') D.addBtn.click();
+        });
+
+        /* ── تبديل الثيم يدوياً ── */
+        D.themeBtn.onclick = () => {
+            S.manualTheme = true;
             document.body.classList.remove('theme-golden');
             const isNight = document.body.classList.toggle('theme-night');
-            UI.sunIcon.classList.toggle('hidden', isNight);
-            UI.moonIcon.classList.toggle('hidden', !isNight);
-            UI.starsLayer.style.opacity = isNight ? '1' : '0';
-            UI.themeReset.classList.remove('hidden', 'opacity-0', 'translate-x-4');
+
+            D.sunIco.classList.toggle('hidden', isNight);
+            D.moonIco.classList.toggle('hidden', !isNight);
+            D.stars.style.opacity = isNight ? '0.9' : '0';
+            setSkyManual(isNight);  // ضبط خلفية السماء فوراً
+
+            /* إظهار زر الإعادة */
+            D.resetBtn.classList.remove('hidden');
+            requestAnimationFrame(() =>
+                D.resetBtn.classList.remove('opacity-0', 'translate-x-3')
+            );
         };
 
-        UI.themeReset.onclick = () => {
-            State.manualThemeOverride = false;
-            UI.themeReset.classList.add('opacity-0', 'translate-x-4');
-            setTimeout(() => UI.themeReset.classList.add('hidden'), 300);
-            Core.updateClock();
+        /* ── إعادة الوضع التلقائي ── [BUG FIX #4] */
+        D.resetBtn.onclick = () => {
+            S.manualTheme = false;
+            D.resetBtn.classList.add('opacity-0', 'translate-x-3');
+            setTimeout(() => D.resetBtn.classList.add('hidden'), 300);
+            Clock.run(); // يُطبّق الثيم الصحيح والسماء الصحيحة فوراً
         };
 
-        document.getElementById('retry-btn').onclick = () => Core.initCity(State.currentCityKey);
+        /* ── إعادة المحاولة بعد خطأ ── */
+        D.retryBtn.onclick = () => loadCity(S.key);
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const cityParam = urlParams.get('city');
+        /* ── مشاركة الرابط ── */
+        D.shareBtn.onclick = async () => {
+            try {
+                if (navigator.share) {
+                    await navigator.share({ title: 'التوقيت السواحلي', url: location.href });
+                } else {
+                    await navigator.clipboard.writeText(location.href);
+                    /* تأكيد مرئي مؤقت */
+                    const orig = D.shareBtn.innerHTML;
+                    D.shareBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>`;
+                    setTimeout(() => { D.shareBtn.innerHTML = orig; }, 2200);
+                }
+            } catch { /* المستخدم ألغى العملية */ }
+        };
+
+        /* ── URL parameter: استعادة المدينة من الرابط ── */
+        const param = new URLSearchParams(location.search).get('city');
         let startKey = 'tobruk';
-        
-        if (cityParam) {
-            const foundKey = Object.keys(State.cities).find(k => State.cities[k].name.toLowerCase() === cityParam.toLowerCase());
-            if (foundKey) startKey = foundKey;
-            else {
-                document.getElementById('smart-city-input').value = cityParam;
-                document.getElementById('submit-btn').click();
+
+        if (param) {
+            const found = Object.keys(S.cities).find(k => S.cities[k].name === param);
+            if (found) {
+                startKey = found;
+            } else {
+                /* مدينة غير موجودة في القائمة → ابحث عنها تلقائياً */
+                D.cityInput.value = param;
+                setTimeout(() => D.addBtn.click(), 150);
                 return;
             }
         }
 
-        UI.generateStars();
-        Core.initCity(startKey);
+        loadCity(startKey);
     };
 
-    return { init: initEvents };
+    return { init };
+
 })();
 
 document.addEventListener('DOMContentLoaded', App.init);
