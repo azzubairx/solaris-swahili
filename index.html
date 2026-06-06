@@ -252,14 +252,14 @@
             </section>
 
             <!-- ════════════════════════════════════════════ -->
-            <!--  القوس الشمسي (SVG)                         -->
-            <!--                                              -->
-            <!--  sweep-flag = 0  →  counterclockwise         -->
-            <!--  من (20,140) يمرّ بـ (150,10) إلى (280,140) -->
-            <!--  أي: يرسم القوس فوق خط الأفق  ✓             -->
-            <!--                                              -->
-            <!--  sweep-flag = 1  →  clockwise               -->
-            <!--  يرسم القوس تحت الأفق (خارج الشاشة) ✗       -->
+            <!--  القوس الشمسي (SVG)                              -->
+            <!--                                                 -->
+            <!--  sweep-flag = 1  →  clockwise                  -->
+            <!--  من نقطة 9 الساعة (20,140) باتجاه 12 → 3       -->
+            <!--  يمرّ بـ (150,10) فوق الأفق  ✓                 -->
+            <!--                                                 -->
+            <!--  sweep-flag = 0  →  counter-clockwise           -->
+            <!--  يمرّ بـ (150,270) تحت الأفق  ✗                -->
             <!-- ════════════════════════════════════════════ -->
             <div class="relative w-full max-w-[340px] h-[185px] flex justify-center items-end mb-4"
                  aria-hidden="true">
@@ -313,25 +313,24 @@
                           stroke="var(--accent)" stroke-width="1" opacity="0.20"/>
 
                     <!--
-                        القوس الخلفي — sweep-flag=0 → فوق الأفق ✓
-                        المسار: (20,140) → أعلى (150,10) → (280,140)
+                        القوس الخلفي — sweep-flag=1 → فوق الأفق ✓
+                        ساعاتي من 9 → 12 → 3  (يمرّ بـ 150,10)
                     -->
-                    <path d="M 20 140 A 130 130 0 0 0 280 140"
+                    <path d="M 20 140 A 130 130 0 0 1 280 140"
                           fill="none"
                           stroke="var(--accent)"
                           stroke-width="1.5"
                           opacity="0.20"/>
 
                     <!--
-                        قوس التقدم — sweep-flag=0 → فوق الأفق ✓
-                        pathLength=100 يُبسّط حساب stroke-dashoffset
-                        dashoffset = 100 - (progress × 100)
+                        قوس التقدم — sweep-flag=1 → فوق الأفق ✓
+                        dashoffset = 100 − (progress × 100)
                         عند progress=0   → offset=100 → لا شيء مرئي
-                        عند progress=0.5 → offset=50  → نصف القوس (الشمس عند الذروة)
+                        عند progress=0.5 → offset=50  → نصف القوس (ذروة)
                         عند progress=1   → offset=0   → القوس مكتمل
                     -->
                     <path id="progress-arc"
-                          d="M 20 140 A 130 130 0 0 0 280 140"
+                          d="M 20 140 A 130 130 0 0 1 280 140"
                           fill="none"
                           stroke="url(#g-day)"
                           stroke-width="4.5"
