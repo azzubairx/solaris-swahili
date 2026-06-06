@@ -28,6 +28,7 @@ SolarisSwahili/
 │   └── style.css     # Theme variables, transitions, and custom styling
 └── js/
     └── app.js        # Core logic, relative time calculations, and API integration
+```
 
 How It Works
 
