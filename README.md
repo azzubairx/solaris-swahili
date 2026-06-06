@@ -1,140 +1,103 @@
+````md
 # SolarisSwahili — Dynamic Swahili Time System for Libya
 
-تطبيق ويب أحادي الصفحة (SPA) يعرض ويحسب التوقيت السواحلي الديناميكي اعتماداً على الموقع الجغرافي الفعلي وحركة الشمس الحقيقية (الشروق والغروب)، مع واجهة حديثة وخفيفة تعمل مباشرة من المتصفح دون أي متطلبات بناء أو تثبيت.
+SolarisSwahili is a lightweight single-page web application that calculates and displays the dynamic Swahili time based on the user's geographical location and the real movement of the sun, specifically sunrise and sunset. The application is designed to provide a clean, responsive, and modern interface that works directly in the browser without any build step or dependency installation.
 
-يدعم التطبيق حالياً عدداً من المدن الليبية، مع إمكانية التوسع وإضافة مدن جديدة بسهولة.
+The project currently supports major Libyan cities and is structured for easy extension.
 
 ## Live Demo
 
-[SolarisSwahili Live Website](https://azzubairx.github.io/SolarisSwahili/?utm_source=chatgpt.com)
+[Open the live website](https://azzubairx.github.io/SolarisSwahili/)
 
----
+## Features
 
-# Features
+- Dynamic Swahili time calculation based on actual sunrise and sunset times.
+- Relative time logic that divides both day and night into 12 proportional hours.
+- Automatic theme switching based on the current solar state.
+- Responsive and modern user interface.
+- Live time and astronomical data updates.
+- Support for multiple Libyan cities.
+- Easy expansion for additional cities.
+- Zero-build setup with no external installation required.
 
-* حساب التوقيت السواحلي الديناميكي اعتماداً على:
-
-  * وقت الشروق الحقيقي.
-  * وقت الغروب الحقيقي.
-  * تقسيم النهار والليل إلى ساعات نسبية متغيرة.
-
-* واجهة حديثة ومتجاوبة بالكامل.
-
-* نظام مظاهر تلقائي (Light / Dark Theme).
-
-* تحديث لحظي للوقت والبيانات الفلكية.
-
-* دعم مدن ليبية متعددة.
-
-* إمكانية إضافة مدن جديدة ديناميكياً.
-
-* بنية خفيفة بدون أي Build Process أو Dependencies.
-
----
-
-# Project Structure
+## Project Structure
 
 ```text
 SolarisSwahili/
-│
 ├── index.html        # Main application structure
 ├── css/
-│   └── style.css     # Themes, transitions, and custom styling
-│
+│   └── style.css     # Theme variables, transitions, and custom styling
 └── js/
-    └── app.js        # Core logic and astronomical calculations
-```
+    └── app.js        # Core logic, relative time calculations, and API integration
+````
 
----
+## How It Works
 
-# How It Works
+The application relies on real astronomical data to determine:
 
-يعتمد التطبيق على بيانات فلكية حقيقية لتحديد:
+* Sunrise time
+* Sunset time
+* The current solar state
 
-* وقت الشروق.
-* وقت الغروب.
-* حالة الشمس الحالية.
+Using this data, the app:
 
-بعد ذلك يتم:
+1. Calculates the length of the day and night.
+2. Divides each period into 12 relative hours.
+3. Displays a dynamic Swahili time system that changes according to the sun's actual position.
 
-1. حساب طول النهار وطول الليل.
-2. تقسيم كل فترة إلى 12 ساعة نسبية.
-3. إنشاء نظام توقيت سواحلي ديناميكي يتغير يومياً وفقاً لحركة الشمس.
+## Automatic Theme System
 
----
+The theme engine works automatically based on the sun's position in the selected city.
 
-# Automatic Theme System
+* During daylight hours, the light theme is enabled.
+* After sunset and before sunrise, the application applies the `.theme-night` class to the `<body>` element to activate the dark theme smoothly.
 
-يحتوي التطبيق على محرك مظاهر تلقائي يعتمد على موقع الشمس الفعلي:
+## Setup
 
-* أثناء النهار يتم تفعيل المظهر النهاري.
-* بعد الغروب وحتى الشروق يتم تفعيل المظهر الليلي تلقائياً عبر إضافة:
+No build tools or package installation are required.
 
-```css
-.theme-night
-```
+### Run Locally
 
-إلى عنصر `<body>`.
-
----
-
-# Setup
-
-لا يتطلب المشروع أي أدوات بناء أو تثبيت حزم.
-
-## Run Locally
-
-1. قم باستنساخ المستودع:
+1. Clone the repository:
 
 ```bash
 git clone https://github.com/AzzubairX/SolarisSwahili.git
 ```
 
-2. افتح ملف:
+2. Open `index.html` in any modern browser.
 
-```text
-index.html
-```
-
-في أي متصفح حديث.
-
----
-
-# Technologies Used
+## Technologies Used
 
 * HTML5
 * CSS3
-* JavaScript (Vanilla JS)
-* Tailwind CSS (CDN)
-* Astronomical Time APIs
+* Vanilla JavaScript
+* Tailwind CSS via CDN
+* Astronomical time APIs
 
----
+## Supported Cities
 
-# Supported Cities
+Currently, the application supports:
 
-حالياً يدعم التطبيق:
+* Tobruk
+* Benghazi
+* Tripoli
 
-* طبرق
-* بنغازي
-* طرابلس
+Additional cities can be added easily in future updates.
 
-مع إمكانية التوسع مستقبلاً لدعم مدن إضافية.
+## Design Principles
 
----
+This project is built to be:
 
-# Design Philosophy
+* Fast and lightweight
+* Easy to understand and maintain
+* Independent of complex frameworks
+* Based on real astronomical timing data
 
-تم تصميم المشروع ليكون:
-
-* خفيفاً وسريعاً.
-* سهل الفهم والتعديل.
-* مستقلاً بالكامل دون أطر عمل معقدة.
-* معتمداً على بيانات زمنية وفلكية حقيقية.
-
----
-
-# License
+## License
 
 Copyright © 2026 Azzubair
 
 All rights reserved.
+
+```
+```
