@@ -436,5 +436,19 @@
     </div><!-- /app-container -->
 
     <script src="js/app.js"></script>
+<!-- تسجيل الـ Service Worker لتفعيل وضع الـ Offline -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('Service Worker Registered Successfully', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker Registration Failed', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
