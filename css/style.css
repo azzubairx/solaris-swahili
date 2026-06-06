@@ -1,362 +1,91 @@
-/* =====================================================
-   SolarisSwahili - Professional Design System
-   Focus: Psychological comfort, Visual harmony, Interaction delight
-   ===================================================== */
-
 :root {
-    /* المظهر النهاري (Day) - تباين عالي 4.5:1+ */
-    --bg-color: #F8F9FA;
+    /* المظهر النهاري الافتراضي (Day) - تباين عالي > 4.5:1 */
+    --bg-color: #F3F4F6;
     --surface: #FFFFFF;
-    --text-primary: #0F172A;
-    --text-secondary: #4B5563;
-    --accent: #CBD5E1;
-    --day-bar: #F59E0B;
-    --night-bar: #6366F1;
-    
-    /* Semantic colors for states */
-    --success: #10B981;
-    --warning: #F59E0B;
-    --error: #EF4444;
-    --info: #3B82F6;
+    --text-primary: #111827;
+    --text-secondary: #4B5563; /* تم تغميقه للتباين */
+    --accent: #D1D5DB;
+    --day-bar: #D97706; /* Amber 600 */
+    --night-bar: #4338CA; /* Indigo 700 */
 }
 
 body.theme-golden {
-    /* الفجر/الغسق (Golden Hour) - الوقت السحري */
-    --bg-color: #FEFCE8;
+    /* مظهر الفجر/الغسق (Golden Hour) */
+    --bg-color: #FDF6E3;
     --surface: #FFFDF8;
-    --text-primary: #42210F;
+    --text-primary: #451A03; /* بني داكن */
     --text-secondary: #78350F;
-    --accent: #FED7AA;
+    --accent: #E7E5E4;
     --day-bar: #EA580C;
     --night-bar: #3730A3;
 }
 
 body.theme-night {
-    /* المظهر الليلي (Night) - تباين عالي 4.5:1+ */
+    /* المظهر الليلي (Night) - تباين عالي > 4.5:1 */
     --bg-color: #0F172A;
     --surface: #1E293B;
-    --text-primary: #F1F5F9;
-    --text-secondary: #94A3B8;
-    --accent: #475569;
-    --day-bar: #FBBF24;
-    --night-bar: #818CF8;
-}
-
-/* Base reset & typography */
-* {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8; /* رمادي فاتح */
+    --accent: #334155;
+    --day-bar: #F59E0B; /* Amber 500 */
+    --night-bar: #6366F1; /* Indigo 500 */
 }
 
 body {
     background-color: var(--bg-color);
     color: var(--text-primary);
     overflow-x: hidden;
-    transition: background-color 1500ms cubic-bezier(0.4, 0, 0.2, 1),
-                color 1500ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Background pattern - Subtle topographic effect */
+/* الخريطة الطبوغرافية */
 body::before {
     content: "";
     position: fixed;
     inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-    background-size: 120px 120px;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 50 Q 25 30, 50 50 T 100 50 M 0 70 Q 25 50, 50 70 T 100 70 M 0 30 Q 25 10, 50 30 T 100 30' fill='none' stroke='%23888888' stroke-width='0.5' opacity='0.1'/%3E%3C/svg%3E");
+    background-size: 150px 150px;
     pointer-events: none;
     z-index: -2;
-    opacity: 0.5;
-    transition: opacity 1500ms ease-in-out;
 }
 
-body.theme-night::before {
-    opacity: 0.3;
-}
-
-/* =====================================================
-   COMPONENT: City Buttons
-   ===================================================== */
+/* تنسيقات الأزرار مع تأثير تفاعلي (Accessibility & UX) */
 .city-btn {
     font-family: 'Tajawal', sans-serif;
     font-size: 0.95rem;
-    padding: 0.5rem 1.25rem;
+    padding: 0.35rem 1.2rem;
     border-radius: 9999px;
     color: var(--text-secondary);
     background-color: var(--surface);
-    border: 1.5px solid var(--accent);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--accent);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    position: relative;
-    overflow: hidden;
-    
-    /* Psychological: Readable, button-like appearance */
-    font-weight: 500;
-    letter-spacing: 0.3px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-.city-btn::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-.city-btn:hover {
+.city-btn:hover, .city-btn:focus-visible {
     color: var(--text-primary);
     border-color: var(--text-secondary);
     outline: none;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    background-color: var(--surface);
-}
-
-.city-btn:hover::before {
-    opacity: 1;
-}
-
-.city-btn:focus-visible {
-    outline: 2px solid var(--text-primary);
-    outline-offset: 2px;
-}
-
-.city-btn:active {
-    transform: translateY(0);
+    transform: translateY(-1px);
 }
 
 .city-btn.active {
     color: var(--surface);
-    background: linear-gradient(135deg, var(--text-primary), var(--text-primary)/90);
+    background-color: var(--text-primary);
     border-color: var(--text-primary);
     font-weight: 700;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(0);
 }
 
-.city-btn.active::before {
-    opacity: 0;
-}
-
-/* =====================================================
-   COMPONENT: Prayer Markers on Arc
-   ===================================================== */
+/* نقطة الصلاة على القوس */
 .prayer-marker {
     fill: var(--surface);
     stroke: var(--text-secondary);
     stroke-width: 2;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.3s;
     cursor: help;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
-
 .prayer-marker:hover {
     fill: var(--text-primary);
     r: 6;
-    stroke-width: 2.5;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
-    animation: pulse-marker 0.6s ease-in-out;
-}
-
-@keyframes pulse-marker {
-    0%, 100% { r: 6; }
-    50% { r: 8; }
-}
-
-/* =====================================================
-   COMPONENT: Form Input
-   ===================================================== */
-#smart-city-input {
-    font-family: 'Tajawal', sans-serif;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#smart-city-input::placeholder {
-    color: var(--text-secondary);
-    opacity: 0.6;
-}
-
-#smart-city-input:focus {
-    background-color: var(--surface);
-    box-shadow: 0 0 0 3px var(--text-primary),
-                inset 0 0 0 1px var(--text-primary);
-}
-
-#smart-city-input:focus::placeholder {
-    opacity: 0.3;
-}
-
-/* =====================================================
-   COMPONENT: Submit Button
-   ===================================================== */
-#submit-btn {
-    font-family: 'Tajawal', sans-serif;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-#submit-btn::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.3), transparent);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-#submit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
-}
-
-#submit-btn:hover::before {
-    opacity: 1;
-}
-
-#submit-btn:focus-visible {
-    outline: 2px solid var(--surface);
-    outline-offset: 2px;
-}
-
-#submit-btn:active {
-    transform: scale(0.95);
-}
-
-#submit-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* =====================================================
-   ANIMATIONS & TRANSITIONS
-   ===================================================== */
-@keyframes gentle-fade-in {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes smooth-slide-in {
-    from {
-        opacity: 0;
-        transform: translateX(16px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes pulse-ring {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.7);
-    }
-    50% {
-        box-shadow: 0 0 0 10px rgba(96, 165, 250, 0);
-    }
-}
-
-/* =====================================================
-   RESPONSIVE DESIGN
-   ===================================================== */
-@media (max-width: 768px) {
-    #app-container {
-        padding: 0 12px;
-    }
-    
-    main {
-        border-radius: 2rem !important;
-    }
-    
-    .city-btn {
-        font-size: 0.85rem;
-        padding: 0.45rem 1rem;
-    }
-    
-    #hour-display {
-        font-size: 2.5rem !important;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-}
-
-/* =====================================================
-   DARK MODE ENHANCEMENTS
-   ===================================================== */
-@media (prefers-color-scheme: dark) {
-    body::before {
-        opacity: 0.3;
-    }
-}
-
-/* =====================================================
-   ACCESSIBILITY
-   ===================================================== */
-:focus-visible {
-    outline: 2px solid var(--text-primary);
-    outline-offset: 2px;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: more) {
-    :root {
-        --text-secondary: #1F2937;
-        --accent: #9CA3AF;
-    }
-    
-    body.theme-night {
-        --text-secondary: #D1D5DB;
-        --accent: #4B5563;
-    }
-}
-
-/* Enhanced focus indicators for keyboard navigation */
-button:focus-visible,
-input:focus-visible,
-a:focus-visible {
-    outline: 3px solid var(--text-primary);
-    outline-offset: 2px;
-}
-
-/* Screen reader only content */
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-}
-
-/* =====================================================
-   PRINT STYLES
-   ===================================================== */
-@media print {
-    body::before {
-        display: none;
-    }
-    
-    #stars-layer,
-    #theme-auto-reset,
-    #theme-toggle {
-        display: none !important;
-    }
 }
