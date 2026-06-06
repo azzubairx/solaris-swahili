@@ -1,6 +1,5 @@
 /**
  * تطبيق التوقيت السواحلي - هندسة برمجية (Modular Pattern)
- * نسخة مصححة بالكامل خالية من أخطاء الـ Type Cast
  */
 const App = (() => {
     // --- 1. الإعدادات والحالة (State & Config) ---
@@ -103,7 +102,6 @@ const App = (() => {
             return new Date(Date.now() + (offsetDays * 86400000)).toLocaleDateString('en-CA');
         },
 
-        // تم إصلاح الدالة وتأمين عمليات الـ Padding بشكل كامل لمنع الأخطاء
         parseAbsoluteUTC: (dateStr, timeStr, offset) => {
             if (!timeStr) return 0;
             const [time, modifier] = timeStr.split(' ');
@@ -158,7 +156,7 @@ const App = (() => {
 
             UI.loaderText.textContent = "جاري جلب مواقيت الصلاة...";
             const timestamp = Math.floor(Date.now() / 1000);
-            const res = await fetch(`https://api.aladhan.com/v1/timings/${timestamp}?latitude=${lat}&longitude=${lng}&method=4`);
+            const res = await fetch("https://api.aladhan.com/v1/timings/" + timestamp + "?latitude=" + lat + "&longitude=" + lng + "&method=4");
             const json = await res.json();
             if (json.code !== 200) throw new Error("API الصلاة لا يستجيب");
             
@@ -197,7 +195,7 @@ const App = (() => {
                     circle.setAttribute('r', '4'); circle.setAttribute('class', 'prayer-marker');
                     
                     const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-                    title.textContent = `صلاة ${p.name}`;
+                    title.textContent = "صلاة " + p.name;
                     circle.appendChild(title);
                     
                     UI.prayerMarkersContainer.appendChild(circle);
@@ -254,7 +252,7 @@ const App = (() => {
             const pH = Math.floor(propElapsedMs / 3600000);
 
             UI.hourDisplay.textContent = Math.min(pH + 1, 12);
-            UI.phaseDisplay.textContent = `من ${phase}`;
+            UI.phaseDisplay.textContent = "من " + phase;
             UI.metricDisplay.textContent = UI.formatMetric(pH, pM, pS);
 
             // حساب المتبقي للحدث القادم
@@ -267,13 +265,13 @@ const App = (() => {
             const localDate = new Date(now + (utcOffsetMinutes * 60000));
             document.getElementById('standard-time').textContent = UI.formatMetric(localDate.getUTCHours(), localDate.getUTCMinutes(), localDate.getUTCSeconds());
 
-            // القوس (Sweep-flag is 0)
+            // القوس (تم تصحيح اتجاه رسم القوس لأعلى)
             const angle = Math.PI - (progress * Math.PI);
             const cx = 150 + 130 * Math.cos(angle);
             const cy = 140 - 130 * Math.sin(angle);
 
             UI.progressArc.setAttribute('stroke-dashoffset', 100 - (progress * 100));
-            UI.celestialBody.setAttribute('transform', `translate(${cx}, ${cy})`);
+            UI.celestialBody.setAttribute('transform', "translate(" + cx + ", " + cy + ")");
         },
 
         initCity: async (key) => {
@@ -286,7 +284,7 @@ const App = (() => {
             const city = State.cities[key];
 
             document.querySelectorAll('.city-btn').forEach(b => b.classList.toggle('active', b.dataset.city === key));
-            window.history.replaceState(null, '', `?city=${encodeURIComponent(city.name)}`);
+            window.history.replaceState(null, '', "?city=" + encodeURIComponent(city.name));
 
             UI.cityName.textContent = city.name;
 
@@ -302,23 +300,24 @@ const App = (() => {
                 document.getElementById('sunrise-time').textContent = UI.cleanTime(solar.todaySunriseStr);
                 document.getElementById('sunset-time').textContent = UI.cleanTime(solar.todaySunsetStr);
                 
-                UI.hijriDate.textContent = new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {day: 'numeric', month: 'long', year: 'numeric'}).format(new Date());
+                // تم تعديل التنسيق هنا بإضافة nu-latn لضمان أن تظل الأرقام بالكامل بالنظام العربي الغربي (1, 2, 3)
+                UI.hijriDate.textContent = new Intl.DateTimeFormat('ar-LY-u-ca-islamic-nu-latn', {day: 'numeric', month: 'long', year: 'numeric'}).format(new Date());
 
                 const dayL = solar.todaySunset - solar.todaySunrise;
                 const nightL = (24*3600*1000) - dayL;
                 const diffL = Math.abs(dayL - nightL);
                 
-                document.getElementById('day-bar').style.width = `${(dayL/(24*3600*1000))*100}%`;
-                document.getElementById('night-bar').style.width = `${(nightL/(24*3600*1000))*100}%`;
+                document.getElementById('day-bar').style.width = (dayL / (24 * 3600 * 1000) * 100) + "%";
+                document.getElementById('night-bar').style.width = (nightL / (24 * 3600 * 1000) * 100) + "%";
                 
-                const fmtDiff = (ms) => `${Math.floor(ms/3600000)} س و ${Math.floor((ms%3600000)/60000)} د`;
+                const fmtDiff = (ms) => Math.floor(ms / 3600000) + " س و " + Math.floor((ms % 3600000) / 60000) + " د";
                 document.getElementById('day-length-text').textContent = fmtDiff(dayL);
                 document.getElementById('night-length-text').textContent = fmtDiff(nightL);
                 
                 if (diffL < 5 * 60000) {
                     document.getElementById('comparison-text').textContent = "الاعتدال: يتساوى الليل والنهار";
                 } else {
-                    document.getElementById('comparison-text').textContent = dayL > nightL ? `النهار أطول بـ ${fmtDiff(diffL)}` : `الليل أطول بـ ${fmtDiff(diffL)}`;
+                    document.getElementById('comparison-text').textContent = dayL > nightL ? "النهار أطول بـ " + fmtDiff(diffL) : "الليل أطول بـ " + fmtDiff(diffL);
                 }
 
                 const now = Date.now();
@@ -346,7 +345,7 @@ const App = (() => {
             Object.keys(State.cities).forEach(k => {
                 const b = document.createElement('button');
                 b.className = 'city-btn'; b.dataset.city = k; b.textContent = State.cities[k].name;
-                b.setAttribute('aria-label', `عرض توقيت ${State.cities[k].name}`);
+                b.setAttribute('aria-label', "عرض توقيت " + State.cities[k].name);
                 b.onclick = () => { if(State.currentCityKey !== k) Core.initCity(k); };
                 UI.citySelector.appendChild(b);
             });
@@ -362,11 +361,11 @@ const App = (() => {
 
             btn.disabled = true; btn.textContent = '...';
             try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=1`);
+                const res = await fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(val) + "&limit=1");
                 const data = await res.json();
                 if (!data.length) throw new Error("لم نجد المدينة. حاول بالإنجليزية.");
                 
-                const k = `city_${Date.now()}`;
+                const k = "city_" + Date.now();
                 State.cities[k] = { name: data[0].name || val, lat: data[0].lat, lng: data[0].lon };
                 buildButtons();
                 input.value = '';
