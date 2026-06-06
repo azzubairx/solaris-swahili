@@ -48,10 +48,18 @@
 
     <div class="w-full max-w-2xl flex flex-col gap-6 opacity-0 transition-opacity duration-1000 mt-12 md:mt-4" id="app-container">
         
-        <main class="w-full border border-theme-accent/40 bg-theme-surface/70 rounded-3xl p-8 shadow-2xl backdrop-blur-xl flex flex-col items-center">
+        <header class="bg-theme-surface/40 border border-theme-accent/30 rounded-2xl p-6 text-center shadow-sm backdrop-blur-md">
+            <h1 class="text-xl font-bold text-theme-primary mb-2">النظام السواحلي (الغروبي)</h1>
+            <p class="text-sm text-theme-secondary leading-relaxed max-w-lg mx-auto">
+                تعتمد هذه الساعة على حركة الشمس الحقيقية. يبدأ اليوم عند شروق الشمس (الساعة 1 نهاراً) وينتهي عند الغروب. 
+                يتم تقسيم فترة النهار إلى 12 ساعة نسبية، وفترة الليل إلى 12 ساعة أخرى.
+            </p>
+        </header>
+
+        <main class="w-full border border-theme-accent/30 bg-theme-surface/70 rounded-3xl p-8 shadow-2xl backdrop-blur-xl flex flex-col items-center">
             
             <!-- أشرطة المدن والبحث -->
-            <div class="w-full flex flex-col gap-4 mb-8 border-b border-theme-accent/30 pb-6">
+            <div class="w-full flex flex-col gap-4 mb-8 border-b border-theme-accent/20 pb-6">
                 <nav class="w-full flex flex-wrap justify-center gap-3" id="city-selector" aria-label="اختيار المدينة"></nav>
                 <form id="add-city-form" class="flex flex-wrap items-center justify-center gap-2 mt-2 relative z-20">
                     <label for="smart-city-input" class="sr-only">اسم المدينة بالإنجليزية</label>
@@ -99,13 +107,13 @@
                 </div>
             </section>
 
-            <!-- القوس الشمسي ونقاط الصلاة (تم إصلاح الـ Sweep Flag) -->
+            <!-- القوس الشمسي (تم إرجاع اتجاه الرسم 0 0 1 للأعلى) -->
             <div class="relative w-full max-w-[320px] h-[170px] flex justify-center items-center mb-2" aria-hidden="true">
                 <svg viewBox="0 0 300 160" class="w-full h-full overflow-visible">
                     <line x1="0" y1="140" x2="300" y2="140" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="6 6" class="opacity-50" />
-                    <!-- تم تصحيح sweep-flag إلى 0 -->
-                    <path d="M 20 140 A 130 130 0 0 0 280 140" fill="none" stroke="var(--accent)" stroke-width="2" class="opacity-30"/>
-                    <path id="progress-arc" d="M 20 140 A 130 130 0 0 0 280 140" fill="none" stroke="var(--text-primary)" stroke-width="4" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" class="transition-all duration-1000 ease-linear" stroke-linecap="round"/>
+                    <!-- تم إعادة القوس للأعلى (sweep-flag = 1) -->
+                    <path d="M 20 140 A 130 130 0 0 1 280 140" fill="none" stroke="var(--accent)" stroke-width="2" class="opacity-30"/>
+                    <path id="progress-arc" d="M 20 140 A 130 130 0 0 1 280 140" fill="none" stroke="var(--text-primary)" stroke-width="4" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" class="transition-all duration-1000 ease-linear" stroke-linecap="round"/>
                     
                     <!-- طبقة أوقات الصلاة -->
                     <g id="prayer-markers" class="transition-opacity duration-500"></g>
@@ -117,7 +125,7 @@
                 </svg>
             </div>
 
-            <!-- شريط المقارنة مع ألوان معتمدة على المتغيرات -->
+            <!-- شريط المقارنة -->
             <div class="w-full max-w-[320px] flex flex-col gap-2 mb-10 px-2" aria-label="مقارنة طول الليل والنهار">
                 <div class="w-full h-1.5 rounded-full flex overflow-hidden opacity-90 shadow-inner bg-theme-accent/30">
                     <div id="day-bar" class="h-full bg-theme-dayBar transition-all duration-1000" style="width:50%"></div>
