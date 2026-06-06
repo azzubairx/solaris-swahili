@@ -1,0 +1,40 @@
+{
+  "name": "التوقيت السواحلي | SolarisSwahili",
+  "short_name": "توقيت سواحلي",
+  "description": "ساعة التوقيت الغروبي الديناميكية المبنية على حركة الشمس الفعلية.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#F8FAFC",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "توقيت طبرق",
+      "short_name": "طبرق",
+      "description": "عرض التوقيت السواحلي لمدينة طبرق",
+      "url": "./index.html?city=طبرق"
+    },
+    {
+      "name": "توقيت طرابلس",
+      "short_name": "طرابلس",
+      "description": "عرض التوقيت السواحلي لمدينة طرابلس",
+      "url": "./index.html?city=طرابلس"
+    }
+  ]
+}
