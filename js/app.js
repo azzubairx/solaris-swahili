@@ -52,13 +52,41 @@ const App = (() => {
         sunIcon: document.getElementById('sun-icon'),
         moonIcon: document.getElementById('moon-icon'),
         starsLayer: document.getElementById('stars-layer'),
+        progressLabel: document.getElementById('progress-label'),
+        rhythmInsight: document.getElementById('rhythm-insight'),
+        prayerList: document.getElementById('prayer-list'),
+        cityFeedback: document.getElementById('city-feedback'),
         
         // مساعدة
         formatMetric: (h, m, s) => [h, m, s].map(n => n.toString().padStart(2, '0')).join(':'),
         
         cleanTime: (t) => {
-            const parts = t.split(':');
-            return parts.length === 3 ? `${parts[0]}:${parts[1]} ${t.split(' ').pop()}` : t;
+            if (!t) return '--';
+            const cleaned = t.replace(/\s*\([^)]*\)/g, '');
+            const parts = cleaned.split(':');
+            return parts.length >= 2 ? `${parts[0]}:${parts[1]}${cleaned.includes(' ') ? ' ' + cleaned.split(' ').pop() : ''}` : cleaned;
+        },
+
+        setFeedback: (message, tone = 'neutral') => {
+            UI.cityFeedback.textContent = message;
+            UI.cityFeedback.dataset.tone = tone;
+        },
+
+        getPhaseInsight: (phase, progress, diffMs) => {
+            const minutes = Math.max(0, Math.floor(diffMs / 60000));
+            if (progress < 0.12) {
+                return phase === 'النهار'
+                    ? `بداية نهارية صافية؛ امنح المهام الأهم حضورها الآن، فالغروب يبعد نحو ${minutes} دقيقة.`
+                    : `بداية ليلية هادئة؛ هذا وقت مثالي لتخفيف الضجيج وترتيب الذهن قبل الشروق.`;
+            }
+            if (progress > 0.82) {
+                return phase === 'النهار'
+                    ? `نهاية النهار تقترب؛ اختصر، أغلِق الدوائر المفتوحة، واستعد للغروب خلال ${minutes} دقيقة.`
+                    : `الليل في ساعاته الأخيرة؛ حافظ على الإيقاع اللطيف واترك مساحة لبداية الشروق.`;
+            }
+            return phase === 'النهار'
+                ? 'منتصف النهار يمنح طاقة ثابتة؛ حافظ على تركيز واحد واضح بدل تشتيت الانتباه.'
+                : 'منتصف الليل مساحة استعادة؛ الإضاءة الهادئة والوتيرة البطيئة تساعدان الجسد على الارتياح.';
         },
 
         showError: (msg) => {
@@ -188,11 +216,11 @@ const App = (() => {
                     const progress = (pTime - startMs) / (endMs - startMs);
                     const angle = Math.PI - (progress * Math.PI);
                     const cx = 150 + 130 * Math.cos(angle);
-                    const cy = 140 - 130 * Math.sin(angle); 
+                    const cy = 142 - 130 * Math.sin(angle); 
                     
                     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                     circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
-                    circle.setAttribute('r', '4'); circle.setAttribute('class', 'prayer-marker');
+                    circle.setAttribute('r', '4.5'); circle.setAttribute('class', 'prayer-marker');
                     
                     const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
                     title.textContent = "صلاة " + p.name;
@@ -254,12 +282,14 @@ const App = (() => {
             UI.hourDisplay.textContent = Math.min(pH + 1, 12);
             UI.phaseDisplay.textContent = "من " + phase;
             UI.metricDisplay.textContent = UI.formatMetric(pH, pM, pS);
+            UI.progressLabel.textContent = Math.round(progress * 100) + '% من ' + phase;
 
             // حساب المتبقي للحدث القادم
             const nextEventMs = phase === 'النهار' ? todaySunset : (now < todaySunrise ? todaySunrise : tomorrowSunrise);
             const diffMs = nextEventMs - now;
             UI.nextEventName.textContent = phase === 'النهار' ? 'الغروب' : 'الشروق';
             UI.countdownDisplay.textContent = UI.formatMetric(Math.floor(diffMs/3600000), Math.floor((diffMs%3600000)/60000), Math.floor((diffMs%60000)/1000));
+            UI.rhythmInsight.textContent = UI.getPhaseInsight(phase, progress, diffMs);
 
             // التوقيت المحلي الفعلي
             const localDate = new Date(now + (utcOffsetMinutes * 60000));
@@ -268,7 +298,7 @@ const App = (() => {
             // القوس (تم تصحيح اتجاه رسم القوس لأعلى)
             const angle = Math.PI - (progress * Math.PI);
             const cx = 150 + 130 * Math.cos(angle);
-            const cy = 140 - 130 * Math.sin(angle);
+            const cy = 142 - 130 * Math.sin(angle);
 
             UI.progressArc.setAttribute('stroke-dashoffset', 100 - (progress * 100));
             UI.celestialBody.setAttribute('transform', "translate(" + cx + ", " + cy + ")");
@@ -299,6 +329,13 @@ const App = (() => {
 
                 document.getElementById('sunrise-time').textContent = UI.cleanTime(solar.todaySunriseStr);
                 document.getElementById('sunset-time').textContent = UI.cleanTime(solar.todaySunsetStr);
+                UI.prayerList.innerHTML = [
+                    ['الفجر', prayers.Fajr],
+                    ['الظهر', prayers.Dhuhr],
+                    ['العصر', prayers.Asr],
+                    ['المغرب', prayers.Maghrib],
+                    ['العشاء', prayers.Isha]
+                ].map(([name, time]) => `<div class="prayer-item"><span>${name}</span><strong dir="ltr">${UI.cleanTime(time)}</strong></div>`).join('');
                 
                 // تم تعديل التنسيق هنا بإضافة nu-latn لضمان أن تظل الأرقام بالكامل بالنظام العربي الغربي (1, 2, 3)
                 UI.hijriDate.textContent = new Intl.DateTimeFormat('ar-LY-u-ca-islamic-nu-latn', {day: 'numeric', month: 'long', year: 'numeric'}).format(new Date());
@@ -331,6 +368,7 @@ const App = (() => {
 
                 UI.loader.classList.add('opacity-0', 'pointer-events-none');
                 UI.appContainer.classList.add('opacity-100');
+                UI.setFeedback('تمت مزامنة المدينة مع الشروق والغروب ومواقيت الصلاة.', 'success');
 
             } catch (err) {
                 console.error(err);
@@ -359,11 +397,12 @@ const App = (() => {
             const val = input.value.trim();
             if (!val) return;
 
-            btn.disabled = true; btn.textContent = '...';
+            btn.disabled = true; btn.textContent = 'جاري البحث';
+            UI.setFeedback('نبحث عن المدينة ونقرأ إحداثياتها...', 'loading');
             try {
                 const res = await fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(val) + "&limit=1");
                 const data = await res.json();
-                if (!data.length) throw new Error("لم نجد المدينة. حاول بالإنجليزية.");
+                if (!data.length) throw new Error("لم نجد المدينة. حاول باسم إنجليزي أو أكثر تحديداً.");
                 
                 const k = "city_" + Date.now();
                 State.cities[k] = { name: data[0].name || val, lat: data[0].lat, lng: data[0].lon };
@@ -371,7 +410,7 @@ const App = (() => {
                 input.value = '';
                 Core.initCity(k);
             } catch (err) {
-                alert(err.message);
+                UI.setFeedback(err.message, 'error');
             } finally {
                 btn.disabled = false; btn.textContent = 'إضافة';
             }
