@@ -1,99 +1,293 @@
-# SolarisSwahili — Dynamic Swahili Time System for Libya
+# 🌅 SolarisSwahili
+### ساعة التوقيت السواحلي الديناميكية
 
-SolarisSwahili is a lightweight single-page web application that calculates and displays the dynamic Swahili time based on the user's geographical location and the real movement of the sun, specifically sunrise and sunset. The application is designed to provide a clean, responsive, and modern interface that works directly in the browser without any build step or dependency installation.
+> *"الوقت ليس رقماً على جدار — إنه مسافة الشمس من أفقك."*
 
-The project currently supports major Libyan cities and is structured for easy extension.
+---
 
-## Live Demo
+<div align="center">
 
-[Open the live website](https://azzubairx.github.io/SolarisSwahili/)
+**[🔴 العرض المباشر](https://azzubairx.github.io/SolarisSwahili/)** &nbsp;|&nbsp;
+**[📂 المستودع](https://github.com/AzzubairX/SolarisSwahili)** &nbsp;|&nbsp;
+**[📄 الترخيص](#-الترخيص)**
 
-## Features
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
+![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
+![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)
 
-- Dynamic Swahili time calculation based on actual sunrise and sunset times.
-- Relative time logic that divides both day and night into 12 proportional hours.
-- Automatic theme switching based on the current solar state.
-- Responsive and modern user interface.
-- Live time and astronomical data updates.
-- Support for multiple Libyan cities.
-- Easy expansion for additional cities.
-- Zero-build setup with no external installation required.
+</div>
 
-## Project Structure
+---
 
-```text
+## 🌙 ما هو التوقيت السواحلي؟
+
+التوقيت السواحلي (أو الغروبي) نظامٌ تقليدي عريق نشأ في شرق أفريقيا والجزيرة العربية، ولا يزال حياً في بعض مناطق ليبيا واليمن وشرق أفريقيا. يختلف جوهرياً عن الساعة الأوروبية الحديثة التي تبدأ يومها من منتصف الليل.
+
+| الساعة المدنية | التوقيت السواحلي |
+|:-:|:-:|
+| يبدأ اليوم عند 00:00 (منتصف الليل) | يبدأ اليوم عند الشروق (الساعة 1 نهاراً) |
+| ساعة ثابتة = 60 دقيقة دائماً | ساعة نسبية = تتغير مع طول النهار |
+| مرجعها توقيت غرينتش | مرجعها حركة الشمس الحقيقية في مدينتك |
+| لا علاقة له بالطبيعة | يُزامن حياتك مع الشروق والغروب |
+
+**مثال:** إذا شرقت الشمس في طبرق عند 6:02 صباحاً، فإن السابعة مساءً بالتوقيت المدني تُقابل الساعة **السادسة من النهار** بالتوقيت السواحلي — لأن خمس ساعات مرّت منذ الشروق.
+
+---
+
+## ✨ المزايا
+
+### 🕐 الجوهر الحسابي
+- **ساعة نسبية حقيقية** — تُقسَّم فترة النهار إلى 12 ساعة متساوية بينها، وكذلك الليل، بناءً على الطول الفعلي لكل منهما في مدينتك يومياً
+- **بيانات فلكية حية** — شروق وغروب دقيق من [`sunrisesunset.io`](https://sunrisesunset.io) مع جلب اليوم السابق والحالي والقادم في آنٍ واحد
+- **كاش ذكي** — `localStorage` بمدة صلاحية 6 ساعات يقلّل الطلبات ويُحسّن الأداء
+
+### 🌆 الواجهة الديناميكية
+- **سماء حية** — تدرج لوني يتغير كل ثانية: ذهبي الفجر → أزرق الصباح → أبيض الظهر → ذهبي العصر → برتقالي الغروب → كحلي الليل
+- **ثلاثة أثواب تلقائية** — نهاري / ذهبي (45 دقيقة حول الشروق والغروب) / ليلي
+- **قوس شمسي متحرك** — شمسٌ مُضيئة أو هلالٌ فضي يجريان على مسار القوس بدقة
+- **مؤشرات الصلاة** — نقاط تميّز أوقات الصلوات الخمس على القوس مع نبضة تنبيه للصلاة القادمة
+- **150 نجمة عشوائية** — توليد برمجي حقيقي لا نمط CSS متكرر
+
+### 🕌 المحتوى المعلوماتي
+- **التاريخ الهجري** — يُعرض يومياً باستخدام `Intl.DateTimeFormat` مع التقويم الإسلامي
+- **مواقيت الصلاة الخمسة** — من [`Aladhan API`](https://aladhan.com) بطريقة أم القرى
+- **شريط النهار والليل** — مقارنة بصرية فورية مع نص يُحدد أيهما أطول وبكم
+- **عداد تنازلي** — "بقي على الغروب: HH:MM:SS" يُهيّئك نفسياً للحدث القادم
+- **التوقيت القياسي** للمدينة المختارة لحظياً
+
+### 🌍 المدن والتوسّع
+- **مدن ليبية افتراضية** — طبرق، بنغازي، طرابلس
+- **إضافة أي مدينة عالمياً** — اكتب الاسم بالإنجليزية، يبحث `Nominatim/OpenStreetMap` ويُضيفها فوراً
+- **مشاركة الرابط** — URL parameter `?city=طبرق` يحفظ المدينة ويُمكّن المشاركة
+- **Web Share API** — زر مشاركة يعمل على الهاتف بشكل native
+
+---
+
+## 🗂 هيكل المشروع
+
+```
 SolarisSwahili/
-├── index.html        # Main application structure
+│
+├── index.html          # هيكل التطبيق الكامل + SVG القوس الشمسي
+│
 ├── css/
-│   └── style.css     # Theme variables, transitions, and custom styling
+│   └── style.css       # نظام CSS Variables للثيمات الثلاثة + الرسوم المتحركة
+│
 └── js/
-    └── app.js        # Core logic, relative time calculations, and API integration
-````
+    └── app.js          # المنطق الكامل — IIFE Module Pattern
+                        # ├── CONFIG & STATE
+                        # ├── DOM REFS
+                        # ├── UTILS  (pad, fmt, fmtDur, lerpHex, genStars, updateSky)
+                        # ├── CACHE  (localStorage + TTL)
+                        # ├── API    (fetchSolar, fetchPrayers, parseUTC, normOffset)
+                        # ├── PRAYERS (getNext, renderBar, drawMarkers)
+                        # ├── CLOCK  (run — يُستدعى كل ثانية)
+                        # └── INIT   (events, URL params, loadCity, buildBtns)
+```
 
-## How It Works
+---
 
-The application relies on real astronomical data to determine:
+## ⚙️ كيف يعمل
 
-* Sunrise time
-* Sunset time
-* The current solar state
+### 1. جلب البيانات الفلكية
+عند اختيار مدينة، يُطلق التطبيق **ثلاثة طلبات متوازية** (`Promise.all`) لجلب بيانات الأمس واليوم وغداً:
 
-Using this data, the app:
+```javascript
+const [yR, tR, tmR] = await Promise.all([
+    fetch(`${base}&date=${dateStr(-1)}`).then(r => r.json()),  // الأمس
+    fetch(`${base}&date=${dateStr( 0)}`).then(r => r.json()),  // اليوم
+    fetch(`${base}&date=${dateStr( 1)}`).then(r => r.json()),  // غداً
+]);
+```
 
-1. Calculates the length of the day and night.
-2. Divides each period into 12 relative hours.
-3. Displays a dynamic Swahili time system that changes according to the sun's actual position.
+البيانات الثلاثة ضرورية لأن الطور الليلي يمتد عبر يومين (من غروب أمس إلى شروق اليوم).
 
-## Automatic Theme System
+### 2. تحويل الأوقات إلى UTC مطلق
+الـ API يُعيد الأوقات بالتوقيت المحلي للمدينة. التحويل:
 
-The theme engine works automatically based on the sun's position in the selected city.
+```
+UTC_ms = localTime_treated_as_UTC − (utcOffset × 60000)
+```
 
-* During daylight hours, the light theme is enabled.
-* After sunset and before sunrise, the application applies the `.theme-night` class to the `<body>` element to activate the dark theme smoothly.
+مع معالجة آمنة لـ `utc_offset` سواء أعادها الـ API بالساعات أو الدقائق.
 
-## Setup
+### 3. حساب الساعة السواحلية
+```javascript
+const progress = (now - phaseStart) / (phaseEnd - phaseStart);  // 0 → 1
+const elapsed  = progress × 12 × 3600000;                        // ملي ثانية منقضية
+const hour     = Math.min(Math.floor(elapsed / 3600000) + 1, 12); // الساعة 1-12
+```
 
-No build tools or package installation are required.
+### 4. تحريك الجسم السماوي على القوس
+```javascript
+// القوس: sweep-flag=1 (ساعاتي 9→12→3) → يمرّ فوق الأفق
+// angle يتراجع من π إلى 0 كلما تقدّم اليوم
+const angle = Math.PI × (1 − progress);
+const cx    = 150 + 130 × cos(angle);   // أفقياً على القوس
+const cy    = 140 − 130 × sin(angle);   // الطرح → فوق الأفق (y يزداد للأسفل في SVG)
+```
 
-### Run Locally
+| `progress` | `angle` | موضع الجسم | الوقت |
+|:---:|:---:|:---:|:---:|
+| 0.00 | π | (20, 140) | الشروق |
+| 0.25 | 3π/4 | (58, 48) | الضحى |
+| 0.50 | π/2 | (150, 10) | الظهر الشمسي |
+| 0.75 | π/4 | (242, 48) | العصر |
+| 1.00 | 0 | (280, 140) | الغروب |
 
-1. Clone the repository:
+### 5. تدرج لون السماء الديناميكي
+كل ثانية تُحسب درجة لونية مُدمَجة بين 5 محطات لونية بدالة `lerpHex`:
+
+```
+شروق → صباح → ظهر → عصر → غروب
+#FEF3C7  #E0F2FE  #F0F9FF  #FEF9C3  #FDE68A   (اللون العلوي)
+#FDBA74  #BAE6FD  #E5E7EB  #FDE68A  #FDBA74   (اللون السفلي)
+```
+
+---
+
+## 🚀 التشغيل المحلي
+
+لا يتطلب المشروع أي تثبيت أو build tools:
 
 ```bash
 git clone https://github.com/AzzubairX/SolarisSwahili.git
+cd SolarisSwahili
+
+# افتح index.html مباشرة في متصفح حديث
+# أو استخدم خادماً محلياً بسيطاً:
+python3 -m http.server 8080
+# ثم افتح: http://localhost:8080
 ```
 
-2. Open `index.html` in any modern browser.
+> **ملاحظة:** بعض الـ APIs (Nominatim) قد تُقيّد الطلبات من `file://` — استخدام خادم محلي موصى به.
 
-## Technologies Used
+---
 
-* HTML5
-* CSS3
-* Vanilla JavaScript
-* Tailwind CSS via CDN
-* Astronomical time APIs
+## 🛠 التقنيات المستخدمة
 
-## Supported Cities
+| التقنية | الاستخدام |
+|---|---|
+| **HTML5** | هيكل التطبيق + SVG القوس الشمسي |
+| **CSS3 Custom Properties** | نظام الثيمات الديناميكي الثلاثي |
+| **Vanilla JavaScript (ES6+)** | كامل المنطق — IIFE Module Pattern |
+| **Tailwind CSS (CDN)** | التخطيط والمسافات فقط |
+| **Google Fonts** | Tajawal (عربي) + JetBrains Mono (أرقام) |
+| **sunrisesunset.io API** | بيانات الشروق والغروب الدقيقة |
+| **Aladhan API** | مواقيت الصلوات الخمسة |
+| **Nominatim / OpenStreetMap** | البحث الجغرافي عند إضافة مدن |
+| **localStorage** | كاش البيانات (TTL: 6 ساعات) |
+| **Web Share API** | مشاركة الرابط native على الهاتف |
+| **Intl.DateTimeFormat** | التاريخ الهجري |
 
-Currently, the application supports:
+---
 
-* Tobruk
-* Benghazi
-* Tripoli
+## 🎨 مبادئ التصميم
 
-Additional cities can be added easily in future updates.
+### الفلسفة البصرية — "السماء الحية"
+صُمِّمت الواجهة على مبدأ أن **الشاشة هي السماء نفسها** — لا مجرد عارض لمعلومات. كل عنصر فيها مستوحى من الطبيعة:
 
-## Design Principles
+- **الخلفية** = السماء الفعلية بألوانها المتغيرة
+- **القوس** = مسار الشمس/القمر فوق الأفق
+- **النجوم** = النجوم الحقيقية تظهر فقط ليلاً
+- **التوهّج** = ضوء الشمس والقمر عبر SVG filter
 
-This project is built to be:
+### الجانب النفسي
+| المبدأ | التطبيق |
+|---|---|
+| **الربط بالطبيعة** | الساعة تبدأ من الشروق لا منتصف الليل |
+| **التقدم المرئي** | القوس يمتلئ من اليسار — إشباع لحظي |
+| **الاستباق الذهني** | العداد التنازلي يُهيّئك للغروب/الشروق |
+| **المعنى الروحي** | نقاط الصلاة على القوس تربط الوقت بالعبادة |
+| **الاعتدال الموسمي** | تُذكّرك متى يتساوى الليل والنهار |
+| **التباين الليلي** | الثيم الليلي كحلي عميق لا رمادي قاسٍ |
 
-* Fast and lightweight
-* Easy to understand and maintain
-* Independent of complex frameworks
-* Based on real astronomical timing data
+### إمكانية الوصول (Accessibility)
+- `aria-label` على جميع الأزرار التفاعلية
+- `aria-live="polite"` على الساعة والعداد والطور
+- `role="alert"` على رسائل الخطأ
+- `role="status"` على شاشة التحميل
+- `sr-only` label على حقل الإدخال
+- تباين ألوان > 4.5:1 (WCAG AA) في جميع الثيمات
 
-## License
+---
 
-Copyright © 2026 Azzubair
+## 🌐 المدن المدعومة
 
-All rights reserved.
+المدن الافتراضية:
+
+| المدينة | خط العرض | خط الطول |
+|---|---|---|
+| طبرق | 32.0773°N | 23.9600°E |
+| بنغازي | 32.1167°N | 20.0667°E |
+| طرابلس | 32.8892°N | 13.1900°E |
+
+يمكن إضافة **أي مدينة في العالم** بكتابة اسمها بالإنجليزية.
+
+---
+
+## 📱 مشاركة الرابط
+
+يدعم التطبيق URL parameters لمشاركة مدينة بعينها:
+
+```
+https://azzubairx.github.io/SolarisSwahili/?city=طبرق
+https://azzubairx.github.io/SolarisSwahili/?city=Cairo
+```
+
+عند فتح الرابط، يُحمَّل التطبيق مباشرةً على المدينة المحددة.
+
+---
+
+## 📁 الـ APIs المستخدمة
+
+| الـ API | الرابط | الاستخدام | المجانية |
+|---|---|---|:---:|
+| Sunrise Sunset | `api.sunrisesunset.io` | الشروق والغروب | ✅ |
+| Aladhan | `api.aladhan.com` | مواقيت الصلاة | ✅ |
+| Nominatim | `nominatim.openstreetmap.org` | البحث الجغرافي | ✅ |
+
+---
+
+## 🔧 إضافة مدينة برمجياً
+
+```javascript
+// في js/app.js — داخل CFG.CITIES
+CFG.CITIES.misurata = {
+    name: 'مصراتة',
+    lat:  '32.3754',
+    lng:  '15.0926'
+};
+```
+
+أو عبر واجهة التطبيق مباشرةً بكتابة `Misrata` في حقل الإدخال.
+
+---
+
+## 📄 الترخيص
+
+```
+Copyright © 2026 Azzubair — جميع الحقوق محفوظة
+
+يُسمح بالاطلاع والدراسة لأغراض شخصية وتعليمية.
+يُمنع إعادة النشر أو التوزيع أو الاستخدام التجاري
+دون إذن خطي صريح من المؤلف.
+```
+
+---
+
+## 👤 المؤلف
+
+**الزبير** — مطوّر ومترجم ومعلم لغة إنجليزية  
+🌐 [azzubairx.github.io](https://azzubairx.github.io) &nbsp;|&nbsp;
+📍 طبرق، ليبيا
+
+---
+
+<div align="center">
+
+*صُنع بحبٍّ للتراث وللبرمجة — طبرق، 2026*
+
+</div>
