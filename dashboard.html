@@ -172,7 +172,7 @@
         document.getElementById('lang-toggle').textContent = wasAr ? 'عر' : 'EN';
         localStorage.setItem('ss_lang', wasAr ? 'en' : 'ar');
         isEn = wasAr;
-        renderAll();
+        renderAll(); // re-render all charts and tables in new language
     }
 
     const h = new Date().getHours();
