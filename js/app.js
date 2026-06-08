@@ -444,19 +444,20 @@ const App = (() => {
             return null;
         },
 
-        /** إضافة موقع المستخدم كمدينة خاصة وتحميله */
-        async addAutoCity() {
+        /** إضافة موقع المستخدم كمدينة خاصة — forceSwitch=true عند الضغط على زر GPS */
+        async addAutoCity(forceSwitch = false) {
             const badge = $('gps-badge');
             if (badge) {
-                badge.innerHTML = `<span class="gps-dot"></span>${Lang.t('detecting')}`;
+                badge.innerHTML = `<span class="gps-dot"></span><span>${Lang.t('detecting')}</span>`;
                 badge.style.pointerEvents = 'none';
             }
             const loc = await this.detect();
             if (loc && loc.lat) {
                 const k = 'geo_auto';
+                const isNew = !S.cities[k]; // first-ever detection?
                 S.cities[k] = {
                     name:      loc.name    || Lang.t('yourLocation'),
-                    nameEn:    loc.name    || Lang.t('yourLocation'),
+                    nameEn:    loc.name    || 'My Location',
                     country:   loc.country || '',
                     countryEn: loc.countryEn || loc.country || '',
                     lat:       String(loc.lat),
@@ -465,10 +466,11 @@ const App = (() => {
                 };
                 CityStore.save();
                 buildBtns();
-                loadCity(k);
+                // Auto-switch only on first detection OR if user explicitly clicked badge
+                if (forceSwitch || isNew) loadCity(k);
             }
             if (badge) {
-                badge.innerHTML = `<span class="gps-dot"></span>${Lang.t('yourLocation')}`;
+                badge.innerHTML = `<span class="gps-dot"></span><span data-i18n="yourLocation">${Lang.t('yourLocation')}</span>`;
                 badge.style.pointerEvents = '';
             }
         }
@@ -725,23 +727,29 @@ const App = (() => {
             ctx.fillText(dateText, CX, 128);
             ctx.globalAlpha = 1;
 
-            // Big hour
-            ctx.font = `bold 130px 'JetBrains Mono', monospace`;
+            // Big hour — always LTR digit, centred
+            ctx.save();
             ctx.direction = 'ltr';
-            ctx.fillStyle = textPri; ctx.fillText(hour, CX, 255);
+            ctx.font = `bold 130px 'JetBrains Mono', monospace`;
+            ctx.fillStyle = textPri; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(hour, CX, 248);
+            ctx.restore();
 
             // Phase
+            ctx.save();
             ctx.direction = Lang.current === 'ar' ? 'rtl' : 'ltr';
             ctx.font = `bold 26px 'Tajawal', sans-serif`;
-            ctx.fillStyle = textSec; ctx.globalAlpha = 0.8;
+            ctx.fillStyle = textSec; ctx.globalAlpha = 0.8; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(phase, CX, 316);
-            ctx.globalAlpha = 1;
+            ctx.restore();
 
             // Civil time
+            ctx.save();
+            ctx.direction = 'ltr';
             ctx.font = `26px 'JetBrains Mono', monospace`;
-            ctx.direction = 'ltr'; ctx.fillStyle = textPri; ctx.globalAlpha = 0.55;
+            ctx.fillStyle = textPri; ctx.globalAlpha = 0.55; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(std, CX, 356);
-            ctx.globalAlpha = 1;
+            ctx.restore();
 
             // Branding
             ctx.font = `700 13px 'JetBrains Mono', monospace`;
@@ -853,14 +861,17 @@ const App = (() => {
             const ambBody = $('amb-celestial');
             if (ambBody) {
                 const angle = Math.PI * (1 - prog);
-                const bx = 300 + 255 * Math.cos(angle);
-                const by = 270 - 255 * Math.sin(angle);
+                // radius must match the SVG arc "A 270 270" value
+                const bx = 300 + 270 * Math.cos(angle);
+                const by = 270 - 270 * Math.sin(angle);
                 ambBody.setAttribute('transform', `translate(${bx.toFixed(1)},${by.toFixed(1)})`);
             }
-            const ambSun  = $('amb-sun');
-            const ambMoon = $('amb-moon');
+            const ambSun   = $('amb-sun');
+            const ambMoon  = $('amb-moon');
+            const ambHalo  = $('amb-sun-halo');
             if (ambSun)  ambSun.style.opacity  = isNight ? '0' : '1';
             if (ambMoon) ambMoon.style.opacity  = isNight ? '1' : '0';
+            if (ambHalo) ambHalo.style.opacity  = isNight ? '0' : '1';
 
             // Stars opacity
             const ambStars = $('amb-stars');
@@ -1112,9 +1123,6 @@ const App = (() => {
         buildBtns();
         updateDateDisplay();
 
-        // Auto-detect location silently
-        setTimeout(() => GeoDetect.addAutoCity(), 800);
-
         // ── Add city ──────────────────────────────────────
         D.addBtn.onclick = async () => {
             const val = D.cityInput.value.trim();
@@ -1181,7 +1189,10 @@ const App = (() => {
 
         // ── GPS badge ─────────────────────────────────────
         const gpsBadge = $('gps-badge');
-        if (gpsBadge) gpsBadge.onclick = () => GeoDetect.addAutoCity();
+        if (gpsBadge) gpsBadge.onclick = () => GeoDetect.addAutoCity(true);
+
+        // Auto-detect silently on load (no forced switch on repeat visits)
+        setTimeout(() => GeoDetect.addAutoCity(false), 900);
 
         // ── Theme toggle ──────────────────────────────────
         D.themeBtn.onclick = () => {
