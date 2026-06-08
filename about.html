@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عن التوقيت السواحلي | SolarisSwahili</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"Tajawal"','sans-serif'],mono:['"JetBrains Mono"','monospace']}}}}</script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .demo-arc-wrap { width: 280px; height: 150px; margin: 0 auto; }
+        .about-tl-item:last-child { border-bottom: none; }
+        .highlight-box {
+            background: var(--accent-faint);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .highlight-box strong { color: var(--day-clr); }
+    </style>
+</head>
+<body class="antialiased min-h-screen">
+
+    <!-- Nav -->
+    <nav class="site-nav">
+        <a href="index.html" class="nav-logo">SolarisSwahili</a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">الرئيسية</a>
+            <a href="about.html" class="nav-link active">عن المشروع</a>
+            <a href="compare.html" class="nav-link">مقارنة</a>
+            <a href="dashboard.html" class="nav-link">إحصائيات</a>
+        </div>
+        <div class="nav-right">
+            <button id="lang-toggle" class="lang-btn" onclick="toggleLang()">EN</button>
+        </div>
+    </nav>
+
+    <!-- Stars -->
+    <div id="stars-layer" class="fixed inset-0 pointer-events-none z-0 opacity-0" aria-hidden="true"></div>
+
+    <div class="page-container" style="background:linear-gradient(160deg,var(--sky-top),var(--sky-bot));min-height:100vh;">
+
+        <!-- Hero -->
+        <section class="about-hero">
+            <div class="demo-arc-wrap mb-6" aria-hidden="true">
+                <svg id="demo-svg" viewBox="0 0 300 155" class="w-full h-full overflow-visible">
+                    <defs>
+                        <filter id="da-f-sun" x="-130%" y="-130%" width="360%" height="360%">
+                            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/>
+                            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                        <linearGradient id="da-g-day" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%"   stop-color="#F59E0B"/>
+                            <stop offset="45%"  stop-color="#38BDF8"/>
+                            <stop offset="100%" stop-color="#F97316"/>
+                        </linearGradient>
+                    </defs>
+                    <line x1="10" y1="140" x2="290" y2="140" stroke="var(--accent)" stroke-width="1" stroke-dasharray="5 5" opacity="0.4"/>
+                    <path d="M 15 140 A 130 130 0 0 1 285 140" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.2"/>
+                    <path id="demo-arc" d="M 15 140 A 130 130 0 0 1 285 140"
+                          fill="none" stroke="url(#da-g-day)" stroke-width="4"
+                          pathLength="100" stroke-dasharray="100" stroke-dashoffset="55"
+                          stroke-linecap="round"/>
+                    <g id="demo-body" transform="translate(150,10)">
+                        <circle cx="0" cy="0" r="14" fill="rgba(251,191,36,0.35)"/>
+                        <circle cx="0" cy="0" r="7.5" fill="white" stroke="#F59E0B" stroke-width="3" filter="url(#da-f-sun)"/>
+                    </g>
+                    <text x="15"  y="155" font-size="9" fill="var(--text-sec)" font-family="JetBrains Mono,monospace" text-anchor="middle">شروق</text>
+                    <text x="285" y="155" font-size="9" fill="var(--text-sec)" font-family="JetBrains Mono,monospace" text-anchor="middle">غروب</text>
+                    <text x="150" y="20"  font-size="9" fill="var(--accent)"   font-family="JetBrains Mono,monospace" text-anchor="middle">ذروة</text>
+                </svg>
+            </div>
+
+            <p class="font-mono text-xs tracking-widest mb-4" style="color:var(--text-sec)">SWAHILI TIMEKEEPING</p>
+            <h1 class="about-hero-title">
+                النظام السواحلي<br>
+                <span style="color:var(--day-clr)">الغروبي الديناميكي</span>
+            </h1>
+            <p class="about-hero-sub" style="color:var(--text-sec)">
+                نظام توقيت عريق يضع الشمس في مركز الزمن — لا الساعة على الجدار.
+                كل ساعة تحيا بحجمها الحقيقي، تتمدد في الصيف وتنكمش في الشتاء.
+            </p>
+        </section>
+
+        <!-- ── القسم 1: ما هو التوقيت السواحلي ──────────── -->
+        <div class="about-section">
+            <div class="card-deep rounded-2xl p-6 md:p-8">
+                <h2 class="about-section-title">
+                    <span style="font-size:1.3em">🕐</span> ما هو التوقيت السواحلي؟
+                </h2>
+                <p class="about-section-body">
+                    التوقيت السواحلي (Swahili Time / Saa za Kiswahili) نظامٌ توقيتي تقليدي شائع في شرق أفريقيا —
+                    كينيا وتنزانيا والمناطق السواحلية — يعيد ضبط الساعة الصفر عند
+                    <strong style="color:var(--day-clr)">شروق الشمس</strong> لا عند منتصف الليل.
+                    الساعة "1" تبدأ مع أول خيط من ضوء الفجر، والساعة "6" تصادف الظهيرة،
+                    والساعة "12" تُسدَل مع غروب الشمس.
+                </p>
+
+                <div class="highlight-box mt-4">
+                    <strong>المبدأ الجوهري:</strong>
+                    <span style="color:var(--text-sec)"> اليوم المدني التقليدي يبدأ بساعة ثابتة (منتصف الليل)، بينما
+                    النظام السواحلي الديناميكي يبدأ بلحظة طبيعية متغيرة — الشروق — وكل ساعة
+                    نسبية تعكس طول اليوم الفعلي في موقعك الجغرافي.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── القسم 2: الفرق بين النظامين ─────────────── -->
+        <div class="about-section">
+            <h2 class="about-section-title" style="color:var(--text-pri)">
+                <span style="font-size:1.3em">⚖️</span> الفرق عن التوقيت التقليدي
+            </h2>
+            <div class="about-comparison-grid">
+                <div class="about-comp-card">
+                    <div class="about-comp-label" style="color:var(--night-clr)">⏱ التوقيت القياسي</div>
+                    <ul class="about-section-body" style="font-size:0.85rem;list-style:none;padding:0;display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;">
+                        <li>⦁ يبدأ عند منتصف الليل (00:00)</li>
+                        <li>⦁ ساعاته ثابتة (60 دقيقة دائماً)</li>
+                        <li>⦁ لا يرتبط بحركة الشمس</li>
+                        <li>⦁ الساعة 6:00 قد تكون ليلاً أو نهاراً</li>
+                        <li>⦁ معياري عالمياً، لكن مقطوع عن الطبيعة</li>
+                    </ul>
+                </div>
+                <div class="about-comp-card">
+                    <div class="about-comp-label" style="color:var(--day-clr)">☀️ التوقيت السواحلي الديناميكي</div>
+                    <ul class="about-section-body" style="font-size:0.85rem;list-style:none;padding:0;display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;">
+                        <li>⦁ يبدأ عند شروق الشمس (الساعة 1)</li>
+                        <li>⦁ ساعاته نسبية (تتغير يومياً)</li>
+                        <li>⦁ يتتبع حركة الشمس بدقة</li>
+                        <li>⦁ الساعة 6 دائماً وسط النهار (الذروة)</li>
+                        <li>⦁ متجذر في الطبيعة والبيئة المحلية</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── القسم 3: يوم كامل في جدول ───────────────── -->
+        <div class="about-section">
+            <h2 class="about-section-title" style="color:var(--text-pri)">
+                <span style="font-size:1.3em">🌅</span> يوم كامل بالساعة السواحلية
+            </h2>
+            <p class="about-section-body mb-4">
+                في مثال تقريبي لمدينة عند خط عرض 32° (كطبرق أو بنغازي)
+                في شهر يونيو، يكون طول النهار نحو 14 ساعة:
+            </p>
+            <div class="card rounded-xl p-1">
+                <div class="about-timeline">
+                    <div class="about-tl-item">
+                        <span class="about-tl-time">ساعة 1</span>
+                        <span class="about-tl-desc">شروق الشمس — انطلاق اليوم السواحلي</span>
+                    </div>
+                    <div class="about-tl-item">
+                        <span class="about-tl-time">ساعة 2–3</span>
+                        <span class="about-tl-desc">الصباح الباكر — ضوء فاتر ذهبي</span>
+                    </div>
+                    <div class="about-tl-item">
+                        <span class="about-tl-time">ساعة 4</span>
+                        <span class="about-tl-desc">الضحى — الشمس ترتفع بشكل ملحوظ</span>
+                    </div>
+                    <div class="about-tl-item">
+                        <span class="about-tl-time" style="color:var(--night-clr)">06:00 (قياسي)</span>
+                        <span class="about-tl-desc" style="color:var(--text-sec);font-style:italic">في هذا اليوم ≈ ساعة 5 سواحلي</span>
+                    </div>
+                    <div class="about-tl-item">
+                        <span class="about-tl-time">ساعة 6</span>
+                        <span class="about-tl-desc"><strong style="color:var(--day-clr)">الذروة الشمسية</strong> — دائماً منتصف النهار السواحلي</span>
+                    </div>
+                    <div class="about-tl-item">
+                        <span class="about-tl-time">ساعة 8–9</span>
+                        <span class="about-tl-desc">العصر — الظل يمتد، الحرارة تخف</span>
+                    </div>
+                    <div class="about-tl-item">
+                        <span class="about-tl-time">ساعة 11</span>
+                        <span class="about-tl-desc">المغرب يقترب — ذهبي آخر النهار</span>
+                    </div>
+                    <div class="about-tl-item">
+                        <span class="about-tl-time">ساعة 12</span>
+                        <span class="about-tl-desc">غروب الشمس — نهاية اليوم السواحلي</span>
+                    </div>
+                    <div class="about-tl-item">
+                        <span class="about-tl-time" style="color:var(--night-clr)">ساعة 1 ليلاً</span>
+                        <span class="about-tl-desc">يبدأ النصف الليلي — 12 ساعة حتى الفجر</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── القسم 4: الديناميكية ──────────────────────── -->
+        <div class="about-section">
+            <h2 class="about-section-title" style="color:var(--text-pri)">
+                <span style="font-size:1.3em">📐</span> لماذا "ديناميكي"؟
+            </h2>
+            <div class="card-deep rounded-2xl p-6">
+                <p class="about-section-body mb-4">
+                    النظام السواحلي الكلاسيكي يفترض أن الشروق يقع دائماً عند 6:00 صباحاً بالتوقيت القياسي —
+                    وهو صحيح تقريباً في المناطق الاستوائية، لكنه يُخطئ كلياً في المناطق الأبعد.
+                </p>
+                <p class="about-section-body mb-4">
+                    النسخة الديناميكية تحلّ هذه الإشكالية:
+                </p>
+                <div class="grid gap-3 md:grid-cols-3">
+                    <div class="highlight-box" style="margin:0;text-align:center;">
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--day-clr)">API</div>
+                        <div style="font-size:0.78rem;color:var(--text-sec);margin-top:0.3rem">تُحضِر وقت الشروق والغروب الفعليين للمدينة كل يوم</div>
+                    </div>
+                    <div class="highlight-box" style="margin:0;text-align:center;">
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--day-clr)">÷12</div>
+                        <div style="font-size:0.78rem;color:var(--text-sec);margin-top:0.3rem">تُقسَّم مدة النهار على 12 ساعة سواحلية متساوية</div>
+                    </div>
+                    <div class="highlight-box" style="margin:0;text-align:center;">
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--day-clr)">∞</div>
+                        <div style="font-size:0.78rem;color:var(--text-sec);margin-top:0.3rem">تتحدث الساعة كل ثانية وفق الموقع الحقيقي للشمس</div>
+                    </div>
+                </div>
+                <p class="about-section-body mt-4">
+                    النتيجة: في طبرق (يناير) قد تكون الساعة السواحلية الواحدة ≈ 57 دقيقة فقط،
+                    بينما في يونيو تكون ≈ 70 دقيقة. الساعة "تتنفس" مع الفصول.
+                </p>
+            </div>
+        </div>
+
+        <!-- ── القسم 5: السياق التاريخي ─────────────────── -->
+        <div class="about-section">
+            <h2 class="about-section-title" style="color:var(--text-pri)">
+                <span style="font-size:1.3em">📜</span> الجذور التاريخية
+            </h2>
+            <p class="about-section-body">
+                التوقيت الشمسي النسبي ليس بدعة حديثة؛ فقد عرفته الحضارات القديمة جميعها.
+                <strong style="color:var(--day-clr)">الساعات الكنسية</strong> في أوروبا العصور الوسطى،
+                و<strong style="color:var(--day-clr)">الساعات الزمنية</strong> في اليابان الإقطاعية (不定時法),
+                و<strong style="color:var(--day-clr)">ساعات الوقت المتغير</strong> في روما القديمة —
+                كلها تُقسّم النهار إلى 12 ساعة متساوية بصرف النظر عن فصل السنة.
+            </p>
+            <p class="about-section-body mt-3">
+                أما في شرق أفريقيا، فيظل التوقيت السواحلي (Saa za Kiswahili) حياً في الحياة
+                اليومية للمناطق الساحلية من مومباسا إلى دار السلام، وفي الراديو والتلفزيون
+                وجداول المواصلات المحلية.
+            </p>
+        </div>
+
+        <!-- ── القسم 6: الدلالة الفكرية ──────────────────── -->
+        <div class="about-section">
+            <div class="card rounded-2xl px-6 py-5" style="border-color:var(--day-clr);border-width:1px;background:var(--glass);">
+                <p class="about-section-body" style="font-size:1rem;line-height:2;">
+                    "حين تقرأ الساعة السواحلية تقرأ السماء مباشرةً —
+                    لا رموزاً تعسفية فرضها البشر على الزمن،
+                    بل الزمن نفسه كما كتبته الشمس."
+                </p>
+                <p class="text-xs mt-3" style="color:var(--text-sec);font-style:italic;">— SolarisSwahili v3.0</p>
+            </div>
+        </div>
+
+        <!-- ── CTA ──────────────────────────────────────── -->
+        <div class="about-section text-center">
+            <a href="index.html"
+               class="add-btn inline-block px-8 py-3 rounded-full font-bold text-sm no-underline"
+               style="text-decoration:none;">
+                ← العودة إلى الساعة الحية
+            </a>
+            <a href="compare.html"
+               class="city-btn inline-block px-6 py-3 rounded-full text-sm ms-3 no-underline"
+               style="text-decoration:none;">
+                مقارنة المدن
+            </a>
+        </div>
+
+    </div><!-- /page-container -->
+
+    <script>
+    // Minimal theme/lang for about page
+    const savedLang = localStorage.getItem('ss_lang') || 'ar';
+    if (savedLang === 'en') {
+        document.documentElement.lang = 'en';
+        document.documentElement.dir  = 'ltr';
+        document.getElementById('lang-toggle').textContent = 'عر';
+    }
+
+    function toggleLang() {
+        const isAr = document.documentElement.lang !== 'en';
+        document.documentElement.lang = isAr ? 'en' : 'ar';
+        document.documentElement.dir  = isAr ? 'ltr' : 'rtl';
+        document.getElementById('lang-toggle').textContent = isAr ? 'عر' : 'EN';
+        localStorage.setItem('ss_lang', isAr ? 'en' : 'ar');
+    }
+
+    // Animate demo arc
+    let demoProgress = 0.45;
+    let demoDir = 1;
+    const demoArc  = document.getElementById('demo-arc');
+    const demoBody = document.getElementById('demo-body');
+    setInterval(() => {
+        demoProgress += demoDir * 0.003;
+        if (demoProgress > 0.98) demoDir = -1;
+        if (demoProgress < 0.02) demoDir =  1;
+        demoArc.setAttribute('stroke-dashoffset', (100 - demoProgress * 100).toFixed(2));
+        const angle = Math.PI * (1 - demoProgress);
+        const cx = 150 + 130 * Math.cos(angle);
+        const cy = 140 - 130 * Math.sin(angle);
+        demoBody.setAttribute('transform', `translate(${cx.toFixed(1)},${cy.toFixed(1)})`);
+    }, 50);
+
+    // Apply theme from main page
+    const savedTheme = (() => {
+        // try to guess from time
+        const h = new Date().getHours();
+        if (h >= 20 || h < 5) return 'night';
+        if (h >= 5 && h < 7)  return 'golden';
+        return 'day';
+    })();
+    if (savedTheme === 'night') document.body.classList.add('theme-night');
+    if (savedTheme === 'golden') document.body.classList.add('theme-golden');
+    </script>
+</body>
+</html>
