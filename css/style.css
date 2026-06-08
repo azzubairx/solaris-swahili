@@ -1,30 +1,24 @@
 /* ================================================================
-   SolarisSwahili v2.0 — نظام التصميم الاحترافي
+   SolarisSwahili v3.0 — نظام التصميم الاحترافي
    css/style.css
    ================================================================ */
 
 /* ── 1. متغيرات الجذر: ثيم النهار الافتراضي ─────────────────── */
 :root {
-    /* السماء — يتحكم فيها JS كل ثانية */
     --sky-top:       #F3F4F6;
     --sky-bot:       #E5E7EB;
-
-    /* الأسطح */
     --surface:       #FFFFFF;
     --glass:         rgba(255, 255, 255, 0.60);
     --glass-border:  rgba(0, 0, 0, 0.08);
-
-    /* النصوص */
     --text-pri:      #111827;
-    --text-sec:      #4B5563;   /* تباين > 4.5:1 على الأبيض */
-
-    /* المساحد والتفاصيل */
+    --text-sec:      #4B5563;
     --accent:        #9CA3AF;
     --accent-faint:  rgba(156, 163, 175, 0.25);
-    --day-clr:       #D97706;   /* Amber 600 */
-    --night-clr:     #4338CA;   /* Indigo 700 */
+    --day-clr:       #D97706;
+    --night-clr:     #4338CA;
     --glow-sun:      rgba(251, 191, 36, 0.35);
     --shadow:        rgba(0, 0, 0, 0.06);
+    --nav-h:         52px;
 }
 
 /* ── 2. ثيم الغسق / الفجر ────────────────────────────────────── */
@@ -64,6 +58,7 @@ body {
     color: var(--text-pri);
     overflow-x: hidden;
     transition: color 1.5s ease;
+    font-family: 'Tajawal', sans-serif;
 }
 
 /* ── 5. نمط الخلفية الطبوغرافي ───────────────────────────────── */
@@ -85,7 +80,66 @@ body.theme-night::before { opacity: 0.30; }
     to   { opacity: 0.92; }
 }
 
-/* ── 7. Loader ───────────────────────────────────────────────── */
+/* ── 7. شريط التنقل العلوي ───────────────────────────────────── */
+.site-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--nav-h);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.2rem;
+    background: var(--glass);
+    border-bottom: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: background 1.5s ease;
+}
+.nav-logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-pri);
+    letter-spacing: 0.05em;
+    text-decoration: none;
+}
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+}
+.nav-link {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-sec);
+    padding: 0.3rem 0.7rem;
+    border-radius: 9999px;
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
+}
+.nav-link:hover { color: var(--text-pri); background: var(--accent-faint); }
+.nav-link.active { color: var(--text-pri); background: var(--accent-faint); font-weight: 700; }
+.nav-right { display: flex; align-items: center; gap: 0.4rem; }
+
+/* ── 8. زر اللغة ─────────────────────────────────────────────── */
+.lang-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    color: var(--text-sec);
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.lang-btn:hover { color: var(--text-pri); border-color: var(--accent); }
+
+/* ── 9. Loader ───────────────────────────────────────────────── */
 #loader {
     background: linear-gradient(160deg, var(--sky-top) 0%, var(--sky-bot) 100%);
     transition: opacity 0.6s ease;
@@ -99,7 +153,7 @@ body.theme-night::before { opacity: 0.30; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── 8. بطاقات الزجاج (Glassmorphism) ───────────────────────── */
+/* ── 10. بطاقات الزجاج ───────────────────────────────────────── */
 .card {
     background: var(--glass);
     border: 1px solid var(--glass-border);
@@ -114,7 +168,7 @@ body.theme-night::before { opacity: 0.30; }
     box-shadow: 0 10px 50px var(--shadow);
 }
 
-/* ── 9. أزرار التحكم ─────────────────────────────────────────── */
+/* ── 11. أزرار التحكم ─────────────────────────────────────────── */
 .ctrl-btn {
     display: flex; align-items: center; justify-content: center;
     width: 38px; height: 38px; border-radius: 50%;
@@ -130,17 +184,21 @@ body.theme-night::before { opacity: 0.30; }
 .ctrl-btn:active { transform: scale(0.94); }
 .ctrl-btn:focus-visible { outline: 2px solid var(--text-pri); outline-offset: 3px; }
 
-/* ── 10. أزرار المدن ─────────────────────────────────────────── */
+/* ── 12. أزرار المدن ─────────────────────────────────────────── */
 .city-btn {
     font-family: 'Tajawal', sans-serif;
     font-size: 0.875rem;
-    padding: 0.3rem 1.1rem;
+    padding: 0.3rem 0.9rem;
     border-radius: 9999px;
     color: var(--text-sec);
     background: transparent;
     border: 1px solid var(--glass-border);
     cursor: pointer;
     transition: color 0.18s, background 0.18s, transform 0.18s, border-color 0.18s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    position: relative;
 }
 .city-btn:hover, .city-btn:focus-visible {
     color: var(--text-pri);
@@ -159,7 +217,27 @@ body.theme-night::before { opacity: 0.30; }
     transform: translateY(0);
 }
 
-/* ── 11. حقل الإدخال وزر الإضافة ────────────────────────────── */
+/* زر حذف المدينة */
+.city-del {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--text-sec);
+    background: var(--accent-faint);
+    transition: background 0.15s, color 0.15s;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.city-del:hover { background: rgba(239,68,68,0.2); color: #EF4444; }
+.city-btn.active .city-del { color: var(--glass); background: rgba(255,255,255,0.2); }
+.city-btn.active .city-del:hover { background: rgba(239,68,68,0.4); }
+
+/* ── 13. حقل الإدخال وزر الإضافة ────────────────────────────── */
 .city-input {
     background: var(--surface);
     border: 1px solid var(--glass-border);
@@ -182,17 +260,50 @@ body.theme-night::before { opacity: 0.30; }
 .add-btn:active { opacity: 1;    transform: scale(0.97); }
 .add-btn:disabled { opacity: 0.42; cursor: not-allowed; transform: none; }
 
-/* ── 12. الترويسة والعناوين ──────────────────────────────────── */
+/* ── 14. الترويسة والعناوين ──────────────────────────────────── */
 .header-title { color: var(--text-pri); }
 .header-sub   { color: var(--text-sec); }
 .city-title   { color: var(--text-pri); }
-.hijri-label  { color: var(--text-sec); }
+.date-label   { color: var(--text-sec); }
 
-/* ── 13. الساعة الكبيرة ──────────────────────────────────────── */
+/* اسم الدولة تحت اسم المدينة */
+.country-sub {
+    font-size: 0.7rem;
+    color: var(--text-sec);
+    opacity: 0.6;
+    font-style: italic;
+    letter-spacing: 0.04em;
+    min-height: 1em;
+}
+
+/* شارة GPS */
+.gps-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-sec);
+    background: var(--accent-faint);
+    border: 1px solid var(--glass-border);
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+}
+.gps-badge:hover { color: var(--text-pri); background: var(--glass); }
+.gps-dot { width: 6px; height: 6px; border-radius: 50%; background: #22C55E; animation: gps-pulse 2s infinite; }
+@keyframes gps-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+}
+
+/* ── 15. الساعة الكبيرة ──────────────────────────────────────── */
 .hour-word { color: var(--text-sec); }
 .hour-num  { color: var(--text-pri); line-height: 0.9; }
 
-/* ── 14. شارة الطور ──────────────────────────────────────────── */
+/* ── 16. شارة الطور ──────────────────────────────────────────── */
 .phase-pill {
     background: var(--glass);
     border: 1px solid var(--glass-border);
@@ -200,10 +311,10 @@ body.theme-night::before { opacity: 0.30; }
     transition: all 0.6s ease;
 }
 
-/* ── 15. الرقم التفصيلي النسبي ───────────────────────────────── */
+/* ── 17. الرقم التفصيلي النسبي ───────────────────────────────── */
 .metric-num { color: var(--text-pri); letter-spacing: 0.06em; }
 
-/* ── 16. Tooltip ─────────────────────────────────────────────── */
+/* ── 18. Tooltip ─────────────────────────────────────────────── */
 .tip-box {
     background: var(--text-pri);
     color: var(--surface);
@@ -213,7 +324,7 @@ body.theme-night::before { opacity: 0.30; }
 .tip-arrow { border-top-color: var(--text-pri); }
 .tip-icon  { color: var(--text-sec); }
 
-/* ── 17. العداد التنازلي ─────────────────────────────────────── */
+/* ── 19. العداد التنازلي ─────────────────────────────────────── */
 .cd-wrap {
     background: var(--accent-faint);
     border: 1px solid var(--glass-border);
@@ -224,7 +335,7 @@ body.theme-night::before { opacity: 0.30; }
 .cd-num   { color: var(--text-pri); }
 body.theme-night .cd-dot { background: var(--night-clr); }
 
-/* ── 18. مؤشرات الصلاة على القوس ────────────────────────────── */
+/* ── 20. مؤشرات الصلاة ───────────────────────────────────────── */
 .prayer-dot {
     fill: var(--surface);
     stroke: var(--text-sec);
@@ -246,7 +357,7 @@ body.theme-night .cd-dot { background: var(--night-clr); }
     animation: pulse-ring 2.4s ease-out infinite;
 }
 
-/* ── 19. الجسم السماوي والقوس ───────────────────────────────── */
+/* ── 21. الجسم السماوي والقوس ───────────────────────────────── */
 #progress-arc    { transition: stroke-dashoffset 0.95s linear; }
 #celestial-body  { transition: transform 0.95s linear; }
 #sun-shape,
@@ -258,11 +369,10 @@ body.theme-night .cd-dot { background: var(--night-clr); }
 }
 #sun-halo { animation: halo-breathe 4.5s ease-in-out infinite alternate; }
 
-/* ── 20. شريط النهار والليل ──────────────────────────────────── */
+/* ── 22. شريط النهار والليل ──────────────────────────────────── */
 .dl-bg    { background: var(--accent-faint); }
 .dl-day   { background: var(--day-clr);   transition: width 2s ease; }
 .dl-night { background: var(--night-clr); transition: width 2s ease; }
-
 .dl-day-lbl   { color: var(--day-clr); }
 .dl-night-lbl { color: var(--night-clr); }
 .dl-sec       { color: var(--text-sec); }
@@ -273,7 +383,7 @@ body.theme-night .cd-dot { background: var(--night-clr); }
     white-space: nowrap;
 }
 
-/* ── 21. شريط أوقات الصلاة ───────────────────────────────────── */
+/* ── 23. شريط أوقات الصلاة ───────────────────────────────────── */
 .prayer-bar {
     background: var(--surface);
     border: 1px solid var(--glass-border);
@@ -285,12 +395,12 @@ body.theme-night .cd-dot { background: var(--night-clr); }
 .prayer-item-next .p-name,
 .prayer-item-next .p-time { color: #F59E0B; }
 
-/* ── 22. التذييل ─────────────────────────────────────────────── */
+/* ── 24. التذييل ─────────────────────────────────────────────── */
 .footer-card  { background: var(--surface); border: 1px solid var(--glass-border); }
 .footer-lbl   { color: var(--text-sec); }
 .footer-val   { color: var(--text-pri); }
 
-/* ── 23. واجهة الخطأ ─────────────────────────────────────────── */
+/* ── 25. واجهة الخطأ ─────────────────────────────────────────── */
 .err-backdrop { background: rgba(7, 0, 20, 0.88); }
 .err-card     { background: rgba(20, 5, 30, 0.92); border: 1px solid rgba(239, 68, 68, 0.20); }
 .err-icon-bg  { background: rgba(239, 68, 68, 0.14); }
@@ -300,6 +410,439 @@ body.theme-night .cd-dot { background: var(--night-clr); }
 .retry-btn    { background: #FEF2F2; color: #4B0000; font-weight: 800; cursor: pointer; transition: background 0.15s; }
 .retry-btn:hover { background: #ffffff; }
 
-/* ── 24. خطأ الإدخال ─────────────────────────────────────────── */
+/* ── 26. خطأ الإدخال ─────────────────────────────────────────── */
 .input-err { color: #EF4444; }
 body.theme-night .input-err { color: #F87171; }
+
+/* ══════════════════════════════════════════════════════════════
+   27. وضع الحائط (Ambient Mode)
+══════════════════════════════════════════════════════════════ */
+#ambient-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: none;
+    transition: background 1.5s ease;
+}
+#ambient-overlay.show { display: flex !important; }
+
+.ambient-city {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(0.9rem, 2vw, 1.3rem);
+    color: var(--text-sec);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.65;
+    margin-bottom: 1rem;
+}
+.ambient-country {
+    font-size: clamp(0.6rem, 1.2vw, 0.85rem);
+    color: var(--text-sec);
+    opacity: 0.4;
+    font-style: italic;
+    margin-top: -0.75rem;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.1em;
+}
+.ambient-hour-wrap {
+    display: flex;
+    align-items: flex-end;
+    gap: clamp(0.5rem, 2vw, 1.5rem);
+    margin-bottom: 0.5rem;
+}
+.ambient-hour-label {
+    font-family: 'Tajawal', sans-serif;
+    font-size: clamp(1.5rem, 4vw, 3rem);
+    font-weight: 300;
+    color: var(--text-sec);
+    opacity: 0.7;
+    line-height: 1;
+    padding-bottom: 0.4rem;
+}
+.ambient-hour-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(5rem, 18vw, 14rem);
+    font-weight: 700;
+    color: var(--text-pri);
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+}
+.ambient-phase {
+    font-family: 'Tajawal', sans-serif;
+    font-size: clamp(0.9rem, 2.5vw, 1.6rem);
+    font-weight: 700;
+    color: var(--text-sec);
+    letter-spacing: 0.08em;
+    margin-bottom: 0.6rem;
+}
+.ambient-std {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(1.5rem, 5vw, 3.5rem);
+    font-weight: 300;
+    color: var(--text-pri);
+    opacity: 0.55;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.8rem;
+}
+.ambient-countdown {
+    font-family: 'Tajawal', sans-serif;
+    font-size: clamp(0.75rem, 1.8vw, 1.1rem);
+    color: var(--text-sec);
+    opacity: 0.55;
+    letter-spacing: 0.06em;
+}
+.ambient-date {
+    font-family: 'Tajawal', sans-serif;
+    font-size: clamp(0.65rem, 1.5vw, 0.95rem);
+    color: var(--text-sec);
+    opacity: 0.4;
+    letter-spacing: 0.05em;
+    margin-top: 1.2rem;
+}
+.ambient-exit-hint {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-sec);
+    opacity: 0.3;
+    letter-spacing: 0.15em;
+    pointer-events: none;
+}
+.ambient-stars {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    transition: opacity 2s ease;
+}
+#ambient-arc-wrap {
+    width: min(90vw, 700px);
+    height: min(40vw, 320px);
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   28. مودال مشاركة الصورة (Share Image Modal)
+══════════════════════════════════════════════════════════════ */
+.share-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.share-modal-bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+}
+.share-modal-card {
+    position: relative;
+    z-index: 1;
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.5rem;
+    overflow: hidden;
+    max-width: 560px;
+    width: 100%;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.3);
+}
+.share-modal-card img {
+    width: 100%;
+    display: block;
+    border-radius: 1rem 1rem 0 0;
+}
+.share-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   29. صفحة "عن المشروع" (About Page)
+══════════════════════════════════════════════════════════════ */
+.about-hero {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 1.5rem 3rem;
+}
+.about-hero-title {
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 800;
+    color: var(--text-pri);
+    line-height: 1.15;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+}
+.about-hero-sub {
+    font-size: clamp(0.9rem, 2vw, 1.15rem);
+    color: var(--text-sec);
+    max-width: 42ch;
+    line-height: 1.7;
+}
+.about-section {
+    max-width: 780px;
+    margin: 0 auto 3rem;
+    padding: 0 1.5rem;
+}
+.about-section-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-pri);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+.about-section-body {
+    font-size: 0.95rem;
+    color: var(--text-sec);
+    line-height: 1.9;
+}
+.about-comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+@media (max-width: 600px) { .about-comparison-grid { grid-template-columns: 1fr; } }
+.about-comp-card {
+    padding: 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+}
+.about-comp-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-sec);
+    margin-bottom: 0.5rem;
+}
+.about-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 1.5rem 0;
+}
+.about-tl-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed var(--accent-faint);
+}
+.about-tl-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--day-clr);
+    min-width: 5rem;
+    text-align: end;
+}
+.about-tl-desc {
+    font-size: 0.85rem;
+    color: var(--text-sec);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   30. صفحة المقارنة (Compare Page)
+══════════════════════════════════════════════════════════════ */
+.compare-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.compare-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(18px);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.compare-card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px var(--shadow); }
+.compare-city-name {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text-pri);
+}
+.compare-country {
+    font-size: 0.7rem;
+    color: var(--text-sec);
+    opacity: 0.6;
+    font-style: italic;
+}
+.compare-hour {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--text-pri);
+    line-height: 1;
+    margin: 0.25rem 0;
+}
+.compare-phase {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-sec);
+    letter-spacing: 0.06em;
+}
+.compare-times {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.6rem 0;
+    border-top: 1px solid var(--glass-border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+}
+.compare-times span:first-child { color: var(--day-clr); }
+.compare-times span:last-child  { color: var(--night-clr); }
+.compare-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    color: var(--text-sec);
+    font-size: 0.8rem;
+}
+.compare-add-zone {
+    max-width: 600px;
+    margin: 0 auto 1.5rem;
+    padding: 0 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   31. لوحة الإحصائيات السنوية (Dashboard Page)
+══════════════════════════════════════════════════════════════ */
+.dash-section {
+    max-width: 900px;
+    margin: 0 auto 2.5rem;
+    padding: 0 1rem;
+}
+.dash-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-pri);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.dash-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(18px);
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+    overflow: hidden;
+}
+.dash-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.dash-stat-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+    padding: 1rem 1.25rem;
+    text-align: center;
+}
+.dash-stat-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-pri);
+    line-height: 1.1;
+}
+.dash-stat-lbl {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-sec);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+}
+.dash-month-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+}
+.dash-month-table th {
+    color: var(--text-sec);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    border-bottom: 1px solid var(--glass-border);
+}
+.dash-month-table td {
+    color: var(--text-pri);
+    padding: 0.35rem 0.6rem;
+    text-align: center;
+    border-bottom: 1px solid var(--accent-faint);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+}
+.dash-month-table tr:last-child td { border-bottom: none; }
+.dash-month-table tr.highlight-max td { color: var(--day-clr); font-weight: 700; }
+.dash-month-table tr.highlight-min td { color: var(--night-clr); font-weight: 700; }
+.dash-city-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    justify-content: center;
+}
+.chart-container {
+    width: 100%;
+    overflow-x: auto;
+}
+.chart-container svg { min-width: 320px; }
+
+/* ── Misc utilities ──────────────────────────────────────────── */
+.page-container {
+    padding-top: calc(var(--nav-h) + 1rem);
+    min-height: 100vh;
+    padding-bottom: 3rem;
+}
+
+.sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border-width: 0;
+}
+
+/* LTR mode overrides */
+html[dir="ltr"] .header-sub { direction: ltr; text-align: left; }
+html[dir="ltr"] .city-title  { text-align: center; }
