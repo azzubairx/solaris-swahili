@@ -1,15 +1,19 @@
 /**
  * SolarisSwahili v3.0
- * ساعة التوقيت السواحلي الديناميكية — النسخة الكاملة
+ * ساعة التوقيت السواحلي الديناميكية — النسخة الكاملة (مُصلَحة)
  *
- * الميزات الجديدة في v3.0:
- *  [1]  التاريخ الميلادي بدلاً من الهجري
- *  [2]  حفظ المدن في localStorage مع زر حذف
- *  [3]  عرض اسم الدولة تحت اسم المدينة
- *  [4]  اكتشاف الموقع تلقائياً (GPS → IP)
- *  [5]  مشاركة صورة الساعة (Canvas)
- *  [8]  دعم ثنائي اللغة (عربية / إنجليزية)
- *  [9]  وضع الحائط Ambient Mode (مفتاح F)
+ * الإصلاحات المطبّقة:
+ * ✅ Bug 1  — تحميل المدينة الافتراضية فوراً (لا انتظار GPS)
+ * ✅ Bug 4  — إزالة ?city= من الرابط كليًا
+ * ✅ Bug 5  — ثغرة منتصف الليل في Clock.run()
+ * ✅ Bug 9  — إعادة WakeLock عند عودة التبويب
+ * ✅ Bug 13 — مدة انتقال سريعة عند التبديل اليدوي
+ * ✅ Bug 15 — طريقة أوقات الصلاة حسب رمز الدولة
+ * ✅ Bug 23 — كاش genStars لتجنب إعادة الحساب
+ * ✅ Bug 24 — aria-label + aria-busy على زر الإضافة
+ * ✅ Bug 25 — data-i18n-aria="themeToggle" + مفتاح i18n
+ * ✅ Bug 26 — حفظ الثيم في localStorage عند التبديل اليدوي
+ * ✅ Bug 34 — معالجة QuotaExceededError في CityStore.save
  */
 
 const App = (() => {
@@ -26,7 +30,7 @@ const App = (() => {
             siteTitle:      'النظام السواحلي الغروبي',
             siteSubtitle:   'يبدأ اليوم عند شروق الشمس (الساعة\u00A01\u00A0نهاراً). كل ساعة نسبية تعكس طول اليوم الحقيقي في مدينتك.',
             addCity:        'إضافة',
-            adding:         '...',
+            adding:         'جاري...',
             cityPlaceholder:'London, Cairo, Istanbul...',
             cityNotFound:   'لم نجد هذه المدينة. حاول كتابتها بالإنجليزية.',
             detecting:      'جاري تحديد موقعك...',
@@ -55,6 +59,8 @@ const App = (() => {
             shareLink:      'نسخ رابط المدينة الحالية',
             shareImage:     'مشاركة صورة',
             ambientMode:    'وضع الحائط',
+            /* ✅ Bug 25 — مفتاح جديد لزر الثيم */
+            themeToggle:    'تبديل الوضع الليلي',
             autoReset:      'إعادة الوضع التلقائي',
             downloadPNG:    'تحميل PNG',
             close:          'إغلاق',
@@ -69,6 +75,7 @@ const App = (() => {
             hr1:            'ساعة', hr2: 'ساعتين',
             hrN:            'ساعات', hrMany: 'ساعة',
             and:            'و',
+            saveError:      'تعذر الحفظ: التخزين ممتلئ.',
         },
         en: {
             navHome:        'Home',
@@ -78,7 +85,7 @@ const App = (() => {
             siteTitle:      'Dynamic Swahili Timekeeping',
             siteSubtitle:   'Day begins at sunrise (Hour 1). Each relative hour reflects the real daylight length in your city.',
             addCity:        'Add',
-            adding:         '...',
+            adding:         'Adding...',
             cityPlaceholder:'London, Cairo, Istanbul...',
             cityNotFound:   'City not found. Try the English spelling.',
             detecting:      'Detecting your location...',
@@ -107,6 +114,8 @@ const App = (() => {
             shareLink:      'Copy city link',
             shareImage:     'Share Image',
             ambientMode:    'Ambient Mode',
+            /* ✅ Bug 25 — مفتاح جديد لزر الثيم */
+            themeToggle:    'Toggle Theme',
             autoReset:      'Reset to Auto',
             downloadPNG:    'Download PNG',
             close:          'Close',
@@ -121,6 +130,7 @@ const App = (() => {
             hr1:            'hour', hr2:  'hours',
             hrN:            'hours', hrMany: 'hours',
             and:            'and',
+            saveError:      'Save failed: storage full.',
         }
     };
 
@@ -182,11 +192,16 @@ const App = (() => {
         GOLD_WIN  : 45 * 60 * 1000,
         DEFAULT_KEYS: ['tobruk', 'benghazi', 'tripoli'],
         DEFAULT_CITIES: {
-            tobruk:   { name: 'طبرق',   nameEn: 'Tobruk',   country: 'ليبيا',   countryEn: 'Libya',   lat: '32.0773', lng: '23.9600' },
-            benghazi: { name: 'بنغازي', nameEn: 'Benghazi', country: 'ليبيا',   countryEn: 'Libya',   lat: '32.1167', lng: '20.0667' },
-            tripoli:  { name: 'طرابلس', nameEn: 'Tripoli',  country: 'ليبيا',   countryEn: 'Libya',   lat: '32.8892', lng: '13.1900' }
+            tobruk:   { name: 'طبرق',   nameEn: 'Tobruk',   country: 'ليبيا',   countryEn: 'Libya',   countryCode: 'LY', lat: '32.0773', lng: '23.9600' },
+            benghazi: { name: 'بنغازي', nameEn: 'Benghazi', country: 'ليبيا',   countryEn: 'Libya',   countryCode: 'LY', lat: '32.1167', lng: '20.0667' },
+            tripoli:  { name: 'طرابلس', nameEn: 'Tripoli',  country: 'ليبيا',   countryEn: 'Libya',   countryCode: 'LY', lat: '32.8892', lng: '13.1900' }
         },
-        PRAYER_KEYS: ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
+        PRAYER_KEYS: ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'],
+        /* ✅ Bug 15 — طرق الصلاة حسب رمز الدولة */
+        PRAYER_METHODS: {
+            'SA': 4, 'LY': 3, 'EG': 5, 'TR': 13,
+            'GB': 3, 'MA': 21, 'DZ': 2, 'DEFAULT': 3
+        }
     };
 
     const S = {
@@ -267,7 +282,7 @@ const App = (() => {
             if (!hStr) return mStr || 'less than a minute';
             return mStr ? `${hStr} and ${mStr}` : hStr;
         }
-        const t = Lang.t;
+        const t = Lang.t.bind(Lang);
         const hS = !h ? '' : h === 1 ? t('hr1') : h === 2 ? t('hr2') : h <= 10 ? `${h} ${t('hrN')}` : `${h} ${t('hrMany')}`;
         const mS = !m ? '' : m === 1 ? t('min1') : m === 2 ? t('min2') : m <= 10 ? `${m} ${t('minN')}` : `${m} ${t('minMany')}`;
         if (!hS) return mS || t('lessMin');
@@ -290,16 +305,25 @@ const App = (() => {
         }).format(new Date());
     };
 
+    /* ✅ Bug 23 — كاش genStars */
+    let cachedStarsCSS = null;
     const genStars = (container) => {
         const el = container || D.stars;
         if (!el) return;
-        el.style.backgroundImage = Array.from({ length: 160 }, () => {
+        /* استخدام الكاش للطبقة الرئيسية فقط */
+        if (!container && cachedStarsCSS) {
+            el.style.backgroundImage = cachedStarsCSS;
+            return;
+        }
+        const css = Array.from({ length: 160 }, () => {
             const x = (Math.random() * 100).toFixed(1);
             const y = (Math.random() * 100).toFixed(1);
             const s = (Math.random() * 1.8 + 0.3).toFixed(1);
             const o = (Math.random() * 0.65 + 0.28).toFixed(2);
             return `radial-gradient(${s}px ${s}px at ${x}% ${y}%, rgba(255,255,255,${o}), transparent)`;
         }).join(',');
+        if (!container) cachedStarsCSS = css;
+        el.style.backgroundImage = css;
     };
 
     const lerpHex = (a, b, t) => {
@@ -338,7 +362,6 @@ const App = (() => {
         const root = document.documentElement;
         root.style.setProperty('--sky-top', topC);
         root.style.setProperty('--sky-bot', botC);
-        // Sync ambient background
         if (D.ambOverlay && S.ambientActive) {
             D.ambOverlay.style.background = `linear-gradient(160deg, ${topC} 0%, ${botC} 100%)`;
         }
@@ -361,12 +384,22 @@ const App = (() => {
                 return raw ? JSON.parse(raw) : {};
             } catch { return {}; }
         },
+        /* ✅ Bug 34 — معالجة QuotaExceededError */
         save() {
             const custom = {};
             Object.keys(S.cities).forEach(k => {
                 if (!CFG.DEFAULT_KEYS.includes(k)) custom[k] = S.cities[k];
             });
-            try { localStorage.setItem('ss_custom_cities', JSON.stringify(custom)); } catch {}
+            try {
+                localStorage.setItem('ss_custom_cities', JSON.stringify(custom));
+            } catch (e) {
+                console.warn('[SolarisSwahili] Could not save cities:', e);
+                if (e.name === 'QuotaExceededError' && D.cityErr) {
+                    D.cityErr.textContent = Lang.t('saveError');
+                    D.cityErr.classList.remove('hidden');
+                    setTimeout(() => D.cityErr.classList.add('hidden'), 4000);
+                }
+            }
         },
         remove(key) {
             if (CFG.DEFAULT_KEYS.includes(key)) return;
@@ -415,7 +448,8 @@ const App = (() => {
                 const d = await fetch('https://ipapi.co/json/').then(r => r.json());
                 if (d.latitude) return {
                     lat: +d.latitude.toFixed(4), lng: +d.longitude.toFixed(4),
-                    name: d.city || '', country: d.country_name || '', countryEn: d.country_name || ''
+                    name: d.city || '', country: d.country_name || '',
+                    countryEn: d.country_name || '', countryCode: d.country_code || ''
                 };
             } catch {}
             return null;
@@ -426,12 +460,13 @@ const App = (() => {
                     `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=ar`
                 ).then(r => r.json());
                 return {
-                    name:      d.address?.city || d.address?.town || d.address?.village || '',
-                    country:   d.address?.country || '',
-                    countryEn: d.address?.country || ''
+                    name:        d.address?.city || d.address?.town || d.address?.village || '',
+                    country:     d.address?.country || '',
+                    countryEn:   d.address?.country || '',
+                    countryCode: (d.address?.country_code || '').toUpperCase()
                 };
             } catch {}
-            return { name: '', country: '', countryEn: '' };
+            return { name: '', country: '', countryEn: '', countryCode: '' };
         },
         async detect() {
             const gps = await this.tryGPS();
@@ -444,33 +479,31 @@ const App = (() => {
             return null;
         },
 
-        /** إضافة موقع المستخدم كمدينة خاصة — forceSwitch=true عند الضغط على زر GPS */
-        async addAutoCity(forceSwitch = false) {
+        async addAutoCity() {
             const badge = $('gps-badge');
             if (badge) {
-                badge.innerHTML = `<span class="gps-dot"></span><span>${Lang.t('detecting')}</span>`;
+                badge.innerHTML = `<span class="gps-dot"></span>${Lang.t('detecting')}`;
                 badge.style.pointerEvents = 'none';
             }
             const loc = await this.detect();
             if (loc && loc.lat) {
                 const k = 'geo_auto';
-                const isNew = !S.cities[k]; // first-ever detection?
                 S.cities[k] = {
-                    name:      loc.name    || Lang.t('yourLocation'),
-                    nameEn:    loc.name    || 'My Location',
-                    country:   loc.country || '',
-                    countryEn: loc.countryEn || loc.country || '',
-                    lat:       String(loc.lat),
-                    lng:       String(loc.lng),
-                    isGeo:     true
+                    name:        loc.name    || Lang.t('yourLocation'),
+                    nameEn:      loc.name    || Lang.t('yourLocation'),
+                    country:     loc.country || '',
+                    countryEn:   loc.countryEn || loc.country || '',
+                    countryCode: loc.countryCode || '',
+                    lat:         String(loc.lat),
+                    lng:         String(loc.lng),
+                    isGeo:       true
                 };
                 CityStore.save();
                 buildBtns();
-                // Auto-switch only on first detection OR if user explicitly clicked badge
-                if (forceSwitch || isNew) loadCity(k);
+                loadCity(k);
             }
             if (badge) {
-                badge.innerHTML = `<span class="gps-dot"></span><span data-i18n="yourLocation">${Lang.t('yourLocation')}</span>`;
+                badge.innerHTML = `<span class="gps-dot"></span>${Lang.t('yourLocation')}`;
                 badge.style.pointerEvents = '';
             }
         }
@@ -516,19 +549,23 @@ const App = (() => {
                 tomorrowSunrise : API.toUTC(dateStr( 1), tmR.results.sunrise, off),
                 todaySunriseStr : tR.results.sunrise,
                 todaySunsetStr  : tR.results.sunset,
-                utcOff          : off
+                utcOff          : off,
+                /* ✅ Bug 5 — تخزين تاريخ الجلب لاكتشاف منتصف الليل */
+                _fetchedDate    : dateStr(0)
             };
             Cache.set(k, data);
             return data;
         },
-        fetchPrayers: async (lat, lng) => {
+        fetchPrayers: async (lat, lng, countryCode) => {
             const k = `pray_${lat}_${lng}_${dateStr()}`;
             const cached = Cache.get(k);
             if (cached) return cached;
             D.loaderTxt.textContent = Lang.t('loadingPrayer');
             const ts = Math.floor(Date.now() / 1000);
+            /* ✅ Bug 15 — طريقة الصلاة حسب رمز الدولة */
+            const method = CFG.PRAYER_METHODS[countryCode] || CFG.PRAYER_METHODS.DEFAULT;
             const res = await fetch(
-                `https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lng}&method=4`
+                `https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lng}&method=${method}`
             ).then(r => r.json()).catch(() => null);
             if (!res || res.code !== 200) return null;
             Cache.set(k, res.data.timings);
@@ -624,7 +661,7 @@ const App = (() => {
         async generate() {
             await document.fonts.ready;
             const canvas = document.createElement('canvas');
-            canvas.width = 900; canvas.height = 580;
+            canvas.width = 900; canvas.height = 600;
             const ctx = canvas.getContext('2d');
 
             const cs  = getComputedStyle(document.documentElement);
@@ -634,21 +671,20 @@ const App = (() => {
             const textPri = get('--text-pri');
             const textSec = get('--text-sec');
 
-            // Background
-            const bg = ctx.createLinearGradient(0, 0, 0, 580);
+            // خلفية تدرجية
+            const bg = ctx.createLinearGradient(0, 0, 0, 600);
             bg.addColorStop(0, skyTop); bg.addColorStop(1, skyBot);
-            ctx.fillStyle = bg; ctx.fillRect(0, 0, 900, 580);
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, 900, 600);
 
-            // Noise texture overlay
+            // طبقة ضوضاء
             for (let i = 0; i < 4000; i++) {
                 ctx.fillStyle = `rgba(128,128,128,${Math.random() * 0.04})`;
-                ctx.fillRect(Math.random()*900, Math.random()*580, 1.5, 1.5);
+                ctx.fillRect(Math.random()*900, Math.random()*600, 1.5, 1.5);
             }
 
             const now = Date.now();
             const solar = S.solar;
-            let prog = 0.5;
-            let isNight = false;
+            let prog = 0.5, isNight = false;
             if (solar) {
                 const { todaySunrise, todaySunset, yesterdaySunset, tomorrowSunrise } = solar;
                 const phase = now < todaySunrise ? 'night' : now < todaySunset ? 'day' : 'night';
@@ -658,16 +694,37 @@ const App = (() => {
                 prog = Math.max(0, Math.min(1, (now - st) / (en - st)));
             }
 
-            const CX = 450, CY = 520, R = 290;
-
-            // Background arc
+            /* ── بطاقة زجاجية (frosted-glass) ── */
+            const cardX = 80, cardY = 160, cardW = 740, cardH = 300;
+            ctx.save();
             ctx.beginPath();
-            ctx.arc(CX, CY, R, Math.PI, 0, false);
+            const r = 28;
+            ctx.moveTo(cardX + r, cardY);
+            ctx.lineTo(cardX + cardW - r, cardY);
+            ctx.arcTo(cardX + cardW, cardY, cardX + cardW, cardY + r, r);
+            ctx.lineTo(cardX + cardW, cardY + cardH - r);
+            ctx.arcTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH, r);
+            ctx.lineTo(cardX + r, cardY + cardH);
+            ctx.arcTo(cardX, cardY + cardH, cardX, cardY + cardH - r, r);
+            ctx.lineTo(cardX, cardY + r);
+            ctx.arcTo(cardX, cardY, cardX + r, cardY, r);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255,255,255,0.12)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+
+            const CX = 450, CY = 580, R = 290;
+
+            // قوس الخلفية
+            ctx.beginPath(); ctx.arc(CX, CY, R, Math.PI, 0, false);
             ctx.strokeStyle = textSec; ctx.lineWidth = 1.5;
             ctx.setLineDash([6,6]); ctx.globalAlpha = 0.25; ctx.stroke();
             ctx.setLineDash([]); ctx.globalAlpha = 1;
 
-            // Progress arc
+            // قوس التقدم
             const endAngle = Math.PI + prog * Math.PI;
             const arcGrad = ctx.createLinearGradient(CX - R, 0, CX + R, 0);
             if (isNight) {
@@ -678,7 +735,7 @@ const App = (() => {
             ctx.beginPath(); ctx.arc(CX, CY, R, Math.PI, endAngle, false);
             ctx.strokeStyle = arcGrad; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.stroke();
 
-            // Celestial body
+            // الجسم السماوي
             const bAngle = Math.PI * (1 - prog);
             const bx = CX + R * Math.cos(bAngle);
             const by = CY - R * Math.sin(bAngle);
@@ -695,7 +752,7 @@ const App = (() => {
                 ctx.fillStyle = '#E0E7FF'; ctx.fill();
             }
 
-            // Horizon line
+            // خط الأفق
             ctx.beginPath(); ctx.moveTo(CX-R-30, CY); ctx.lineTo(CX+R+30, CY);
             ctx.strokeStyle = textSec; ctx.lineWidth = 1;
             ctx.setLineDash([5,5]); ctx.globalAlpha = 0.2; ctx.stroke();
@@ -704,57 +761,61 @@ const App = (() => {
             const city = S.cities[S.key];
             const cityName = (Lang.current === 'en' && city?.nameEn) ? city.nameEn : (city?.name || '');
             const countryName = (Lang.current === 'en' && city?.countryEn) ? city.countryEn : (city?.country || '');
-            const phase = D.phaseDisp?.textContent || '';
             const hour  = D.hourNum?.textContent || '--';
+            const phase = D.phaseDisp?.textContent || '';
             const std   = D.stdTime?.textContent || '--:--:--';
             const dateText = D.dateEl?.textContent || '';
+            const srStr  = D.sunriseEl?.textContent || '--:--';
+            const ssStr  = D.sunsetEl?.textContent || '--:--';
 
-            // City name
             ctx.direction = Lang.current === 'ar' ? 'rtl' : 'ltr';
+
+            // اسم المدينة
             ctx.font = `bold 38px 'Tajawal', sans-serif`;
             ctx.fillStyle = textPri; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(cityName, CX, 68);
+            ctx.fillText(cityName, CX, 195);
 
-            // Country
+            // الدولة
             ctx.font = `italic 18px 'Tajawal', sans-serif`;
             ctx.fillStyle = textSec; ctx.globalAlpha = 0.55;
-            ctx.fillText(countryName, CX, 100);
+            ctx.fillText(countryName, CX, 225);
             ctx.globalAlpha = 1;
 
-            // Date
-            ctx.font = `16px 'Tajawal', sans-serif`;
-            ctx.fillStyle = textSec; ctx.globalAlpha = 0.45;
-            ctx.fillText(dateText, CX, 128);
+            // التاريخ
+            ctx.font = `14px 'Tajawal', sans-serif`;
+            ctx.fillStyle = textSec; ctx.globalAlpha = 0.4;
+            ctx.fillText(dateText, CX, 250);
             ctx.globalAlpha = 1;
 
-            // Big hour — always LTR digit, centred
-            ctx.save();
+            // الساعة الكبيرة
+            ctx.font = `bold 120px 'JetBrains Mono', monospace`;
             ctx.direction = 'ltr';
-            ctx.font = `bold 130px 'JetBrains Mono', monospace`;
-            ctx.fillStyle = textPri; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(hour, CX, 248);
-            ctx.restore();
+            ctx.fillStyle = textPri; ctx.fillText(hour, CX, 340);
 
-            // Phase
-            ctx.save();
+            // الطور
             ctx.direction = Lang.current === 'ar' ? 'rtl' : 'ltr';
-            ctx.font = `bold 26px 'Tajawal', sans-serif`;
-            ctx.fillStyle = textSec; ctx.globalAlpha = 0.8; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(phase, CX, 316);
-            ctx.restore();
+            ctx.font = `bold 24px 'Tajawal', sans-serif`;
+            ctx.fillStyle = textSec; ctx.globalAlpha = 0.8;
+            ctx.fillText(phase, CX, 395);
+            ctx.globalAlpha = 1;
 
-            // Civil time
-            ctx.save();
-            ctx.direction = 'ltr';
-            ctx.font = `26px 'JetBrains Mono', monospace`;
-            ctx.fillStyle = textPri; ctx.globalAlpha = 0.55; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(std, CX, 356);
-            ctx.restore();
+            // التوقيت المدني
+            ctx.font = `24px 'JetBrains Mono', monospace`;
+            ctx.direction = 'ltr'; ctx.fillStyle = textPri; ctx.globalAlpha = 0.55;
+            ctx.fillText(std, CX, 432);
+            ctx.globalAlpha = 1;
 
-            // Branding
-            ctx.font = `700 13px 'JetBrains Mono', monospace`;
-            ctx.fillStyle = textSec; ctx.globalAlpha = 0.3;
-            ctx.fillText('SolarisSwahili', CX, 558);
+            // الشروق والغروب
+            ctx.font = `14px 'JetBrains Mono', monospace`;
+            ctx.fillStyle = textSec; ctx.globalAlpha = 0.55;
+            ctx.fillText(`🌅 ${srStr}`, CX - 100, 460);
+            ctx.fillText(`🌆 ${ssStr}`, CX + 100, 460);
+            ctx.globalAlpha = 1;
+
+            // الشعار
+            ctx.font = `700 12px 'JetBrains Mono', monospace`;
+            ctx.fillStyle = textSec; ctx.globalAlpha = 0.35;
+            ctx.fillText('SolarisSwahili', CX, 580);
             ctx.globalAlpha = 1;
 
             return canvas.toDataURL('image/png');
@@ -797,18 +858,20 @@ const App = (() => {
     /* ═══════════════════════════════════════════════════════
        12. AMBIENT MODE — وضع الحائط الكامل
     ═══════════════════════════════════════════════════════ */
+    /* ✅ Bug 9 — متغير WakeLock للإعادة عند عودة التبويب */
+    let wakeLock = null;
+
     const Ambient = {
-        enter() {
+        async enter() {
             S.ambientActive = true;
             if (!D.ambOverlay) return;
             D.ambOverlay.style.display = 'flex';
 
-            // Stars in ambient
             const ambStars = $('amb-stars');
             if (ambStars) genStars(ambStars);
 
             document.documentElement.requestFullscreen?.().catch(() => {});
-            navigator.wakeLock?.request('screen').catch(() => {});
+            try { wakeLock = await navigator.wakeLock?.request('screen'); } catch {}
             this.update();
         },
         exit() {
@@ -816,6 +879,7 @@ const App = (() => {
             if (!D.ambOverlay) return;
             D.ambOverlay.style.display = 'none';
             if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+            if (wakeLock) { wakeLock.release?.().catch(() => {}); wakeLock = null; }
         },
         update() {
             if (!S.ambientActive || !S.solar) return;
@@ -852,7 +916,6 @@ const App = (() => {
             set('amb-country', (Lang.current === 'en' && city?.countryEn) ? city.countryEn : (city?.country || ''));
             set('amb-date', D.dateEl?.textContent || '');
 
-            // Arc in ambient SVG
             const ambArc = $('amb-progress-arc');
             if (ambArc) {
                 ambArc.setAttribute('stroke-dashoffset', (100 - prog * 100).toFixed(2));
@@ -861,28 +924,31 @@ const App = (() => {
             const ambBody = $('amb-celestial');
             if (ambBody) {
                 const angle = Math.PI * (1 - prog);
-                // radius must match the SVG arc "A 270 270" value
-                const bx = 300 + 270 * Math.cos(angle);
-                const by = 270 - 270 * Math.sin(angle);
+                const bx = 300 + 255 * Math.cos(angle);
+                const by = 270 - 255 * Math.sin(angle);
                 ambBody.setAttribute('transform', `translate(${bx.toFixed(1)},${by.toFixed(1)})`);
             }
-            const ambSun   = $('amb-sun');
-            const ambMoon  = $('amb-moon');
-            const ambHalo  = $('amb-sun-halo');
+            const ambSun  = $('amb-sun');
+            const ambMoon = $('amb-moon');
             if (ambSun)  ambSun.style.opacity  = isNight ? '0' : '1';
             if (ambMoon) ambMoon.style.opacity  = isNight ? '1' : '0';
-            if (ambHalo) ambHalo.style.opacity  = isNight ? '0' : '1';
 
-            // Stars opacity
             const ambStars = $('amb-stars');
             if (ambStars) ambStars.style.opacity = isNight ? '0.9' : '0';
 
-            // Sky gradient
             const skyTop = getComputedStyle(document.documentElement).getPropertyValue('--sky-top').trim();
             const skyBot = getComputedStyle(document.documentElement).getPropertyValue('--sky-bot').trim();
             if (D.ambOverlay) D.ambOverlay.style.background = `linear-gradient(160deg, ${skyTop} 0%, ${skyBot} 100%)`;
         }
     };
+
+    /* ✅ Bug 9 — استعادة WakeLock عند عودة التبويب */
+    document.addEventListener('visibilitychange', async () => {
+        if (S.ambientActive && document.visibilityState === 'visible') {
+            try { wakeLock = await navigator.wakeLock?.request('screen'); }
+            catch (e) { console.warn('[SS] WakeLock failed:', e); }
+        }
+    });
 
 
     /* ═══════════════════════════════════════════════════════
@@ -891,6 +957,16 @@ const App = (() => {
     const Clock = {
         run: () => {
             if (!S.solar) return;
+
+            /* ✅ Bug 5 — فحص تجاوز منتصف الليل */
+            const todayStr = new Date().toLocaleDateString('en-CA');
+            if (S.solar._fetchedDate && S.solar._fetchedDate !== todayStr) {
+                console.log('[SS] Date changed — reloading city data...');
+                if (S.tickId) { clearInterval(S.tickId); S.tickId = null; }
+                if (S.key) loadCity(S.key);
+                return;
+            }
+
             const now = Date.now();
             const { yesterdaySunset, todaySunrise, todaySunset, tomorrowSunrise, utcOff } = S.solar;
 
@@ -964,7 +1040,6 @@ const App = (() => {
             D.arc.setAttribute('stroke-dashoffset', (100 - prog * 100).toFixed(2));
             D.celestial.setAttribute('transform', `translate(${cx.toFixed(2)},${cy.toFixed(2)})`);
 
-            // Update ambient if active
             if (S.ambientActive) Ambient.update();
         }
     };
@@ -1020,12 +1095,13 @@ const App = (() => {
 
         updateDateDisplay();
 
-        window.history.replaceState(null, '', `?city=${encodeURIComponent(city.name)}`);
+        /* ✅ Bug 4 — إزالة كتابة ?city= في الرابط */
 
         try {
+            const countryCode = city.countryCode || '';
             const [solar, prayers] = await Promise.all([
                 API.fetchSolar(city.lat, city.lng),
-                API.fetchPrayers(city.lat, city.lng)
+                API.fetchPrayers(city.lat, city.lng, countryCode)
             ]);
             if (!solar) throw new Error('تعذر تحليل بيانات الشمس.');
             S.solar = solar; S.prayers = prayers;
@@ -1035,7 +1111,6 @@ const App = (() => {
 
             renderDayNightBar();
 
-            // Prayer markers
             const now = Date.now();
             let pPhase, pStart, pEnd;
             if (now >= solar.todaySunrise && now < solar.todaySunset) {
@@ -1113,15 +1188,34 @@ const App = (() => {
        17. INIT
     ═══════════════════════════════════════════════════════ */
     const init = () => {
-        // Apply saved language immediately
         Lang.apply();
 
-        // Load city data
         S.cities = { ...CFG.DEFAULT_CITIES, ...CityStore.load() };
 
         genStars();
         buildBtns();
         updateDateDisplay();
+
+        /* ✅ Bug 26 — استعادة الثيم المحفوظ يدوياً */
+        const savedTheme = localStorage.getItem('ss_theme');
+        if (savedTheme === 'night') {
+            S.manualTheme = true;
+            document.body.classList.add('theme-night');
+            D.sunIco.classList.add('hidden');
+            D.moonIco.classList.remove('hidden');
+            D.stars.style.opacity = '0.9';
+            setSkyManual(true);
+            D.resetBtn.classList.remove('hidden');
+            requestAnimationFrame(() => D.resetBtn.classList.remove('opacity-0', 'translate-x-3'));
+        } else if (savedTheme === 'day') {
+            S.manualTheme = true;
+        }
+
+        /* ✅ Bug 1 — تحميل المدينة الافتراضية فوراً */
+        loadCity('tobruk');
+
+        /* ✅ Bug 1 — اكتشاف الموقع غير مانع ومستقل */
+        setTimeout(() => GeoDetect.addAutoCity().catch(() => {}), 1200);
 
         // ── Add city ──────────────────────────────────────
         D.addBtn.onclick = async () => {
@@ -1130,8 +1224,10 @@ const App = (() => {
             D.cityErr.classList.add('hidden');
             D.addBtn.disabled = true;
             D.addBtn.textContent = Lang.t('adding');
+            /* ✅ Bug 24 — accessibility */
+            D.addBtn.setAttribute('aria-label', `${Lang.t('adding')} ${val}`);
+            D.addBtn.setAttribute('aria-busy', 'true');
             try {
-                // Arabic language search for proper name
                 const res = await fetch(
                     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=1&addressdetails=1`
                 ).then(r => r.json());
@@ -1139,8 +1235,8 @@ const App = (() => {
 
                 const r = res[0];
                 const k = `c_${Date.now()}`;
-                // Get Arabic name via separate reverse query
                 let nameAr = r.name || val;
+                const countryCode = (r.address?.country_code || '').toUpperCase();
                 try {
                     const arData = await fetch(
                         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${r.lat}&lon=${r.lon}&addressdetails=1&accept-language=ar`
@@ -1149,12 +1245,13 @@ const App = (() => {
                 } catch {}
 
                 S.cities[k] = {
-                    name:      nameAr,
-                    nameEn:    r.name || val,
-                    country:   r.address?.country || '',
-                    countryEn: r.address?.country || '',
-                    lat:       r.lat,
-                    lng:       r.lon
+                    name:        nameAr,
+                    nameEn:      r.name || val,
+                    country:     r.address?.country || '',
+                    countryEn:   r.address?.country || '',
+                    countryCode: countryCode,
+                    lat:         r.lat,
+                    lng:         r.lon
                 };
                 CityStore.save();
                 buildBtns();
@@ -1166,6 +1263,8 @@ const App = (() => {
             } finally {
                 D.addBtn.disabled = false;
                 D.addBtn.textContent = Lang.t('addCity');
+                D.addBtn.removeAttribute('aria-busy');
+                D.addBtn.removeAttribute('aria-label');
             }
         };
 
@@ -1175,7 +1274,7 @@ const App = (() => {
         const langBtn = $('lang-toggle');
         if (langBtn) langBtn.onclick = () => {
             Lang.toggle();
-            buildBtns(); // rebuild with correct language labels
+            buildBtns();
             if (S.key) {
                 const city = S.cities[S.key];
                 D.cityName.textContent = (Lang.current === 'en' && city?.nameEn) ? city.nameEn : city?.name || '';
@@ -1189,13 +1288,14 @@ const App = (() => {
 
         // ── GPS badge ─────────────────────────────────────
         const gpsBadge = $('gps-badge');
-        if (gpsBadge) gpsBadge.onclick = () => GeoDetect.addAutoCity(true);
-
-        // Auto-detect silently on load (no forced switch on repeat visits)
-        setTimeout(() => GeoDetect.addAutoCity(false), 900);
+        if (gpsBadge) gpsBadge.onclick = () => GeoDetect.addAutoCity();
 
         // ── Theme toggle ──────────────────────────────────
         D.themeBtn.onclick = () => {
+            /* ✅ Bug 13 — انتقال سريع عند الضغط اليدوي */
+            document.body.style.setProperty('--transition-duration', '0.25s');
+            setTimeout(() => document.body.style.removeProperty('--transition-duration'), 300);
+
             S.manualTheme = true;
             document.body.classList.remove('theme-golden');
             const isNight = document.body.classList.toggle('theme-night');
@@ -1203,12 +1303,16 @@ const App = (() => {
             D.moonIco.classList.toggle('hidden', !isNight);
             D.stars.style.opacity = isNight ? '0.9' : '0';
             setSkyManual(isNight);
+            /* ✅ Bug 26 — حفظ الثيم في localStorage */
+            localStorage.setItem('ss_theme', isNight ? 'night' : 'day');
             D.resetBtn.classList.remove('hidden');
             requestAnimationFrame(() => D.resetBtn.classList.remove('opacity-0', 'translate-x-3'));
         };
 
         D.resetBtn.onclick = () => {
             S.manualTheme = false;
+            /* ✅ Bug 26 — مسح الثيم المحفوظ */
+            localStorage.removeItem('ss_theme');
             D.resetBtn.classList.add('opacity-0', 'translate-x-3');
             setTimeout(() => D.resetBtn.classList.add('hidden'), 300);
             Clock.run();
@@ -1240,7 +1344,6 @@ const App = (() => {
         const ambClose = $('amb-close');
         if (ambClose) ambClose.onclick = () => Ambient.exit();
 
-        // Keyboard shortcuts
         document.addEventListener('keydown', e => {
             if (e.key === 'f' || e.key === 'F') {
                 if (!S.ambientActive && S.solar) Ambient.enter();
@@ -1249,15 +1352,7 @@ const App = (() => {
             if (e.key === 'Escape' && S.ambientActive) Ambient.exit();
         });
 
-        // ── URL parameter ─────────────────────────────────
-        const param = new URLSearchParams(location.search).get('city');
-        let startKey = 'tobruk';
-        if (param) {
-            const found = Object.keys(S.cities).find(k => S.cities[k].name === param || S.cities[k].nameEn === param);
-            if (found) startKey = found;
-            else { D.cityInput.value = param; setTimeout(() => D.addBtn.click(), 300); return; }
-        }
-        loadCity(startKey);
+        /* ✅ Bug 4 — إزالة قراءة ?city= من الرابط كليًا */
     };
 
     return { init };
