@@ -94,6 +94,7 @@
         document.getElementById('lang-toggle').textContent = wasAr ? 'عر' : 'EN';
         localStorage.setItem('ss_lang', wasAr ? 'en' : 'ar');
         isEn = wasAr;
+        renderCards(); // re-render all cards in new language
     }
 
     const GROUPS = {
@@ -300,9 +301,11 @@
         renderCards();
         await Promise.all(
             cities.map(async (c, i) => {
+                const id = `grp_${name}_${i}`;
                 try {
                     const solar = await fetchSolar(c.lat, c.lng);
-                    CITIES_STATE[`grp_${name}_${i}`].solar = solar;
+                    // Guard: city may have been removed while this was loading
+                    if (CITIES_STATE[id]) CITIES_STATE[id].solar = solar;
                 } catch {}
                 renderCards();
             })
@@ -315,9 +318,11 @@
         const errEl = document.getElementById('compare-err');
         if (!val) return;
         errEl.style.display = 'none';
+        const addBtn = document.querySelector('.compare-add-zone .add-btn');
+        if (addBtn) { addBtn.disabled = true; addBtn.textContent = '...'; }
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=1&addressdetails=1`).then(r=>r.json());
-            if (!res.length) throw new Error('City not found');
+            if (!res.length) throw new Error(isEn ? 'City not found' : 'لم يتم العثور على المدينة');
             const r = res[0];
             const id = `custom_${Date.now()}`;
             const city = {
@@ -329,12 +334,15 @@
             renderCards();
             document.getElementById('compare-input').value = '';
             const solar = await fetchSolar(city.lat, city.lng);
-            CITIES_STATE[id].solar = solar;
+            // Guard: city may have been deleted while loading
+            if (CITIES_STATE[id]) CITIES_STATE[id].solar = solar;
             renderCards();
             startTick();
         } catch(e) {
             errEl.textContent = e.message;
             errEl.style.display = 'block';
+        } finally {
+            if (addBtn) { addBtn.disabled = false; addBtn.textContent = '+'; }
         }
     }
 
