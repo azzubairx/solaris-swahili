@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الإحصائيات السنوية | SolarisSwahili</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"Tajawal"','sans-serif'],mono:['"JetBrains Mono"','monospace']}}}}</script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .tooltip-dot {
+            position:absolute;
+            background:var(--text-pri);
+            color:var(--surface);
+            padding:0.3rem 0.6rem;
+            border-radius:0.5rem;
+            font-size:0.65rem;
+            font-family:'JetBrains Mono',monospace;
+            pointer-events:none;
+            white-space:nowrap;
+            transform:translate(-50%,-120%);
+            z-index:10;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen">
+
+    <nav class="site-nav">
+        <a href="index.html" class="nav-logo">SolarisSwahili</a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">الرئيسية</a>
+            <a href="about.html" class="nav-link">عن المشروع</a>
+            <a href="compare.html" class="nav-link">مقارنة</a>
+            <a href="dashboard.html" class="nav-link active">إحصائيات</a>
+        </div>
+        <div class="nav-right">
+            <button id="lang-toggle" class="lang-btn" onclick="toggleLang()">EN</button>
+        </div>
+    </nav>
+
+    <div id="stars-layer" class="fixed inset-0 pointer-events-none z-0 opacity-0" aria-hidden="true"></div>
+
+    <div class="page-container" style="background:linear-gradient(160deg,var(--sky-top),var(--sky-bot));min-height:100vh;">
+
+        <!-- Header -->
+        <div class="text-center pt-4 pb-6 px-4">
+            <p class="font-mono text-xs tracking-widest mb-2" style="color:var(--text-sec)">ANNUAL DASHBOARD</p>
+            <h1 class="font-extrabold text-2xl md:text-3xl mb-2" style="color:var(--text-pri)">لوحة الإحصائيات السنوية</h1>
+            <p class="text-sm max-w-md mx-auto" style="color:var(--text-sec)">
+                تغيّر طول النهار والساعة السواحلية على مدار السنة الكاملة
+            </p>
+        </div>
+
+        <!-- City picker -->
+        <div class="dash-city-picker">
+            <span class="text-xs font-bold tracking-wider" style="color:var(--text-sec);align-self:center;">المدينة:</span>
+            <button class="city-btn text-xs active" onclick="selectCity(this,'Tobruk',32.0773)" data-city="Tobruk">طبرق</button>
+            <button class="city-btn text-xs" onclick="selectCity(this,'Benghazi',32.1167)" data-city="Benghazi">بنغازي</button>
+            <button class="city-btn text-xs" onclick="selectCity(this,'Tripoli',32.8892)" data-city="Tripoli">طرابلس</button>
+            <button class="city-btn text-xs" onclick="selectCity(this,'Cairo',30.0444)" data-city="Cairo">القاهرة</button>
+            <button class="city-btn text-xs" onclick="selectCity(this,'Riyadh',24.6877)" data-city="Riyadh">الرياض</button>
+            <button class="city-btn text-xs" onclick="selectCity(this,'London',51.5074)" data-city="London">لندن</button>
+        </div>
+
+        <!-- Key stats row -->
+        <div class="dash-section">
+            <div class="dash-stats-grid" id="stats-grid">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <!-- Day Length Chart -->
+        <div class="dash-section">
+            <div class="dash-title">
+                <span>📈</span>
+                <span id="chart-title">تغيّر طول النهار خلال السنة</span>
+            </div>
+            <div class="dash-card">
+                <div class="chart-container" style="position:relative;">
+                    <canvas id="day-length-chart" style="width:100%;display:block;cursor:crosshair;"></canvas>
+                    <div id="chart-tooltip" class="tooltip-dot" style="display:none;"></div>
+                </div>
+                <div style="display:flex;justify-content:center;gap:1.5rem;margin-top:0.75rem;font-size:0.65rem;color:var(--text-sec);">
+                    <span style="display:flex;align-items:center;gap:0.3rem;">
+                        <span style="width:18px;height:3px;display:inline-block;background:var(--day-clr);border-radius:9999px;"></span> النهار (دقيقة)
+                    </span>
+                    <span style="display:flex;align-items:center;gap:0.3rem;">
+                        <span style="width:18px;height:3px;display:inline-block;background:var(--night-clr);border-radius:9999px;"></span> الليل (دقيقة)
+                    </span>
+                    <span style="display:flex;align-items:center;gap:0.3rem;">
+                        <span style="width:10px;height:10px;display:inline-block;background:rgba(251,191,36,0.4);border:2px dashed var(--day-clr);border-radius:50%;"></span> اليوم الحالي
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Swahili Hour vs Civil Time chart -->
+        <div class="dash-section">
+            <div class="dash-title">
+                <span>⚖️</span>
+                <span>مدة الساعة السواحلية مقابل 60 دقيقة قياسية</span>
+            </div>
+            <div class="dash-card">
+                <div class="chart-container">
+                    <canvas id="hour-diff-chart" style="width:100%;display:block;"></canvas>
+                </div>
+                <p style="font-size:0.7rem;color:var(--text-sec);text-align:center;margin-top:0.6rem;opacity:0.7;">
+                    القيم فوق 60 دقيقة = الساعة السواحلية أطول من المدنية | أدناه = أقصر
+                </p>
+            </div>
+        </div>
+
+        <!-- Monthly stats table -->
+        <div class="dash-section">
+            <div class="dash-title">
+                <span>📅</span> <span id="table-title">الإحصائيات الشهرية</span>
+            </div>
+            <div class="dash-card" style="overflow-x:auto;">
+                <table class="dash-month-table" id="month-table">
+                    <thead>
+                        <tr>
+                            <th>الشهر</th>
+                            <th>طول النهار</th>
+                            <th>مدة الساعة السواحلية</th>
+                            <th>فرق الانحراف</th>
+                            <th>أطول يوم</th>
+                            <th>أقصر يوم</th>
+                        </tr>
+                    </thead>
+                    <tbody id="month-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Solar events -->
+        <div class="dash-section">
+            <div class="dash-title"><span>🌟</span> <span>الأحداث الفلكية</span></div>
+            <div id="solar-events" class="dash-stats-grid"></div>
+        </div>
+
+        <!-- Note -->
+        <div class="dash-section text-center">
+            <p style="font-size:0.68rem;color:var(--text-sec);opacity:0.55;max-width:500px;margin:0 auto;line-height:1.7;">
+                * البيانات محسوبة رياضياً بموجب معادلات الميل الشمسي (Solar Declination) لخط العرض المحدد.
+                لا تأخذ بعين الاعتبار الغسق المدني أو التوقيت الصيفي.
+                الدقة ±2 دقيقة مقارنة بالقيم الفلكية الدقيقة.
+            </p>
+        </div>
+
+    </div><!-- /page-container -->
+
+    <script>
+    /* ══════════════════════════════════════════════════════
+       Solar Astronomy Math (no API required)
+    ══════════════════════════════════════════════════════ */
+    let isEn = false;
+    const savedLang = localStorage.getItem('ss_lang') || 'ar';
+    if (savedLang === 'en') {
+        document.documentElement.lang = 'en';
+        document.documentElement.dir  = 'ltr';
+        document.getElementById('lang-toggle').textContent = 'عر';
+        isEn = true;
+    }
+
+    function toggleLang() {
+        const wasAr = document.documentElement.lang !== 'en';
+        document.documentElement.lang = wasAr ? 'en' : 'ar';
+        document.documentElement.dir  = wasAr ? 'ltr' : 'rtl';
+        document.getElementById('lang-toggle').textContent = wasAr ? 'عر' : 'EN';
+        localStorage.setItem('ss_lang', wasAr ? 'en' : 'ar');
+        isEn = wasAr;
+        renderAll();
+    }
+
+    const h = new Date().getHours();
+    if (h>=20||h<5) document.body.classList.add('theme-night');
+    else if ((h>=5&&h<7)||(h>=18&&h<20)) document.body.classList.add('theme-golden');
+
+    const DEG = Math.PI / 180;
+
+    /** دقائق ضوء النهار لخط عرض (lat) واليوم (doy 1-365) */
+    function daylightMinutes(lat, doy) {
+        const decl = -23.45 * Math.cos(2 * Math.PI / 365 * (doy + 10)) * DEG;
+        const latR  = lat * DEG;
+        const cosH  = -Math.tan(latR) * Math.tan(decl);
+        if (cosH >= 1)  return 0;    // قطب شمالي — ليل قطبي
+        if (cosH <= -1) return 1440; // شمس منتصف الليل
+        const H = Math.acos(cosH);
+        return (2 * H / Math.PI * 12 * 60); // دقيقة
+    }
+
+    /** إنتاج بيانات سنة كاملة (365 يوم) */
+    function yearData(lat) {
+        const data = [];
+        for (let d = 1; d <= 365; d++) {
+            const dayMin = daylightMinutes(lat, d);
+            data.push({
+                doy: d,
+                dayMin: dayMin,
+                nightMin: 1440 - dayMin,
+                swahiliHourMin: dayMin / 12  // مدة ساعة سواحلية واحدة بالدقائق
+            });
+        }
+        return data;
+    }
+
+    /** اليوم الحالي من السنة */
+    function currentDOY() {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 0);
+        return Math.floor((now - start) / 86400000);
+    }
+
+    const MONTH_NAMES_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو',
+                             'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    const MONTH_NAMES_EN = ['Jan','Feb','Mar','Apr','May','Jun',
+                             'Jul','Aug','Sep','Oct','Nov','Dec'];
+    const MONTH_DAYS = [31,28,31,30,31,30,31,31,30,31,30,31];
+
+    function doyToMonthDay(doy) {
+        let d = doy; let m = 0;
+        while (d > MONTH_DAYS[m]) { d -= MONTH_DAYS[m]; m++; }
+        return { month: m, day: d };
+    }
+
+    function fmtMin(min) {
+        const h = Math.floor(min/60), m = Math.round(min%60);
+        return `${h}:${String(m).padStart(2,'0')}`;
+    }
+
+    let currentLat = 32.0773;
+    let currentCityName = isEn ? 'Tobruk' : 'طبرق';
+
+    function selectCity(btn, name, lat) {
+        document.querySelectorAll('.dash-city-picker .city-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentLat = lat;
+        currentCityName = name;
+        renderAll();
+    }
+
+    /* ── Canvas Charts ────────────────────────────────── */
+    function getCSS(v) {
+        return getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    }
+
+    function drawDayLengthChart(data) {
+        const canvas = document.getElementById('day-length-chart');
+        const dpr = window.devicePixelRatio || 1;
+        const W = canvas.parentElement.clientWidth || 700;
+        const H = Math.max(200, Math.min(280, W * 0.38));
+        canvas.width  = W * dpr;
+        canvas.height = H * dpr;
+        canvas.style.width  = W + 'px';
+        canvas.style.height = H + 'px';
+
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, W, H);
+
+        const PAD = { top: 20, right: 20, bottom: 38, left: 42 };
+        const cW = W - PAD.left - PAD.right;
+        const cH = H - PAD.top  - PAD.bottom;
+
+        const maxMin  = 1440;
+        const minMin  = Math.min(...data.map(d => d.dayMin));
+        const dayClr  = getCSS('--day-clr');
+        const ngtClr  = getCSS('--night-clr');
+        const txtSec  = getCSS('--text-sec');
+        const txtPri  = getCSS('--text-pri');
+        const curDay  = currentDOY();
+
+        // Grid lines
+        ctx.strokeStyle = txtSec; ctx.lineWidth = 0.5; ctx.globalAlpha = 0.18;
+        ctx.setLineDash([3,4]);
+        for (let h = 0; h <= 24; h += 6) {
+            const y = PAD.top + cH * (1 - h * 60 / maxMin);
+            ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
+        }
+        // Month separators
+        let doyStart = 0;
+        MONTH_DAYS.forEach((md, mi) => {
+            const x = PAD.left + (doyStart / 365) * cW;
+            ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + cH); ctx.stroke();
+            doyStart += md;
+        });
+        ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+        // Night area (filled first, under day area)
+        ctx.beginPath();
+        data.forEach((d, i) => {
+            const x = PAD.left + (i / 364) * cW;
+            const y = PAD.top + cH * (1 - d.nightMin / maxMin);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.lineTo(PAD.left + cW, PAD.top + cH); ctx.lineTo(PAD.left, PAD.top + cH); ctx.closePath();
+        ctx.fillStyle = ngtClr; ctx.globalAlpha = 0.12; ctx.fill(); ctx.globalAlpha = 1;
+
+        // Day area
+        ctx.beginPath();
+        data.forEach((d, i) => {
+            const x = PAD.left + (i / 364) * cW;
+            const y = PAD.top + cH * (1 - d.dayMin / maxMin);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.lineTo(PAD.left + cW, PAD.top + cH); ctx.lineTo(PAD.left, PAD.top + cH); ctx.closePath();
+        ctx.fillStyle = dayClr; ctx.globalAlpha = 0.15; ctx.fill(); ctx.globalAlpha = 1;
+
+        // Day line
+        ctx.beginPath(); ctx.strokeStyle = dayClr; ctx.lineWidth = 2.5;
+        data.forEach((d, i) => {
+            const x = PAD.left + (i / 364) * cW;
+            const y = PAD.top + cH * (1 - d.dayMin / maxMin);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // Equinox line (720 min = 12h)
+        const eqY = PAD.top + cH * (1 - 720 / maxMin);
+        ctx.beginPath(); ctx.moveTo(PAD.left, eqY); ctx.lineTo(PAD.left+cW, eqY);
+        ctx.strokeStyle = txtSec; ctx.lineWidth = 1; ctx.setLineDash([4,4]); ctx.globalAlpha = 0.4; ctx.stroke();
+        ctx.setLineDash([]); ctx.globalAlpha = 1;
+        ctx.fillStyle = txtSec; ctx.font = `10px "JetBrains Mono", monospace`; ctx.globalAlpha = 0.55;
+        ctx.fillText(isEn ? 'Equinox (12h)' : 'اعتدال (12س)', PAD.left + 4, eqY - 4);
+        ctx.globalAlpha = 1;
+
+        // Current day marker
+        if (curDay >= 1 && curDay <= 365) {
+            const x = PAD.left + ((curDay-1) / 364) * cW;
+            const y = PAD.top + cH * (1 - data[curDay-1].dayMin / maxMin);
+            ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(251,191,36,0.4)'; ctx.fill();
+            ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2);
+            ctx.fillStyle = '#F59E0B'; ctx.fill();
+            // vertical line
+            ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top+cH);
+            ctx.strokeStyle = '#F59E0B'; ctx.lineWidth = 1; ctx.setLineDash([3,3]); ctx.globalAlpha = 0.4; ctx.stroke();
+            ctx.setLineDash([]); ctx.globalAlpha = 1;
+        }
+
+        // Y axis labels
+        ctx.fillStyle = txtSec; ctx.font = `9px "JetBrains Mono", monospace`; ctx.textAlign = 'right';
+        for (let h = 0; h <= 24; h += 6) {
+            const y = PAD.top + cH * (1 - h * 60 / maxMin);
+            ctx.fillText(`${h}h`, PAD.left - 4, y + 3);
+        }
+
+        // X axis labels (months)
+        ctx.textAlign = 'center'; ctx.fillStyle = txtSec; ctx.font = `9px "JetBrains Mono", monospace`;
+        let doy = 0;
+        MONTH_DAYS.forEach((md, mi) => {
+            const midDOY = doy + md / 2;
+            const x = PAD.left + (midDOY / 365) * cW;
+            const names = isEn ? MONTH_NAMES_EN : MONTH_NAMES_AR;
+            ctx.fillText(names[mi], x, PAD.top + cH + 14);
+            doy += md;
+        });
+
+        // Mouse hover
+        canvas._chartData = data;
+        canvas._chartPad  = PAD;
+        canvas._chartSize = { cW, cH, W, H };
+    }
+
+    function drawHourDiffChart(data) {
+        const canvas = document.getElementById('hour-diff-chart');
+        const dpr = window.devicePixelRatio || 1;
+        const W = canvas.parentElement.clientWidth || 700;
+        const H = Math.max(150, Math.min(200, W * 0.28));
+        canvas.width  = W * dpr;
+        canvas.height = H * dpr;
+        canvas.style.width  = W + 'px';
+        canvas.style.height = H + 'px';
+
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, W, H);
+
+        const PAD = { top: 15, right: 20, bottom: 35, left: 42 };
+        const cW = W - PAD.left - PAD.right;
+        const cH = H - PAD.top  - PAD.bottom;
+
+        const dayClr = getCSS('--day-clr');
+        const ngtClr = getCSS('--night-clr');
+        const txtSec = getCSS('--text-sec');
+
+        const diffs = data.map(d => d.swahiliHourMin); // minutes per swahili hour
+        const minV  = Math.min(...diffs); // ~43 min in winter at lat 32
+        const maxV  = Math.max(...diffs); // ~80 min in summer at lat 32
+        const span  = maxV - minV || 1;
+        const mid   = 60; // standard 60 min
+        const curDay = currentDOY();
+
+        // Baseline at 60 min
+        const baseline = PAD.top + cH * (1 - (mid - minV) / span);
+
+        // Fill above/below baseline
+        ctx.beginPath();
+        diffs.forEach((v, i) => {
+            const x = PAD.left + (i / 364) * cW;
+            const y = PAD.top + cH * (1 - (v - minV) / span);
+            if (i === 0) ctx.moveTo(x, Math.min(y, baseline)); else ctx.lineTo(x, Math.min(y, baseline));
+        });
+        ctx.lineTo(PAD.left + cW, baseline); ctx.lineTo(PAD.left, baseline); ctx.closePath();
+        ctx.fillStyle = dayClr; ctx.globalAlpha = 0.18; ctx.fill(); ctx.globalAlpha = 1;
+
+        ctx.beginPath();
+        diffs.forEach((v, i) => {
+            const x = PAD.left + (i / 364) * cW;
+            const y = PAD.top + cH * (1 - (v - minV) / span);
+            if (i === 0) ctx.moveTo(x, Math.max(y, baseline)); else ctx.lineTo(x, Math.max(y, baseline));
+        });
+        ctx.lineTo(PAD.left + cW, baseline); ctx.lineTo(PAD.left, baseline); ctx.closePath();
+        ctx.fillStyle = ngtClr; ctx.globalAlpha = 0.18; ctx.fill(); ctx.globalAlpha = 1;
+
+        // Line
+        ctx.beginPath(); ctx.strokeStyle = dayClr; ctx.lineWidth = 2;
+        diffs.forEach((v, i) => {
+            const x = PAD.left + (i / 364) * cW;
+            const y = PAD.top + cH * (1 - (v - minV) / span);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // Baseline (60 min)
+        ctx.beginPath(); ctx.moveTo(PAD.left, baseline); ctx.lineTo(PAD.left + cW, baseline);
+        ctx.strokeStyle = txtSec; ctx.lineWidth = 1.2; ctx.setLineDash([4,4]); ctx.globalAlpha = 0.5; ctx.stroke();
+        ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+        // Current day
+        if (curDay >= 1 && curDay <= 365) {
+            const x = PAD.left + ((curDay-1) / 364) * cW;
+            const y = PAD.top + cH * (1 - (diffs[curDay-1] - minV) / span);
+            ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2);
+            ctx.fillStyle = '#F59E0B'; ctx.fill();
+        }
+
+        // Y axis
+        ctx.fillStyle = txtSec; ctx.font = `9px "JetBrains Mono",monospace`; ctx.textAlign = 'right';
+        [minV, 60, maxV].forEach(v => {
+            const y = PAD.top + cH * (1 - (v - minV) / span);
+            ctx.fillText(`${v.toFixed(0)}m`, PAD.left - 4, y + 3);
+        });
+
+        // X labels
+        ctx.textAlign = 'center'; ctx.font = `9px "JetBrains Mono",monospace`;
+        let doy = 0;
+        MONTH_DAYS.forEach((md, mi) => {
+            const midDOY = doy + md/2;
+            const x = PAD.left + (midDOY/365) * cW;
+            const names = isEn ? MONTH_NAMES_EN : MONTH_NAMES_AR;
+            ctx.fillText(names[mi], x, PAD.top + cH + 14);
+            doy += md;
+        });
+
+        // Label
+        ctx.fillText('60m', PAD.left - 4, baseline + 3);
+    }
+
+    function buildStatsGrid(data, cityName) {
+        const maxDay = data.reduce((a,b) => a.dayMin > b.dayMin ? a : b);
+        const minDay = data.reduce((a,b) => a.dayMin < b.dayMin ? a : b);
+        const curDay = currentDOY();
+        const today  = data[Math.min(curDay-1, 364)] || data[0];
+        const maxHour = (maxDay.dayMin / 12).toFixed(1);
+        const minHour = (minDay.dayMin / 12).toFixed(1);
+
+        const maxMD = doyToMonthDay(maxDay.doy);
+        const minMD = doyToMonthDay(minDay.doy);
+        const MNAMES = isEn ? MONTH_NAMES_EN : MONTH_NAMES_AR;
+
+        const statsEl = document.getElementById('stats-grid');
+        statsEl.innerHTML = [
+            { val: fmtMin(today.dayMin),               lbl: isEn ? "Today's Daylight" : 'النهار اليوم' },
+            { val: today.swahiliHourMin.toFixed(1)+'m', lbl: isEn ? "Swahili Hour Today" : 'مدة الساعة اليوم' },
+            { val: `${MNAMES[maxMD.month]} ${maxMD.day}`, lbl: isEn ? 'Longest Day' : 'أطول يوم' },
+            { val: `${MNAMES[minMD.month]} ${minMD.day}`, lbl: isEn ? 'Shortest Day' : 'أقصر يوم' },
+            { val: fmtMin(maxDay.dayMin),               lbl: isEn ? 'Max Daylight' : 'أقصى نهار' },
+            { val: fmtMin(minDay.dayMin),               lbl: isEn ? 'Min Daylight' : 'أدنى نهار' },
+        ].map(s => `
+            <div class="dash-stat-card">
+                <div class="dash-stat-val">${s.val}</div>
+                <div class="dash-stat-lbl">${s.lbl}</div>
+            </div>`).join('');
+    }
+
+    function buildMonthTable(data) {
+        const maxDayMin = Math.max(...data.map(d => d.dayMin));
+        const minDayMin = Math.min(...data.map(d => d.dayMin));
+        const MNAMES = isEn ? MONTH_NAMES_EN : MONTH_NAMES_AR;
+        let doy = 1;
+        const rows = MONTH_DAYS.map((md, mi) => {
+            // Average for month
+            const slice = data.slice(doy - 1, doy - 1 + md);
+            const avgDay   = slice.reduce((s,d)=>s+d.dayMin,0) / slice.length;
+            const avgHour  = avgDay / 12;
+            const deviation = (avgHour - 60).toFixed(1);
+            const maxInMonth = Math.max(...slice.map(d=>d.dayMin));
+            const minInMonth = Math.min(...slice.map(d=>d.dayMin));
+            const isMax = maxInMonth === maxDayMin;
+            const isMin = minInMonth === minDayMin;
+            doy += md;
+            return `<tr class="${isMax?'highlight-max':isMin?'highlight-min':''}">
+                <td>${MNAMES[mi]}</td>
+                <td>${fmtMin(avgDay)}</td>
+                <td>${avgHour.toFixed(1)} م</td>
+                <td style="color:${deviation>0?'var(--day-clr)':'var(--night-clr)'}">${deviation>0?'+':''}${deviation} م</td>
+                <td>${fmtMin(maxInMonth)}</td>
+                <td>${fmtMin(minInMonth)}</td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('month-tbody').innerHTML = rows;
+        const th = document.querySelectorAll('#month-table th');
+        const headers = isEn
+            ? ['Month','Daylight (avg)','Swahili Hour','vs 60min','Longest Day','Shortest Day']
+            : ['الشهر','طول النهار','مدة الساعة','الفرق','أطول يوم','أقصر يوم'];
+        th.forEach((t,i) => { if(headers[i]) t.textContent = headers[i]; });
+    }
+
+    function buildSolarEvents(lat) {
+        const MNAMES = isEn ? MONTH_NAMES_EN : MONTH_NAMES_AR;
+        // Find solstices and equinoxes
+        const data = yearData(lat);
+        let maxD = data[0], minD = data[0];
+        let eq1 = null, eq2 = null;
+        data.forEach(d => {
+            if (d.dayMin > maxD.dayMin) maxD = d;
+            if (d.dayMin < minD.dayMin) minD = d;
+        });
+        // Equinoxes: closest to 720 min
+        let eq1Diff = Infinity, eq2Diff = Infinity;
+        data.forEach(d => {
+            const diff = Math.abs(d.dayMin - 720);
+            if (d.doy < 180 && diff < eq1Diff) { eq1Diff = diff; eq1 = d; }
+            if (d.doy >= 180 && diff < eq2Diff) { eq2Diff = diff; eq2 = d; }
+        });
+
+        const fmt = doy => {
+            const {month, day} = doyToMonthDay(doy);
+            return `${MNAMES[month]} ${day}`;
+        };
+
+        const events = [
+            { icon:'☀️', name: isEn?'Summer Solstice':'الانقلاب الصيفي',   date: fmt(maxD.doy), detail: fmtMin(maxD.dayMin), color:'var(--day-clr)' },
+            { icon:'🌙', name: isEn?'Winter Solstice':'الانقلاب الشتوي',   date: fmt(minD.doy), detail: fmtMin(minD.dayMin), color:'var(--night-clr)' },
+            { icon:'⚖️', name: isEn?'Spring Equinox':'الاعتدال الربيعي',   date: fmt(eq1?.doy||79), detail: fmtMin(eq1?.dayMin||720), color:'var(--accent)' },
+            { icon:'⚖️', name: isEn?'Autumn Equinox':'الاعتدال الخريفي',  date: fmt(eq2?.doy||265), detail: fmtMin(eq2?.dayMin||720), color:'var(--accent)' },
+        ];
+
+        document.getElementById('solar-events').innerHTML = events.map(e => `
+            <div class="dash-stat-card" style="border-color:${e.color}20;">
+                <div style="font-size:1.8rem;margin-bottom:0.3rem;">${e.icon}</div>
+                <div class="dash-stat-val" style="font-size:1rem;color:${e.color}">${e.date}</div>
+                <div class="dash-stat-lbl">${e.name}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--text-sec);margin-top:0.2rem;">${e.detail}</div>
+            </div>`).join('');
+    }
+
+    function renderAll() {
+        const data = yearData(currentLat);
+        buildStatsGrid(data, currentCityName);
+        buildMonthTable(data);
+        buildSolarEvents(currentLat);
+        // Small delay for canvas resize
+        setTimeout(() => {
+            drawDayLengthChart(data);
+            drawHourDiffChart(data);
+            setupChartHover(data);
+        }, 50);
+    }
+
+    function setupChartHover(data) {
+        const canvas = document.getElementById('day-length-chart');
+        const tooltip = document.getElementById('chart-tooltip');
+        if (!canvas._chartData) return;
+
+        canvas.onmousemove = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx   = e.clientX - rect.left;
+            const { PAD, cW, cH, W, H } = { PAD: canvas._chartPad, ...canvas._chartSize };
+            if (mx < PAD.left || mx > PAD.left + cW) { tooltip.style.display='none'; return; }
+            const idx = Math.round((mx - PAD.left) / cW * 364);
+            const d   = data[Math.max(0, Math.min(364, idx))];
+            if (!d) return;
+            const MNAMES = isEn ? MONTH_NAMES_EN : MONTH_NAMES_AR;
+            const {month, day} = doyToMonthDay(d.doy);
+            tooltip.textContent = `${MNAMES[month]} ${day} | ${fmtMin(d.dayMin)} | ${d.swahiliHourMin.toFixed(1)}m/hr`;
+            tooltip.style.display = 'block';
+            tooltip.style.left = (mx) + 'px';
+            tooltip.style.top  = (PAD.top + cH * (1 - d.dayMin / 1440) - 8) + 'px';
+        };
+        canvas.onmouseleave = () => { tooltip.style.display = 'none'; };
+    }
+
+    // Initial render
+    renderAll();
+
+    // Redraw on resize
+    window.addEventListener('resize', () => {
+        const data = yearData(currentLat);
+        drawDayLengthChart(data);
+        drawHourDiffChart(data);
+        setupChartHover(data);
+    });
+    </script>
+</body>
+</html>
