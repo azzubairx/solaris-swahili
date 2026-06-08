@@ -265,6 +265,7 @@ body.theme-night::before { opacity: 0.30; }
 .header-sub   { color: var(--text-sec); }
 .city-title   { color: var(--text-pri); }
 .date-label   { color: var(--text-sec); }
+.hijri-label  { color: var(--text-sec); } /* kept for prayer bar heading */
 
 /* اسم الدولة تحت اسم المدينة */
 .country-sub {
@@ -367,7 +368,8 @@ body.theme-night .cd-dot { background: var(--night-clr); }
     from { opacity: 0.10; r: 11; }
     to   { opacity: 0.30; r: 20; }
 }
-#sun-halo { animation: halo-breathe 4.5s ease-in-out infinite alternate; }
+#sun-halo     { animation: halo-breathe 4.5s ease-in-out infinite alternate; }
+#amb-sun-halo { animation: halo-breathe 4.5s ease-in-out infinite alternate; }
 
 /* ── 22. شريط النهار والليل ──────────────────────────────────── */
 .dl-bg    { background: var(--accent-faint); }
