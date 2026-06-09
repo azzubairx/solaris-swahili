@@ -11,7 +11,7 @@
     <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"Tajawal"','sans-serif'],mono:['"JetBrains Mono"','monospace']}}}}</script>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .demo-arc-wrap { width: 280px; height: 150px; margin: 0 auto; }
+        .demo-arc-wrap { width: 280px; height: 160px; margin: 0 auto; }
         .about-tl-item:last-child { border-bottom: none; }
         .highlight-box {
             background: var(--accent-faint);
@@ -25,14 +25,21 @@
 </head>
 <body class="antialiased min-h-screen">
 
+    <!-- ✅ Bug 3 — تطبيق الثيم المحفوظ مبكراً قبل رسم الصفحة -->
+    <script src="js/theme.js"></script>
+
     <!-- Nav -->
     <nav class="site-nav">
-        <a href="index.html" class="nav-logo">SolarisSwahili</a>
+        <!-- ✅ Issue 20 — شعار SVG -->
+        <a href="index.html" class="nav-logo" aria-label="SolarisSwahili — الصفحة الرئيسية">
+            <img src="assets/logo.svg" alt="SolarisSwahili" height="28">
+        </a>
         <div class="nav-links">
-            <a href="index.html" class="nav-link">الرئيسية</a>
-            <a href="about.html" class="nav-link active">عن المشروع</a>
-            <a href="compare.html" class="nav-link">مقارنة</a>
-            <a href="dashboard.html" class="nav-link">إحصائيات</a>
+            <!-- ✅ Bug 2 — data-i18n على روابط التنقل -->
+            <a href="index.html"     class="nav-link"        data-i18n="navHome">الرئيسية</a>
+            <a href="about.html"     class="nav-link active" data-i18n="navAbout">عن المشروع</a>
+            <a href="compare.html"   class="nav-link"        data-i18n="navCompare">مقارنة</a>
+            <a href="dashboard.html" class="nav-link"        data-i18n="navDashboard">إحصائيات</a>
         </div>
         <div class="nav-right">
             <button id="lang-toggle" class="lang-btn" onclick="toggleLang()">EN</button>
@@ -46,8 +53,9 @@
 
         <!-- Hero -->
         <section class="about-hero">
+            <!-- ✅ Bug 28 — viewBox مُصلَح لإظهار الشمس عند الذروة كاملةً -->
             <div class="demo-arc-wrap mb-6" aria-hidden="true">
-                <svg id="demo-svg" viewBox="0 0 300 155" class="w-full h-full overflow-visible">
+                <svg id="demo-svg" viewBox="-10 -20 320 180" overflow="visible" class="w-full h-full">
                     <defs>
                         <filter id="da-f-sun" x="-130%" y="-130%" width="360%" height="360%">
                             <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/>
@@ -60,8 +68,8 @@
                         </linearGradient>
                     </defs>
                     <line x1="10" y1="140" x2="290" y2="140" stroke="var(--accent)" stroke-width="1" stroke-dasharray="5 5" opacity="0.4"/>
-                    <path d="M 20 140 A 130 130 0 0 1 280 140" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.2"/>
-                    <path id="demo-arc" d="M 20 140 A 130 130 0 0 1 280 140"
+                    <path d="M 15 140 A 130 130 0 0 1 285 140" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.2"/>
+                    <path id="demo-arc" d="M 15 140 A 130 130 0 0 1 285 140"
                           fill="none" stroke="url(#da-g-day)" stroke-width="4"
                           pathLength="100" stroke-dasharray="100" stroke-dashoffset="55"
                           stroke-linecap="round"/>
@@ -69,10 +77,9 @@
                         <circle cx="0" cy="0" r="14" fill="rgba(251,191,36,0.35)"/>
                         <circle cx="0" cy="0" r="7.5" fill="white" stroke="#F59E0B" stroke-width="3" filter="url(#da-f-sun)"/>
                     </g>
-                    <line x1="10" y1="140" x2="290" y2="140" stroke="var(--accent)" stroke-width="1" stroke-dasharray="5 5" opacity="0.4"/>
-                    <text x="20"  y="155" font-size="9" fill="var(--text-sec)" font-family="JetBrains Mono,monospace" text-anchor="middle">شروق</text>
-                    <text x="280" y="155" font-size="9" fill="var(--text-sec)" font-family="JetBrains Mono,monospace" text-anchor="middle">غروب</text>
-                    <text x="150" y="20"  font-size="9" fill="var(--accent)"   font-family="JetBrains Mono,monospace" text-anchor="middle">ذروة</text>
+                    <text x="15"  y="155" font-size="9" fill="var(--text-sec)" font-family="JetBrains Mono,monospace" text-anchor="middle">شروق</text>
+                    <text x="285" y="155" font-size="9" fill="var(--text-sec)" font-family="JetBrains Mono,monospace" text-anchor="middle">غروب</text>
+                    <text x="150" y="0"   font-size="9" fill="var(--accent)"   font-family="JetBrains Mono,monospace" text-anchor="middle">ذروة</text>
                 </svg>
             </div>
 
@@ -200,9 +207,7 @@
                     النظام السواحلي الكلاسيكي يفترض أن الشروق يقع دائماً عند 6:00 صباحاً بالتوقيت القياسي —
                     وهو صحيح تقريباً في المناطق الاستوائية، لكنه يُخطئ كلياً في المناطق الأبعد.
                 </p>
-                <p class="about-section-body mb-4">
-                    النسخة الديناميكية تحلّ هذه الإشكالية:
-                </p>
+                <p class="about-section-body mb-4">النسخة الديناميكية تحلّ هذه الإشكالية:</p>
                 <div class="grid gap-3 md:grid-cols-3">
                     <div class="highlight-box" style="margin:0;text-align:center;">
                         <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--day-clr)">API</div>
@@ -271,24 +276,15 @@
 
     </div><!-- /page-container -->
 
+    <!-- ✅ Bug 2 — تحميل نظام الترجمة المشترك -->
+    <script src="js/i18n.js"></script>
     <script>
-    // Minimal theme/lang for about page
-    const savedLang = localStorage.getItem('ss_lang') || 'ar';
-    if (savedLang === 'en') {
-        document.documentElement.lang = 'en';
-        document.documentElement.dir  = 'ltr';
-        document.getElementById('lang-toggle').textContent = 'عر';
-    }
-
+    /* ✅ Bug 2 — toggleLang يفوّض إلى SubI18N الآن */
     function toggleLang() {
-        const isAr = document.documentElement.lang !== 'en';
-        document.documentElement.lang = isAr ? 'en' : 'ar';
-        document.documentElement.dir  = isAr ? 'ltr' : 'rtl';
-        document.getElementById('lang-toggle').textContent = isAr ? 'عر' : 'EN';
-        localStorage.setItem('ss_lang', isAr ? 'en' : 'ar');
+        SubI18N.toggle();
     }
 
-    // Animate demo arc — arc center is (150,140), radius 130
+    /* حركة القوس التجريبي */
     let demoProgress = 0.45;
     let demoDir = 1;
     const demoArc  = document.getElementById('demo-arc');
@@ -299,21 +295,10 @@
         if (demoProgress < 0.02) demoDir =  1;
         demoArc.setAttribute('stroke-dashoffset', (100 - demoProgress * 100).toFixed(2));
         const angle = Math.PI * (1 - demoProgress);
-        const cx = 150 + 130 * Math.cos(angle);   // centre x = 150
-        const cy = 140 - 130 * Math.sin(angle);   // centre y = 140 (same as horizon y)
+        const cx = 150 + 130 * Math.cos(angle);
+        const cy = 140 - 130 * Math.sin(angle);
         demoBody.setAttribute('transform', `translate(${cx.toFixed(1)},${cy.toFixed(1)})`);
     }, 50);
-
-    // Apply theme from main page
-    const savedTheme = (() => {
-        // try to guess from time
-        const h = new Date().getHours();
-        if (h >= 20 || h < 5) return 'night';
-        if (h >= 5 && h < 7)  return 'golden';
-        return 'day';
-    })();
-    if (savedTheme === 'night') document.body.classList.add('theme-night');
-    if (savedTheme === 'golden') document.body.classList.add('theme-golden');
     </script>
 </body>
 </html>
