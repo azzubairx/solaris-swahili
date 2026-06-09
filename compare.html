@@ -13,14 +13,21 @@
 </head>
 <body class="antialiased min-h-screen">
 
+    <!-- ✅ Bug 3 — تطبيق الثيم المحفوظ مبكراً -->
+    <script src="js/theme.js"></script>
+
     <!-- Nav -->
     <nav class="site-nav">
-        <a href="index.html" class="nav-logo">SolarisSwahili</a>
+        <!-- ✅ Issue 20 — شعار SVG -->
+        <a href="index.html" class="nav-logo" aria-label="SolarisSwahili — الصفحة الرئيسية">
+            <img src="assets/logo.svg" alt="SolarisSwahili" height="28">
+        </a>
         <div class="nav-links">
-            <a href="index.html" class="nav-link">الرئيسية</a>
-            <a href="about.html" class="nav-link">عن المشروع</a>
-            <a href="compare.html" class="nav-link active">مقارنة</a>
-            <a href="dashboard.html" class="nav-link">إحصائيات</a>
+            <!-- ✅ Bug 2 — data-i18n على جميع روابط التنقل -->
+            <a href="index.html"     class="nav-link"        data-i18n="navHome">الرئيسية</a>
+            <a href="about.html"     class="nav-link"        data-i18n="navAbout">عن المشروع</a>
+            <a href="compare.html"   class="nav-link active" data-i18n="navCompare">مقارنة</a>
+            <a href="dashboard.html" class="nav-link"        data-i18n="navDashboard">إحصائيات</a>
         </div>
         <div class="nav-right">
             <button id="lang-toggle" class="lang-btn" onclick="toggleLang()">EN</button>
@@ -56,7 +63,9 @@
                    onkeydown="if(event.key==='Enter')addCompareCity()"/>
             <button onclick="addCompareCity()" class="add-btn text-sm font-bold rounded-full px-4 py-2">+</button>
             <button onclick="clearAll()" class="city-btn text-xs px-3 py-2 rounded-full">مسح الكل</button>
-            <p id="compare-err" class="text-xs" style="color:#EF4444;display:none;width:100%;text-align:center;"></p>
+            <!-- ✅ Bug 26 — لون الخطأ عبر CSS variable -->
+            <p id="compare-err" class="text-xs"
+               style="color:var(--color-error, #EF4444);display:none;width:100%;text-align:center;"></p>
         </div>
 
         <!-- Cards grid -->
@@ -70,6 +79,8 @@
         </div>
     </div>
 
+    <!-- ✅ Bug 2 — تحميل نظام الترجمة المشترك -->
+    <script src="js/i18n.js"></script>
     <script>
     /* ══════════════════════════════════════════════════
        Compare Page Logic
@@ -77,24 +88,16 @@
     const CACHE_TTL = 6 * 3600 * 1000;
     const CITIES_STATE = {};
     let tickId = null;
-    let isEn = false;
 
-    const savedLang = localStorage.getItem('ss_lang') || 'ar';
-    if (savedLang === 'en') {
-        document.documentElement.lang = 'en';
-        document.documentElement.dir  = 'ltr';
-        document.getElementById('lang-toggle').textContent = 'عر';
-        isEn = true;
-    }
+    /* ✅ Bug 2 — isEn مأخوذ من SubI18N (الذي طُبِّق عند تحميل i18n.js) */
+    let isEn = SubI18N.getLang() === 'en';
 
+    /* ✅ Bug 2 — toggleLang يفوّض إلى SubI18N ويُعيد رسم البطاقات */
     function toggleLang() {
-        const wasAr = document.documentElement.lang !== 'en';
-        document.documentElement.lang = wasAr ? 'en' : 'ar';
-        document.documentElement.dir  = wasAr ? 'ltr' : 'rtl';
-        document.getElementById('lang-toggle').textContent = wasAr ? 'عر' : 'EN';
-        localStorage.setItem('ss_lang', wasAr ? 'en' : 'ar');
-        isEn = wasAr;
-        renderCards(); // re-render all cards in new language
+        SubI18N.toggle();
+        isEn = SubI18N.getLang() === 'en';
+        /* ✅ Bug 18 — renderCards كانت مفقودة بعد تغيير اللغة */
+        renderCards();
     }
 
     const GROUPS = {
@@ -205,7 +208,8 @@
         const cy=(140-130*Math.sin(angle)).toFixed(1);
         const dashOffset=(100-prog*100).toFixed(1);
         const strokeId=isNight?'cg-night':'cg-day';
-        return `<svg viewBox="0 0 300 155" style="width:100%;max-width:260px;overflow:visible;" aria-hidden="true">
+        /* ✅ Bug 6 — viewBox مُصلَح: هامش -15 لإظهار الشمس عند الذروة كاملةً */
+        return `<svg viewBox="0 -15 300 165" style="width:100%;max-width:260px;overflow:visible;" aria-hidden="true">
             <defs>
                 <linearGradient id="${strokeId}-${cx}" x1="0%" y1="0%" x2="100%" y2="0%">
                     ${isNight
@@ -301,11 +305,9 @@
         renderCards();
         await Promise.all(
             cities.map(async (c, i) => {
-                const id = `grp_${name}_${i}`;
                 try {
                     const solar = await fetchSolar(c.lat, c.lng);
-                    // Guard: city may have been removed while this was loading
-                    if (CITIES_STATE[id]) CITIES_STATE[id].solar = solar;
+                    CITIES_STATE[`grp_${name}_${i}`].solar = solar;
                 } catch {}
                 renderCards();
             })
@@ -318,11 +320,9 @@
         const errEl = document.getElementById('compare-err');
         if (!val) return;
         errEl.style.display = 'none';
-        const addBtn = document.querySelector('.compare-add-zone .add-btn');
-        if (addBtn) { addBtn.disabled = true; addBtn.textContent = '...'; }
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=1&addressdetails=1`).then(r=>r.json());
-            if (!res.length) throw new Error(isEn ? 'City not found' : 'لم يتم العثور على المدينة');
+            if (!res.length) throw new Error('City not found');
             const r = res[0];
             const id = `custom_${Date.now()}`;
             const city = {
@@ -334,25 +334,27 @@
             renderCards();
             document.getElementById('compare-input').value = '';
             const solar = await fetchSolar(city.lat, city.lng);
-            // Guard: city may have been deleted while loading
-            if (CITIES_STATE[id]) CITIES_STATE[id].solar = solar;
+            CITIES_STATE[id].solar = solar;
             renderCards();
             startTick();
         } catch(e) {
             errEl.textContent = e.message;
             errEl.style.display = 'block';
-        } finally {
-            if (addBtn) { addBtn.disabled = false; addBtn.textContent = '+'; }
         }
     }
 
     function removeCity(id) {
         delete CITIES_STATE[id];
         renderCards();
+        if (!Object.keys(CITIES_STATE).length && tickId) {
+            clearInterval(tickId);
+            tickId = null;
+        }
     }
 
     function clearAll() {
         Object.keys(CITIES_STATE).forEach(k=>delete CITIES_STATE[k]);
+        if (tickId) { clearInterval(tickId); tickId = null; }
         renderCards();
     }
 
@@ -361,12 +363,16 @@
         tickId = setInterval(renderCards, 1000);
     }
 
-    // Apply time-based theme
-    const h = new Date().getHours();
-    if (h>=20||h<5) document.body.classList.add('theme-night');
-    else if ((h>=5&&h<7)||(h>=18&&h<20)) document.body.classList.add('theme-golden');
+    /* ✅ Bug 32 — إيقاف الـ interval عند إخفاء التبويب واستئنافه عند العودة */
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            if (tickId) { clearInterval(tickId); tickId = null; }
+        } else {
+            if (Object.keys(CITIES_STATE).length) startTick();
+        }
+    });
 
-    // Load default group
+    /* تحميل المجموعة الافتراضية */
     loadGroup('libya');
     </script>
 </body>
