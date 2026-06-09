@@ -1,19 +1,21 @@
 /**
- * SolarisSwahili v3.0
- * ساعة التوقيت السواحلي الديناميكية — النسخة الكاملة (مُصلَحة)
+ * SolarisSwahili v3.1
+ * ساعة التوقيت السواحلي الديناميكية
  *
- * الإصلاحات المطبّقة:
- * ✅ Bug 1  — تحميل المدينة الافتراضية فوراً (لا انتظار GPS)
- * ✅ Bug 4  — إزالة ?city= من الرابط كليًا
- * ✅ Bug 5  — ثغرة منتصف الليل في Clock.run()
- * ✅ Bug 9  — إعادة WakeLock عند عودة التبويب
- * ✅ Bug 13 — مدة انتقال سريعة عند التبديل اليدوي
- * ✅ Bug 15 — طريقة أوقات الصلاة حسب رمز الدولة
- * ✅ Bug 23 — كاش genStars لتجنب إعادة الحساب
- * ✅ Bug 24 — aria-label + aria-busy على زر الإضافة
- * ✅ Bug 25 — data-i18n-aria="themeToggle" + مفتاح i18n
- * ✅ Bug 26 — حفظ الثيم في localStorage عند التبديل اليدوي
- * ✅ Bug 34 — معالجة QuotaExceededError في CityStore.save
+ * الإصلاحات المطبّقة في v3.1:
+ * ✅ C3  — addAutoCity لا تتجاوز اختيار المستخدم الصريح
+ * ✅ C4  — Prayers.renderBar() + drawMarkers() في Clock.run() (كل 60 ثانية)
+ * ✅ C5  — استعادة ?c=<key> لمشاركة الرابط مع تشفير آمن
+ * ✅ C6  — عداد الجيل في loadCity لمنع تعارض الاستدعاءات المتزامنة
+ * ✅ M3  — إصلاح share-img-btn.textContent يدمر span[data-i18n]
+ * ✅ M6  — توسيع جدول PRAYER_METHODS إلى 25+ دولة
+ * ✅ M7  — استثناء geo_auto من CityStore.save()
+ * ✅ M8  — Hijri date في updateDateDisplay()
+ * ✅ A1  — aria-hidden + inert على Loader بعد إخفائه
+ * ✅ A2  — إعادة aria-hidden='true' على error-overlay عند إخفائه
+ * ✅ P5  — كاش منفصل للنجوم في وضع الحائط (amb-stars)
+ *
+ * الإصلاحات السابقة (v3.0) محفوظة كما هي.
  */
 
 const App = (() => {
@@ -59,7 +61,6 @@ const App = (() => {
             shareLink:      'نسخ رابط المدينة الحالية',
             shareImage:     'مشاركة صورة',
             ambientMode:    'وضع الحائط',
-            /* ✅ Bug 25 — مفتاح جديد لزر الثيم */
             themeToggle:    'تبديل الوضع الليلي',
             autoReset:      'إعادة الوضع التلقائي',
             downloadPNG:    'تحميل PNG',
@@ -114,7 +115,6 @@ const App = (() => {
             shareLink:      'Copy city link',
             shareImage:     'Share Image',
             ambientMode:    'Ambient Mode',
-            /* ✅ Bug 25 — مفتاح جديد لزر الثيم */
             themeToggle:    'Toggle Theme',
             autoReset:      'Reset to Auto',
             downloadPNG:    'Download PNG',
@@ -175,7 +175,6 @@ const App = (() => {
 
             updateDateDisplay();
 
-            // Re-render dynamic content if loaded
             if (S.solar) {
                 renderDayNightBar();
                 Prayers.renderBar();
@@ -197,10 +196,24 @@ const App = (() => {
             tripoli:  { name: 'طرابلس', nameEn: 'Tripoli',  country: 'ليبيا',   countryEn: 'Libya',   countryCode: 'LY', lat: '32.8892', lng: '13.1900' }
         },
         PRAYER_KEYS: ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'],
-        /* ✅ Bug 15 — طرق الصلاة حسب رمز الدولة */
+        /* ✅ C4 — توسيع جدول طرق الصلاة إلى 25+ دولة */
         PRAYER_METHODS: {
-            'SA': 4, 'LY': 3, 'EG': 5, 'TR': 13,
-            'GB': 3, 'MA': 21, 'DZ': 2, 'DEFAULT': 3
+            /* شمال أفريقيا والشرق الأوسط */
+            'LY': 3,  'EG': 5,  'SA': 4,  'TR': 13, 'MA': 21,
+            'DZ': 2,  'TN': 3,  'SD': 3,  'YE': 4,  'IQ': 3,
+            'JO': 3,  'SY': 3,  'LB': 3,  'PS': 3,
+            /* الخليج العربي */
+            'KW': 9,  'AE': 9,  'BH': 9,  'QA': 9,  'OM': 9,
+            /* أوروبا */
+            'GB': 3,  'FR': 12, 'BE': 12, 'NL': 12,
+            'DE': 3,  'AT': 3,  'CH': 3,  'SE': 3,  'NO': 3,
+            /* أمريكا الشمالية */
+            'US': 2,  'CA': 2,  'MX': 2,
+            /* جنوب وجنوب-شرق آسيا */
+            'PK': 1,  'IN': 1,  'BD': 1,
+            'MY': 11, 'ID': 11, 'SG': 11,
+            /* الافتراضي: رابطة العالم الإسلامي */
+            'DEFAULT': 3
         }
     };
 
@@ -230,6 +243,7 @@ const App = (() => {
         cityName    : $('city-name'),
         countrySub  : $('country-sub'),
         dateEl      : $('gregorian-date'),
+        hijriEl     : $('hijri-date'),       /* ✅ M8 — عنصر التاريخ الهجري */
         hourNum     : $('hour-display'),
         phaseDisp   : $('phase-display'),
         metricDisp  : $('metric-display'),
@@ -297,24 +311,50 @@ const App = (() => {
     const dateStr = (off = 0) =>
         new Date(Date.now() + off * 86400000).toLocaleDateString('en-CA');
 
+    /* ✅ M8 — إضافة التاريخ الهجري */
     const updateDateDisplay = () => {
         if (!D.dateEl) return;
         const locale = Lang.current === 'ar' ? 'ar-LY' : 'en-GB';
         D.dateEl.textContent = new Intl.DateTimeFormat(locale, {
             weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
         }).format(new Date());
+
+        /* التاريخ الهجري — Intl Islamic calendar */
+        if (D.hijriEl) {
+            try {
+                const hijriLocale = Lang.current === 'ar'
+                    ? 'ar-SA-u-ca-islamic'
+                    : 'en-u-ca-islamic';
+                D.hijriEl.textContent = new Intl.DateTimeFormat(hijriLocale, {
+                    day: 'numeric', month: 'long', year: 'numeric'
+                }).format(new Date());
+            } catch {
+                /* Intl Islamic calendar not available on this browser */
+                D.hijriEl.textContent = '';
+            }
+        }
     };
 
-    /* ✅ Bug 23 — كاش genStars */
-    let cachedStarsCSS = null;
+    /* ✅ P5 — كاشان منفصلان: أحدهما للطبقة الرئيسية والآخر لوضع الحائط */
+    let cachedStarsCSS    = null;
+    let cachedAmbStarsCSS = null;
+
     const genStars = (container) => {
         const el = container || D.stars;
         if (!el) return;
-        /* استخدام الكاش للطبقة الرئيسية فقط */
+
+        const isAmb = container && container.id === 'amb-stars';
+
+        /* استخدام الكاش المناسب */
         if (!container && cachedStarsCSS) {
             el.style.backgroundImage = cachedStarsCSS;
             return;
         }
+        if (isAmb && cachedAmbStarsCSS) {
+            el.style.backgroundImage = cachedAmbStarsCSS;
+            return;
+        }
+
         const css = Array.from({ length: 160 }, () => {
             const x = (Math.random() * 100).toFixed(1);
             const y = (Math.random() * 100).toFixed(1);
@@ -322,7 +362,9 @@ const App = (() => {
             const o = (Math.random() * 0.65 + 0.28).toFixed(2);
             return `radial-gradient(${s}px ${s}px at ${x}% ${y}%, rgba(255,255,255,${o}), transparent)`;
         }).join(',');
+
         if (!container) cachedStarsCSS = css;
+        if (isAmb)      cachedAmbStarsCSS = css;
         el.style.backgroundImage = css;
     };
 
@@ -384,11 +426,13 @@ const App = (() => {
                 return raw ? JSON.parse(raw) : {};
             } catch { return {}; }
         },
-        /* ✅ Bug 34 — معالجة QuotaExceededError */
+        /* ✅ M7 — استثناء geo_auto من الحفظ الدائم */
         save() {
             const custom = {};
             Object.keys(S.cities).forEach(k => {
-                if (!CFG.DEFAULT_KEYS.includes(k)) custom[k] = S.cities[k];
+                if (!CFG.DEFAULT_KEYS.includes(k) && k !== 'geo_auto') {
+                    custom[k] = S.cities[k];
+                }
             });
             try {
                 localStorage.setItem('ss_custom_cities', JSON.stringify(custom));
@@ -479,6 +523,7 @@ const App = (() => {
             return null;
         },
 
+        /* ✅ C3 — لا تتجاوز اختيار المستخدم الصريح */
         async addAutoCity() {
             const badge = $('gps-badge');
             if (badge) {
@@ -488,6 +533,8 @@ const App = (() => {
             const loc = await this.detect();
             if (loc && loc.lat) {
                 const k = 'geo_auto';
+                /* فقط إذا كان المستخدم لا يزال على المدينة الافتراضية */
+                const stillOnDefault = S.key === 'tobruk';
                 S.cities[k] = {
                     name:        loc.name    || Lang.t('yourLocation'),
                     nameEn:      loc.name    || Lang.t('yourLocation'),
@@ -498,9 +545,10 @@ const App = (() => {
                     lng:         String(loc.lng),
                     isGeo:       true
                 };
-                CityStore.save();
+                /* ✅ M7 — geo_auto مستثنى من CityStore.save() */
                 buildBtns();
-                loadCity(k);
+                /* تحميل المدينة تلقائياً فقط إذا لم يختر المستخدم شيئاً بعد */
+                if (stillOnDefault) loadCity(k);
             }
             if (badge) {
                 badge.innerHTML = `<span class="gps-dot"></span>${Lang.t('yourLocation')}`;
@@ -550,7 +598,6 @@ const App = (() => {
                 todaySunriseStr : tR.results.sunrise,
                 todaySunsetStr  : tR.results.sunset,
                 utcOff          : off,
-                /* ✅ Bug 5 — تخزين تاريخ الجلب لاكتشاف منتصف الليل */
                 _fetchedDate    : dateStr(0)
             };
             Cache.set(k, data);
@@ -562,7 +609,6 @@ const App = (() => {
             if (cached) return cached;
             D.loaderTxt.textContent = Lang.t('loadingPrayer');
             const ts = Math.floor(Date.now() / 1000);
-            /* ✅ Bug 15 — طريقة الصلاة حسب رمز الدولة */
             const method = CFG.PRAYER_METHODS[countryCode] || CFG.PRAYER_METHODS.DEFAULT;
             const res = await fetch(
                 `https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lng}&method=${method}`
@@ -570,14 +616,6 @@ const App = (() => {
             if (!res || res.code !== 200) return null;
             Cache.set(k, res.data.timings);
             return res.data.timings;
-        },
-        fetchCityCountry: async (lat, lng) => {
-            try {
-                const d = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
-                ).then(r => r.json());
-                return d.address?.country || '';
-            } catch { return ''; }
         }
     };
 
@@ -671,12 +709,10 @@ const App = (() => {
             const textPri = get('--text-pri');
             const textSec = get('--text-sec');
 
-            // خلفية تدرجية
             const bg = ctx.createLinearGradient(0, 0, 0, 600);
             bg.addColorStop(0, skyTop); bg.addColorStop(1, skyBot);
             ctx.fillStyle = bg; ctx.fillRect(0, 0, 900, 600);
 
-            // طبقة ضوضاء
             for (let i = 0; i < 4000; i++) {
                 ctx.fillStyle = `rgba(128,128,128,${Math.random() * 0.04})`;
                 ctx.fillRect(Math.random()*900, Math.random()*600, 1.5, 1.5);
@@ -694,7 +730,6 @@ const App = (() => {
                 prog = Math.max(0, Math.min(1, (now - st) / (en - st)));
             }
 
-            /* ── بطاقة زجاجية (frosted-glass) ── */
             const cardX = 80, cardY = 160, cardW = 740, cardH = 300;
             ctx.save();
             ctx.beginPath();
@@ -718,13 +753,11 @@ const App = (() => {
 
             const CX = 450, CY = 580, R = 290;
 
-            // قوس الخلفية
             ctx.beginPath(); ctx.arc(CX, CY, R, Math.PI, 0, false);
             ctx.strokeStyle = textSec; ctx.lineWidth = 1.5;
             ctx.setLineDash([6,6]); ctx.globalAlpha = 0.25; ctx.stroke();
             ctx.setLineDash([]); ctx.globalAlpha = 1;
 
-            // قوس التقدم
             const endAngle = Math.PI + prog * Math.PI;
             const arcGrad = ctx.createLinearGradient(CX - R, 0, CX + R, 0);
             if (isNight) {
@@ -735,7 +768,6 @@ const App = (() => {
             ctx.beginPath(); ctx.arc(CX, CY, R, Math.PI, endAngle, false);
             ctx.strokeStyle = arcGrad; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.stroke();
 
-            // الجسم السماوي
             const bAngle = Math.PI * (1 - prog);
             const bx = CX + R * Math.cos(bAngle);
             const by = CY - R * Math.sin(bAngle);
@@ -752,67 +784,58 @@ const App = (() => {
                 ctx.fillStyle = '#E0E7FF'; ctx.fill();
             }
 
-            // خط الأفق
             ctx.beginPath(); ctx.moveTo(CX-R-30, CY); ctx.lineTo(CX+R+30, CY);
             ctx.strokeStyle = textSec; ctx.lineWidth = 1;
             ctx.setLineDash([5,5]); ctx.globalAlpha = 0.2; ctx.stroke();
             ctx.setLineDash([]); ctx.globalAlpha = 1;
 
             const city = S.cities[S.key];
-            const cityName = (Lang.current === 'en' && city?.nameEn) ? city.nameEn : (city?.name || '');
+            const cityName    = (Lang.current === 'en' && city?.nameEn)    ? city.nameEn    : (city?.name    || '');
             const countryName = (Lang.current === 'en' && city?.countryEn) ? city.countryEn : (city?.country || '');
-            const hour  = D.hourNum?.textContent || '--';
-            const phase = D.phaseDisp?.textContent || '';
-            const std   = D.stdTime?.textContent || '--:--:--';
-            const dateText = D.dateEl?.textContent || '';
-            const srStr  = D.sunriseEl?.textContent || '--:--';
-            const ssStr  = D.sunsetEl?.textContent || '--:--';
+            const hour     = D.hourNum?.textContent   || '--';
+            const phase    = D.phaseDisp?.textContent || '';
+            const std      = D.stdTime?.textContent   || '--:--:--';
+            const dateText = D.dateEl?.textContent    || '';
+            const srStr    = D.sunriseEl?.textContent || '--:--';
+            const ssStr    = D.sunsetEl?.textContent  || '--:--';
 
             ctx.direction = Lang.current === 'ar' ? 'rtl' : 'ltr';
 
-            // اسم المدينة
             ctx.font = `bold 38px 'Tajawal', sans-serif`;
             ctx.fillStyle = textPri; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(cityName, CX, 195);
 
-            // الدولة
             ctx.font = `italic 18px 'Tajawal', sans-serif`;
             ctx.fillStyle = textSec; ctx.globalAlpha = 0.55;
             ctx.fillText(countryName, CX, 225);
             ctx.globalAlpha = 1;
 
-            // التاريخ
             ctx.font = `14px 'Tajawal', sans-serif`;
             ctx.fillStyle = textSec; ctx.globalAlpha = 0.4;
             ctx.fillText(dateText, CX, 250);
             ctx.globalAlpha = 1;
 
-            // الساعة الكبيرة
             ctx.font = `bold 120px 'JetBrains Mono', monospace`;
             ctx.direction = 'ltr';
             ctx.fillStyle = textPri; ctx.fillText(hour, CX, 340);
 
-            // الطور
             ctx.direction = Lang.current === 'ar' ? 'rtl' : 'ltr';
             ctx.font = `bold 24px 'Tajawal', sans-serif`;
             ctx.fillStyle = textSec; ctx.globalAlpha = 0.8;
             ctx.fillText(phase, CX, 395);
             ctx.globalAlpha = 1;
 
-            // التوقيت المدني
             ctx.font = `24px 'JetBrains Mono', monospace`;
             ctx.direction = 'ltr'; ctx.fillStyle = textPri; ctx.globalAlpha = 0.55;
             ctx.fillText(std, CX, 432);
             ctx.globalAlpha = 1;
 
-            // الشروق والغروب
             ctx.font = `14px 'JetBrains Mono', monospace`;
             ctx.fillStyle = textSec; ctx.globalAlpha = 0.55;
             ctx.fillText(`🌅 ${srStr}`, CX - 100, 460);
             ctx.fillText(`🌆 ${ssStr}`, CX + 100, 460);
             ctx.globalAlpha = 1;
 
-            // الشعار
             ctx.font = `700 12px 'JetBrains Mono', monospace`;
             ctx.fillStyle = textSec; ctx.globalAlpha = 0.35;
             ctx.fillText('SolarisSwahili', CX, 580);
@@ -821,9 +844,12 @@ const App = (() => {
             return canvas.toDataURL('image/png');
         },
 
+        /* ✅ M3 — لا يُعيَّن btn.textContent مباشرةً بل يُستهدف span[data-i18n] فقط */
         async show() {
-            const btn = D.shareImgBtn;
-            if (btn) { btn.disabled = true; btn.textContent = '...'; }
+            const btn  = D.shareImgBtn;
+            const span = btn?.querySelector('[data-i18n="shareImage"]');
+            if (btn)  btn.disabled = true;
+            if (span) span.textContent = '...';
             try {
                 const dataUrl = await this.generate();
                 let modal = $('share-img-modal');
@@ -850,7 +876,8 @@ const App = (() => {
                     </div>`;
                 modal.style.display = 'flex';
             } catch(e) { console.error(e); }
-            if (btn) { btn.disabled = false; btn.textContent = `📷 ${Lang.t('shareImage')}`; }
+            if (btn)  btn.disabled = false;
+            if (span) span.textContent = Lang.t('shareImage');
         }
     };
 
@@ -858,7 +885,6 @@ const App = (() => {
     /* ═══════════════════════════════════════════════════════
        12. AMBIENT MODE — وضع الحائط الكامل
     ═══════════════════════════════════════════════════════ */
-    /* ✅ Bug 9 — متغير WakeLock للإعادة عند عودة التبويب */
     let wakeLock = null;
 
     const Ambient = {
@@ -867,6 +893,7 @@ const App = (() => {
             if (!D.ambOverlay) return;
             D.ambOverlay.style.display = 'flex';
 
+            /* ✅ P5 — استخدام الكاش للنجوم في وضع الحائط */
             const ambStars = $('amb-stars');
             if (ambStars) genStars(ambStars);
 
@@ -912,7 +939,7 @@ const App = (() => {
             set('amb-std', `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}`);
 
             const city = S.cities[S.key];
-            set('amb-city', (Lang.current === 'en' && city?.nameEn) ? city.nameEn : (city?.name || ''));
+            set('amb-city',    (Lang.current === 'en' && city?.nameEn)    ? city.nameEn    : (city?.name    || ''));
             set('amb-country', (Lang.current === 'en' && city?.countryEn) ? city.countryEn : (city?.country || ''));
             set('amb-date', D.dateEl?.textContent || '');
 
@@ -984,12 +1011,11 @@ const App = (() => {
 
             updateSky(phase, prog);
 
-            // Auto themes
             if (!S.manualTheme) {
                 const dsr = Math.abs(now - todaySunrise);
                 const dss = Math.abs(now - todaySunset);
                 let theme = 'day';
-                if (phase === 'night')                            theme = 'night';
+                if (phase === 'night')                              theme = 'night';
                 else if (dsr < CFG.GOLD_WIN || dss < CFG.GOLD_WIN) theme = 'golden';
 
                 document.body.classList.remove('theme-night', 'theme-golden');
@@ -1008,7 +1034,6 @@ const App = (() => {
             D.sunHalo.style.opacity   = isNight ? '0' : '1';
             D.arc.setAttribute('stroke', isNight ? 'url(#g-night)' : 'url(#g-day)');
 
-            // Swahili hour
             const elapsed = prog * 12 * 3600000;
             const pH = Math.floor(elapsed / 3600000);
             const pM = Math.floor((elapsed % 3600000) / 60000);
@@ -1019,7 +1044,6 @@ const App = (() => {
             D.phaseDisp.textContent  = `${Lang.t('of')} ${phLbl}`;
             D.metricDisp.textContent = fmt(pH, pM, pS);
 
-            // Countdown
             const nextMs = phase === 'day' ? todaySunset : (now < todaySunrise ? todaySunrise : tomorrowSunrise);
             const diff   = Math.max(0, nextMs - now);
             D.cdLbl.textContent = phase === 'day' ? Lang.t('untilSunset') : Lang.t('untilSunrise');
@@ -1029,11 +1053,9 @@ const App = (() => {
                 Math.floor((diff % 60000)   / 1000)
             );
 
-            // Civil time
             const local = new Date(now + utcOff * 60000);
             D.stdTime.textContent = fmt(local.getUTCHours(), local.getUTCMinutes(), local.getUTCSeconds());
 
-            // SVG arc & celestial body
             const angle = Math.PI * (1 - prog);
             const cx    = 150 + 130 * Math.cos(angle);
             const cy    = 140 - 130 * Math.sin(angle);
@@ -1041,6 +1063,12 @@ const App = (() => {
             D.celestial.setAttribute('transform', `translate(${cx.toFixed(2)},${cy.toFixed(2)})`);
 
             if (S.ambientActive) Ambient.update();
+
+            /* ✅ C4 — تحديث أوقات الصلاة تلقائياً كل دقيقة */
+            if (S.prayers && Math.floor(Date.now() / 1000) % 60 === 0) {
+                Prayers.renderBar();
+                Prayers.drawMarkers(phase, startMs, endMs);
+            }
         }
     };
 
@@ -1071,13 +1099,26 @@ const App = (() => {
     /* ═══════════════════════════════════════════════════════
        15. CITY LOADER
     ═══════════════════════════════════════════════════════ */
+
+    /* ✅ C6 — عداد الجيل لمنع تعارض الاستدعاءات المتزامنة */
+    let _loadGen = 0;
+
     const loadCity = async key => {
+        const myGen = ++_loadGen;
+
         if (S.tickId) clearInterval(S.tickId);
+
+        /* إظهار الـ loader وإزالة aria-hidden/inert المحتملَين من تحميل سابق */
         D.loader.classList.remove('opacity-0');
+        D.loader.removeAttribute('aria-hidden');
+        D.loader.removeAttribute('inert');
         D.loader.style.pointerEvents = 'auto';
         D.app.style.opacity = '0';
         D.loaderTxt.textContent = Lang.t('loading');
+
+        /* ✅ A2 — إخفاء رسالة الخطأ مع إعادة aria-hidden */
         D.errOverlay.classList.add('opacity-0', 'pointer-events-none');
+        D.errOverlay.setAttribute('aria-hidden', 'true');
         setTimeout(() => D.errOverlay.classList.add('hidden'), 500);
 
         S.key = key;
@@ -1087,15 +1128,12 @@ const App = (() => {
             b.classList.toggle('active', b.dataset.city === key)
         );
 
-        const displayName = (Lang.current === 'en' && city.nameEn) ? city.nameEn : city.name;
+        const displayName  = (Lang.current === 'en' && city.nameEn)    ? city.nameEn    : city.name;
+        const countryName  = (Lang.current === 'en' && city.countryEn) ? city.countryEn : (city.country || '');
         D.cityName.textContent = displayName;
-
-        const countryName = (Lang.current === 'en' && city.countryEn) ? city.countryEn : (city.country || '');
         if (D.countrySub) D.countrySub.textContent = countryName;
 
         updateDateDisplay();
-
-        /* ✅ Bug 4 — إزالة كتابة ?city= في الرابط */
 
         try {
             const countryCode = city.countryCode || '';
@@ -1103,6 +1141,10 @@ const App = (() => {
                 API.fetchSolar(city.lat, city.lng),
                 API.fetchPrayers(city.lat, city.lng, countryCode)
             ]);
+
+            /* ✅ C6 — إذا تم استدعاء loadCity لمدينة أحدث، تجاهل هذا الاستدعاء */
+            if (myGen !== _loadGen) return;
+
             if (!solar) throw new Error('تعذر تحليل بيانات الشمس.');
             S.solar = solar; S.prayers = prayers;
 
@@ -1126,11 +1168,19 @@ const App = (() => {
             Clock.run();
             S.tickId = setInterval(Clock.run, 1000);
 
+            /* ✅ A1 — إخفاء الـ loader من شجرة الإمكانية بعد انتهاء الانتقال */
             D.loader.classList.add('opacity-0');
             D.loader.style.pointerEvents = 'none';
+            setTimeout(() => {
+                D.loader.setAttribute('aria-hidden', 'true');
+                D.loader.setAttribute('inert', '');
+            }, 700);
             D.app.style.opacity = '1';
 
         } catch (err) {
+            /* ✅ C6 — تجاهل أخطاء الاستدعاءات المتجاوزة */
+            if (myGen !== _loadGen) return;
+
             console.error('[SolarisSwahili]', err);
             D.errMsg.textContent = err.message || Lang.t('errorDefault');
             D.errOverlay.classList.remove('hidden');
@@ -1150,9 +1200,9 @@ const App = (() => {
     const buildBtns = () => {
         D.citySel.innerHTML = '';
         Object.keys(S.cities).forEach(k => {
-            const city    = S.cities[k];
+            const city      = S.cities[k];
             const isDefault = CFG.DEFAULT_KEYS.includes(k);
-            const label = (Lang.current === 'en' && city.nameEn) ? city.nameEn : city.name;
+            const label     = (Lang.current === 'en' && city.nameEn) ? city.nameEn : city.name;
 
             const btn = document.createElement('button');
             btn.className    = 'city-btn';
@@ -1164,9 +1214,9 @@ const App = (() => {
 
             if (!isDefault) {
                 const del = document.createElement('span');
-                del.className    = 'city-del';
-                del.textContent  = '×';
-                del.title        = 'حذف المدينة';
+                del.className   = 'city-del';
+                del.textContent = '×';
+                del.title       = 'حذف المدينة';
                 del.onclick = e => { e.stopPropagation(); CityStore.remove(k); };
                 btn.appendChild(del);
             }
@@ -1196,7 +1246,7 @@ const App = (() => {
         buildBtns();
         updateDateDisplay();
 
-        /* ✅ Bug 26 — استعادة الثيم المحفوظ يدوياً */
+        /* استعادة الثيم المحفوظ يدوياً */
         const savedTheme = localStorage.getItem('ss_theme');
         if (savedTheme === 'night') {
             S.manualTheme = true;
@@ -1211,20 +1261,21 @@ const App = (() => {
             S.manualTheme = true;
         }
 
-        /* ✅ Bug 1 — تحميل المدينة الافتراضية فوراً */
-        loadCity('tobruk');
+        /* ✅ C5 — قراءة ?c= من الرابط لدعم المشاركة */
+        const urlKey = new URLSearchParams(location.search).get('c');
+        const initialCity = (urlKey && S.cities[urlKey]) ? urlKey : 'tobruk';
+        loadCity(initialCity);
 
-        /* ✅ Bug 1 — اكتشاف الموقع غير مانع ومستقل */
+        /* ✅ C3 — اكتشاف الموقع مستقل وغير مانع */
         setTimeout(() => GeoDetect.addAutoCity().catch(() => {}), 1200);
 
-        // ── Add city ──────────────────────────────────────
+        /* ── إضافة مدينة ───────────────────────────── */
         D.addBtn.onclick = async () => {
             const val = D.cityInput.value.trim();
             if (!val) return;
             D.cityErr.classList.add('hidden');
             D.addBtn.disabled = true;
             D.addBtn.textContent = Lang.t('adding');
-            /* ✅ Bug 24 — accessibility */
             D.addBtn.setAttribute('aria-label', `${Lang.t('adding')} ${val}`);
             D.addBtn.setAttribute('aria-busy', 'true');
             try {
@@ -1270,7 +1321,7 @@ const App = (() => {
 
         D.cityInput.addEventListener('keydown', e => { if (e.key === 'Enter') D.addBtn.click(); });
 
-        // ── Language toggle ───────────────────────────────
+        /* ── Language toggle ─────────────────────────── */
         const langBtn = $('lang-toggle');
         if (langBtn) langBtn.onclick = () => {
             Lang.toggle();
@@ -1286,13 +1337,12 @@ const App = (() => {
             }
         };
 
-        // ── GPS badge ─────────────────────────────────────
+        /* ── GPS badge ───────────────────────────────── */
         const gpsBadge = $('gps-badge');
         if (gpsBadge) gpsBadge.onclick = () => GeoDetect.addAutoCity();
 
-        // ── Theme toggle ──────────────────────────────────
+        /* ── Theme toggle ────────────────────────────── */
         D.themeBtn.onclick = () => {
-            /* ✅ Bug 13 — انتقال سريع عند الضغط اليدوي */
             document.body.style.setProperty('--transition-duration', '0.25s');
             setTimeout(() => document.body.style.removeProperty('--transition-duration'), 300);
 
@@ -1303,7 +1353,6 @@ const App = (() => {
             D.moonIco.classList.toggle('hidden', !isNight);
             D.stars.style.opacity = isNight ? '0.9' : '0';
             setSkyManual(isNight);
-            /* ✅ Bug 26 — حفظ الثيم في localStorage */
             localStorage.setItem('ss_theme', isNight ? 'night' : 'day');
             D.resetBtn.classList.remove('hidden');
             requestAnimationFrame(() => D.resetBtn.classList.remove('opacity-0', 'translate-x-3'));
@@ -1311,23 +1360,26 @@ const App = (() => {
 
         D.resetBtn.onclick = () => {
             S.manualTheme = false;
-            /* ✅ Bug 26 — مسح الثيم المحفوظ */
             localStorage.removeItem('ss_theme');
             D.resetBtn.classList.add('opacity-0', 'translate-x-3');
             setTimeout(() => D.resetBtn.classList.add('hidden'), 300);
             Clock.run();
         };
 
-        // ── Retry ─────────────────────────────────────────
+        /* ── Retry ───────────────────────────────────── */
         D.retryBtn.onclick = () => loadCity(S.key);
 
-        // ── Share link ────────────────────────────────────
+        /* ✅ C5 — رابط المشاركة يتضمن ?c=<key> */
         D.shareBtn.onclick = async () => {
             try {
+                const shareUrl = new URL(location.href);
+                shareUrl.searchParams.set('c', S.key);
+                const shareStr = shareUrl.toString();
+
                 if (navigator.share) {
-                    await navigator.share({ title: 'SolarisSwahili', url: location.href });
+                    await navigator.share({ title: 'SolarisSwahili', url: shareStr });
                 } else {
-                    await navigator.clipboard.writeText(location.href);
+                    await navigator.clipboard.writeText(shareStr);
                     const orig = D.shareBtn.innerHTML;
                     D.shareBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>`;
                     setTimeout(() => { D.shareBtn.innerHTML = orig; }, 2200);
@@ -1335,10 +1387,10 @@ const App = (() => {
             } catch {}
         };
 
-        // ── Share image ───────────────────────────────────
+        /* ── Share image ─────────────────────────────── */
         if (D.shareImgBtn) D.shareImgBtn.onclick = () => ShareImage.show();
 
-        // ── Ambient mode ──────────────────────────────────
+        /* ── Ambient mode ────────────────────────────── */
         if (D.ambientBtn) D.ambientBtn.onclick = () => Ambient.enter();
 
         const ambClose = $('amb-close');
@@ -1351,8 +1403,6 @@ const App = (() => {
             }
             if (e.key === 'Escape' && S.ambientActive) Ambient.exit();
         });
-
-        /* ✅ Bug 4 — إزالة قراءة ?city= من الرابط كليًا */
     };
 
     return { init };
