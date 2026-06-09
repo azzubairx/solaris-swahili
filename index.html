@@ -25,9 +25,11 @@
 </head>
 <body class="antialiased min-h-screen flex flex-col items-center px-4 relative">
 
+    <!-- ✅ V2/V4 — تطبيق الثيم المحفوظ مبكراً قبل رسم أي محتوى -->
+    <script src="js/theme.js"></script>
+
     <!-- ── شريط التنقل ──────────────────────────────────────── -->
     <nav class="site-nav">
-        <!-- ✅ Issue 20 — شعار SVG بدلاً من النص -->
         <a href="index.html" class="nav-logo" aria-label="SolarisSwahili — الصفحة الرئيسية">
             <img src="assets/logo.svg" alt="SolarisSwahili" height="28">
         </a>
@@ -81,7 +83,6 @@
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
         </button>
-        <!-- ✅ Bug 25 — data-i18n-aria صحيح: themeToggle (لا ambientMode) -->
         <button id="theme-toggle"
                 data-i18n-aria="themeToggle"
                 aria-label="تبديل الوضع الليلي"
@@ -133,7 +134,6 @@
                      style="border-color:var(--accent-faint)"
                      aria-label="اختيار المدينة أو إضافة مدينة جديدة">
 
-                <!-- زر GPS -->
                 <div class="flex justify-center mb-3">
                     <button id="gps-badge" class="gps-badge" title="اكتشاف موقعك تلقائياً">
                         <span class="gps-dot"></span>
@@ -159,16 +159,21 @@
                    role="alert" aria-live="assertive"></p>
             </section>
 
-            <!-- ── اسم المدينة والتاريخ الميلادي ─────────── -->
+            <!-- ── اسم المدينة والتواريخ ───────────────── -->
             <div class="w-full text-center mb-8 flex flex-col items-center gap-1">
                 <h2 id="city-name" class="city-title font-extrabold text-3xl tracking-wide">--</h2>
                 <p id="country-sub" class="country-sub">--</p>
+                <!-- التاريخ الميلادي -->
                 <div class="flex items-center gap-2 text-xs date-label mt-1">
                     <svg class="w-3.5 h-3.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
                     <span id="gregorian-date" aria-live="polite">--</span>
+                </div>
+                <!-- ✅ M8 — التاريخ الهجري -->
+                <div class="flex items-center justify-center mt-0.5">
+                    <span id="hijri-date" class="hijri-label text-[0.6rem]" aria-live="polite"></span>
                 </div>
             </div>
 
@@ -178,7 +183,6 @@
 
                 <div class="relative group inline-flex items-end gap-3 mb-2 cursor-help" dir="rtl">
                     <span class="hour-word font-sans font-light text-4xl md:text-5xl" data-i18n="hourLabel">الساعة</span>
-                    <!-- ✅ Bug 24 — aria-live="off" لتجنب إرهاق قارئات الشاشة كل ثانية -->
                     <span id="hour-display"
                           class="hour-num font-mono font-extrabold text-7xl md:text-8xl tracking-tighter"
                           aria-live="off" aria-atomic="true" aria-label="ساعة التوقيت السواحلي">--</span>
@@ -216,8 +220,9 @@
             </section>
 
             <!-- ── القوس الشمسي (SVG) ──────────────────── -->
+            <!-- ✅ C7 — viewBox مُصلَح: هامش علوي -18 يمنع قطع الهالة عند الذروة -->
             <div class="relative w-full max-w-[340px] h-[185px] flex justify-center items-end mb-4" aria-hidden="true">
-                <svg id="sky-svg" viewBox="0 0 300 160" class="w-full h-full overflow-visible">
+                <svg id="sky-svg" viewBox="0 -18 300 178" class="w-full h-full overflow-visible">
                     <defs>
                         <filter id="f-sun" x="-130%" y="-130%" width="360%" height="360%">
                             <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/>
@@ -251,7 +256,6 @@
                     <g id="celestial-body" transform="translate(20, 140)">
                         <circle id="sun-halo"  cx="0" cy="0" r="14" fill="var(--glow-sun)"/>
                         <circle id="sun-shape" cx="0" cy="0" r="7.5" fill="var(--surface)" stroke="#F59E0B" stroke-width="3" filter="url(#f-sun)"/>
-                        <!-- ✅ Issue 19 — شكل القمر الهلال المُحسَّن -->
                         <path id="moon-shape"
                               d="M 0,-12 C 8,-12 14,-6 14,2 C 14,10 8,16 0,16
                                  C -4,16 -7,14 -9,11 C -2,11 4,6 4,2
@@ -284,7 +288,7 @@
             <!-- ── شريط أوقات الصلاة ─────────────────────── -->
             <div id="prayer-bar"
                  class="prayer-bar w-full max-w-[340px] rounded-2xl p-3 mb-6 hidden transition-all duration-500">
-                <p class="text-center hijri-label text-[0.58rem] font-bold tracking-widest uppercase mb-2"
+                <p class="text-center text-[0.58rem] font-bold tracking-widest uppercase mb-2"
                    data-i18n="prayers">مواقيت الصلاة</p>
                 <div id="prayer-list" class="flex justify-around flex-wrap gap-y-1"></div>
             </div>
@@ -385,9 +389,10 @@
             <div id="amb-date"      class="ambient-date">--</div>
         </div>
 
+        <!-- ✅ V4 — إزالة inline style المتعارضة مع pointer-events في CSS -->
         <button id="amb-close"
                 class="ambient-exit-hint"
-                style="background:transparent;border:none;cursor:pointer;pointer-events:auto;"
+                aria-label="إغلاق وضع الحائط"
                 data-i18n="exitHint">
             ESC للخروج • F للدخول
         </button>
