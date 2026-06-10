@@ -30,12 +30,10 @@
 
     <!-- Nav -->
     <nav class="site-nav">
-        <!-- ✅ Issue 20 — شعار SVG -->
         <a href="index.html" class="nav-logo" aria-label="SolarisSwahili — الصفحة الرئيسية">
             <img src="assets/logo.svg" alt="SolarisSwahili" height="28">
         </a>
         <div class="nav-links">
-            <!-- ✅ Bug 2 — data-i18n على روابط التنقل -->
             <a href="index.html"     class="nav-link"        data-i18n="navHome">الرئيسية</a>
             <a href="about.html"     class="nav-link active" data-i18n="navAbout">عن المشروع</a>
             <a href="compare.html"   class="nav-link"        data-i18n="navCompare">مقارنة</a>
@@ -256,7 +254,7 @@
                     لا رموزاً تعسفية فرضها البشر على الزمن،
                     بل الزمن نفسه كما كتبته الشمس."
                 </p>
-                <p class="text-xs mt-3" style="color:var(--text-sec);font-style:italic;">— SolarisSwahili v3.0</p>
+                <p class="text-xs mt-3" style="color:var(--text-sec);font-style:italic;">— SolarisSwahili v3.1</p>
             </div>
         </div>
 
@@ -276,10 +274,10 @@
 
     </div><!-- /page-container -->
 
-    <!-- ✅ Bug 2 — تحميل نظام الترجمة المشترك -->
+    <!-- i18n.js يُطبَّق تلقائياً على روابط التنقل عبر [data-i18n] -->
     <script src="js/i18n.js"></script>
     <script>
-    /* ✅ Bug 2 — toggleLang يفوّض إلى SubI18N الآن */
+    /* toggleLang يُفوَّض إلى SubI18N الآن بعد أن أصبح الملف موجوداً */
     function toggleLang() {
         SubI18N.toggle();
     }
