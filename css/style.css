@@ -1,14 +1,20 @@
 /* ================================================================
-   SolarisSwahili v3.0 — نظام التصميم الاحترافي
+   SolarisSwahili v3.1 — نظام التصميم الاحترافي
    css/style.css
 
-   الإصلاحات المطبّقة:
-   ✅ إضافة --transition-duration (خطأ 13)
-   ✅ إضافة نظام z-index منظَّم (مشكلة 12)
-   ✅ إضافة --color-error (مشكلة 26)
-   ✅ إصلاح body.theme-night::before (مشكلة 27)
-   ✅ إصلاح share-modal-card على الهاتف (مشكلة 11)
-   ✅ إصلاح زر اللغة على الهاتف (خطأ 7)
+   الإصلاحات المطبّقة في v3.1:
+   ✅ V4  — إزالة pointer-events:none من .ambient-exit-hint
+            (كانت تُعارِض الـ button الذي يستخدم نفس الكلاس)
+   ✅ V5  — تعريف .hijri-label (كان الكلاس مستخدَماً لكن غير معرَّف)
+   ✅ M8  — تنسيق #hijri-date الجديد
+
+   الإصلاحات السابقة (v3.0) محفوظة كما هي:
+   ✅ --transition-duration (خطأ 13)
+   ✅ نظام z-index منظَّم (مشكلة 12)
+   ✅ --color-error (مشكلة 26)
+   ✅ body.theme-night::before (مشكلة 27)
+   ✅ share-modal-card على الهاتف (مشكلة 11)
+   ✅ زر اللغة على الهاتف (خطأ 7)
    ✅ رفع أحجام الخطوط على الهاتف (خطأ 8)
    ================================================================ */
 
@@ -29,13 +35,10 @@
     --shadow:        rgba(0, 0, 0, 0.06);
     --nav-h:         52px;
 
-    /* ✅ إصلاح مشكلة 26 — لون الخطأ كمتغير */
     --color-error:   #EF4444;
-
-    /* ✅ إصلاح مشكلة 13 — مدة الانتقال قابلة للتعديل عبر JS */
     --transition-duration: 1.5s;
 
-    /* ✅ إصلاح مشكلة 12 — نظام z-index منظَّم */
+    /* نظام z-index منظَّم */
     --z-base:     0;
     --z-content:  10;
     --z-nav:      60;
@@ -82,7 +85,6 @@ body {
     background-attachment: fixed;
     color: var(--text-pri);
     overflow-x: hidden;
-    /* ✅ إصلاح مشكلة 13 — مدة الانتقال تتحكم بها --transition-duration */
     transition: color var(--transition-duration, 1.5s) ease;
     font-family: 'Tajawal', sans-serif;
 }
@@ -98,7 +100,6 @@ body::before {
     z-index: -2;
 }
 
-/* ✅ إصلاح مشكلة 27 — الثيم الليلي: تقليل الشفافية + عكس الألوان */
 body.theme-night::before {
     opacity: 0.12;
     filter: invert(1);
@@ -139,7 +140,6 @@ body.theme-night::before {
     gap: 0.35rem;
     flex-shrink: 0;
 }
-/* صورة الشعار */
 .nav-logo img {
     height: 28px;
     width: auto;
@@ -182,7 +182,6 @@ body.theme-night::before {
 }
 .lang-btn:hover { color: var(--text-pri); border-color: var(--accent); }
 
-/* ✅ إصلاح خطأ 7 — التنقل على الهاتف: إخفاء الروابط غير النشطة */
 @media (max-width: 480px) {
     .nav-links .nav-link:not(.active) {
         display: none;
@@ -192,7 +191,6 @@ body.theme-night::before {
     }
 }
 
-/* ✅ إصلاح خطأ 8 — رفع أحجام الخطوط على الهاتف */
 @media (max-width: 480px) {
     body        { font-size: 16px; }
     .nav-link   { font-size: 0.8rem;  padding: 0.3rem 0.5rem; }
@@ -338,6 +336,18 @@ body.theme-night::before {
     opacity: 0.6;
     font-style: italic;
     letter-spacing: 0.04em;
+    min-height: 1em;
+}
+
+/* ✅ M8 / V5 — تعريف التاريخ الهجري */
+.hijri-label,
+#hijri-date {
+    font-family: 'Tajawal', sans-serif;
+    font-size: 0.6rem;
+    color: var(--text-sec);
+    opacity: 0.55;
+    letter-spacing: 0.03em;
+    direction: rtl;
     min-height: 1em;
 }
 
@@ -567,6 +577,11 @@ body.theme-night .input-err { color: #F87171; }
     letter-spacing: 0.05em;
     margin-top: 1.2rem;
 }
+
+/* ✅ V4 — إصلاح .ambient-exit-hint:
+   إزالة pointer-events:none التي كانت تُعارض عمل الـ <button> الذي يستخدم هذا الكلاس.
+   قبل الإصلاح: الـ CSS يضع pointer-events:none والـ HTML يُلغيه بـ inline style.
+   بعد الإصلاح: الكلاس نفسه يدعم التفاعل بشكل صريح وموحَّد. */
 .ambient-exit-hint {
     position: absolute;
     bottom: 1.5rem;
@@ -577,8 +592,20 @@ body.theme-night .input-err { color: #F87171; }
     color: var(--text-sec);
     opacity: 0.3;
     letter-spacing: 0.15em;
-    pointer-events: none;
+    /* لا pointer-events:none هنا — العنصر قد يكون <button> تفاعلياً */
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem 1.5rem;
+    transition: opacity 0.2s ease;
 }
+.ambient-exit-hint:hover { opacity: 0.65; }
+.ambient-exit-hint:focus-visible {
+    outline: 1px solid var(--text-sec);
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
 .ambient-stars {
     position: absolute;
     inset: 0;
@@ -594,8 +621,7 @@ body.theme-night .input-err { color: #F87171; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   28. مودال مشاركة الصورة (Share Image Modal)
-   ✅ إصلاح مشكلة 11 — الصورة لا تتجاوز الشاشة على الهاتف
+   28. مودال مشاركة الصورة
 ══════════════════════════════════════════════════════════════ */
 .share-modal {
     position: fixed;
@@ -620,7 +646,6 @@ body.theme-night .input-err { color: #F87171; }
     border: 1px solid var(--glass-border);
     border-radius: 1.5rem;
     overflow: hidden;
-    /* ✅ حد أقصى للعرض + قابل للتمرير على الهاتف */
     max-width: min(500px, 95vw);
     max-height: 90vh;
     overflow-y: auto;
@@ -628,7 +653,6 @@ body.theme-night .input-err { color: #F87171; }
     box-shadow: 0 20px 80px rgba(0,0,0,0.3);
 }
 .share-modal-card img {
-    /* ✅ صورة متجاوبة */
     width: 100%;
     max-width: 100%;
     height: auto;
@@ -644,7 +668,7 @@ body.theme-night .input-err { color: #F87171; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   29. صفحة "عن المشروع" (About Page)
+   29. صفحة "عن المشروع"
 ══════════════════════════════════════════════════════════════ */
 .about-hero {
     min-height: 60vh;
@@ -736,7 +760,7 @@ body.theme-night .input-err { color: #F87171; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   30. صفحة المقارنة (Compare Page)
+   30. صفحة المقارنة
 ══════════════════════════════════════════════════════════════ */
 .compare-grid {
     display: grid;
@@ -813,7 +837,7 @@ body.theme-night .input-err { color: #F87171; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   31. لوحة الإحصائيات السنوية (Dashboard Page)
+   31. لوحة الإحصائيات السنوية
 ══════════════════════════════════════════════════════════════ */
 .dash-section {
     max-width: 900px;
