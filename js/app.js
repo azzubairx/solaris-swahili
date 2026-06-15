@@ -499,10 +499,17 @@ const App = (() => {
             D.sunriseEl.textContent = cleanTime(solar.todaySunriseStr);
             D.sunsetEl.textContent  = cleanTime(solar.todaySunsetStr);
 
-            /* ── شريط النهار والليل ── */
-            const dayL   = solar.todaySunset - solar.todaySunrise;
-            const nightL = 24 * 3600000 - dayL;
-            const dayPct = (dayL / (24 * 3600000) * 100).toFixed(1);
+            /* ── شريط النهار والليل (نظام ديناميكي حر) ── */
+            let dayL   = solar.todaySunset - solar.todaySunrise;
+            let nightL = solar.tomorrowSunrise - solar.todaySunset;
+
+            // معالجة أمان للمدن المتطرفة (مثل أولو): 
+            // إذا تقاطع الوقت مع منتصف الليل بطريقة غير مألوفة وعاد بالسالب
+            if (dayL < 0) dayL += 24 * 3600000;
+            if (nightL < 0) nightL += 24 * 3600000;
+
+            const totalCycle = dayL + nightL; // طول اليوم الزمني الفعلي للمدينة
+            const dayPct = ((dayL / totalCycle) * 100).toFixed(1);
             const diff   = Math.abs(dayL - nightL);
 
             D.dayBar.style.width   = `${dayPct}%`;
