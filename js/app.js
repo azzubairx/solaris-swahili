@@ -1,27 +1,6 @@
 /**
  * SolarisSwahili v2.0
- * ساعة التوقيت السواحلي الديناميكية — النسخة الاحترافية المُصلَّحة
- *
- * الإصلاحات الجوهرية:
- *  [1] القوس: sweep-flag=1 في HTML → ساعاتي من 9→12→3 → فوق الأفق ✓
- *  [2] null-check شامل لـ solarBounds قبل أي وصول
- *  [3] displayHour مقيّد بـ Math.min(..., 12) — لا يصل إلى 13
- *  [4] manualTheme يُعاد ضبطه عبر زر مخصص
- *  [5] cleanTime آمنة لجميع تنسيقات الـ API
- *  [6] utcOffset يُعالَج كساعات أو دقائق تلقائياً
- *
- * الإضافات الاحترافية:
- *  - تدرج السماء الديناميكي (يتغير كل ثانية مع موضع الشمس)
- *  - توهج الشمس والقمر عبر SVG filter
- *  - مؤشرات الصلاة على القوس (مع نبض للصلاة القادمة)
- *  - شريط أوقات الصلاة (Aladhan API)
- *  - التاريخ الهجري (Intl)
- *  - كاش ذكي (localStorage + TTL 6 ساعات)
- *  - مشاركة الرابط (Web Share API / Clipboard)
- *  - URL parameter لاستعادة المدينة
- *  - معالجة أخطاء كاملة مع Retry
- *  - توليد 150 نجمة عشوائية
- *  - زر إعادة الوضع التلقائي بعد التبديل اليدوي
+ * ساعة التوقيت السواحلي الديناميكية — التوقيت التكيفي المعتدل
  */
 
 const App = (() => {
@@ -106,7 +85,6 @@ const App = (() => {
     const pad = n => String(n).padStart(2, '0');
     const fmt = (h, m, s) => `${pad(h)}:${pad(m)}:${pad(s)}`;
 
-    /** تنسيق المدة بالعربية الصحيحة */
     const fmtDur = ms => {
         const tot = Math.round(ms / 60000);
         const h = Math.floor(tot / 60), m = tot % 60;
@@ -118,17 +96,14 @@ const App = (() => {
         return mS ? `${hS} و${mS}` : hS;
     };
 
-    /** إزالة الثواني من وقت API مع الحفاظ على AM/PM */
     const cleanTime = t => {
         const p = t.split(':');
         return p.length >= 3 ? `${p[0]}:${p[1]} ${t.split(' ').pop()}` : t;
     };
 
-    /** تاريخ بتنسيق YYYY-MM-DD */
     const dateStr = (off = 0) =>
         new Date(Date.now() + off * 86400000).toLocaleDateString('en-CA');
 
-    /** توليد 150 نجمة عشوائية */
     const genStars = () => {
         D.stars.style.backgroundImage = Array.from({ length: 150 }, () => {
             const x = (Math.random() * 100).toFixed(1);
@@ -139,7 +114,6 @@ const App = (() => {
         }).join(',');
     };
 
-    /** خلط لوني خطي بين لونين HEX */
     const lerpHex = (a, b, t) => {
         const p = c => [parseInt(c.slice(1,3),16), parseInt(c.slice(3,5),16), parseInt(c.slice(5,7),16)];
         const [r1,g1,b1] = p(a), [r2,g2,b2] = p(b);
@@ -150,20 +124,15 @@ const App = (() => {
         ].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2,'0')).join('');
     };
 
-    /**
-     * محطات تدرج لون السماء النهارية
-     * p = نسبة التقدم (0 = شروق، 1 = غروب)
-     */
     const SKY_DAY = [
-        { p: 0.00, t: '#FEF3C7', b: '#FDBA74' },   // شروق: ذهبي دافئ
-        { p: 0.18, t: '#E0F2FE', b: '#BAE6FD' },   // صباح: أزرق فاتح
-        { p: 0.50, t: '#F0F9FF', b: '#E5E7EB' },   // ظهر: أبيض ناصع
-        { p: 0.82, t: '#FEF9C3', b: '#FDE68A' },   // عصر: ذهبي ناعم
-        { p: 1.00, t: '#FDE68A', b: '#FDBA74' },   // غروب: برتقالي دافئ
+        { p: 0.00, t: '#FEF3C7', b: '#FDBA74' },   
+        { p: 0.18, t: '#E0F2FE', b: '#BAE6FD' },   
+        { p: 0.50, t: '#F0F9FF', b: '#E5E7EB' },   
+        { p: 0.82, t: '#FEF9C3', b: '#FDE68A' },   
+        { p: 1.00, t: '#FDE68A', b: '#FDBA74' },   
     ];
     const SKY_NIGHT = { t: '#020617', b: '#0B1120' };
 
-    /** تحديث تدرج خلفية السماء (يُستدعى كل ثانية في الوضع التلقائي) */
     const updateSky = (phase, progress) => {
         if (S.manualTheme) return;
         let topC, botC;
@@ -188,21 +157,20 @@ const App = (() => {
         root.style.setProperty('--sky-bot', botC);
     };
 
-    /** تعيين لون السماء يدوياً (عند التبديل اليدوي) */
     const setSkyManual = isNight => {
         const root = document.documentElement;
         if (isNight) {
             root.style.setProperty('--sky-top', SKY_NIGHT.t);
             root.style.setProperty('--sky-bot', SKY_NIGHT.b);
         } else {
-            root.style.setProperty('--sky-top', SKY_DAY[2].t);  // ألوان الظهر (محايدة)
+            root.style.setProperty('--sky-top', SKY_DAY[2].t);
             root.style.setProperty('--sky-bot', SKY_DAY[2].b);
         }
     };
 
 
     /* ═══════════════════════════════════════════════════════
-       4.  CACHE  (localStorage + TTL)
+       4.  CACHE 
     ═══════════════════════════════════════════════════════ */
     const Cache = {
         get: k => {
@@ -216,7 +184,7 @@ const App = (() => {
         set: (k, data) => {
             try {
                 localStorage.setItem(k, JSON.stringify({ ts: Date.now(), data }));
-            } catch { /* localStorage ممتلئ أو غير متاح */ }
+            } catch { }
         }
     };
 
@@ -225,19 +193,11 @@ const App = (() => {
        5.  API MODULE
     ═══════════════════════════════════════════════════════ */
     const API = {
-        /**
-         * تطبيع قيمة utc_offset من API
-         * يتعامل مع كلا الحالتين: ساعات (< 24) أو دقائق (>= 24)
-         */
         normOff: raw => {
             const n = parseFloat(raw);
             return isNaN(n) ? 0 : Math.abs(n) < 24 ? Math.round(n * 60) : Math.round(n);
         },
 
-        /**
-         * تحويل وقت محلي من API إلى UTC مللي ثانية
-         * المنطق: localTime (treated as UTC) − offsetMs = actualUTC
-         */
         toUTC: (dateS, timeStr, offMins) => {
             if (!timeStr) return 0;
             const [time, mod] = timeStr.split(' ');
@@ -291,7 +251,7 @@ const App = (() => {
                 `https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lng}&method=4`
             ).then(r => r.json()).catch(() => null);
 
-            if (!res || res.code !== 200) return null;   // اختيارية — لا تُوقف التطبيق
+            if (!res || res.code !== 200) return null;   
             Cache.set(k, res.data.timings);
             return res.data.timings;
         }
@@ -302,13 +262,11 @@ const App = (() => {
        6.  PRAYER HELPERS
     ═══════════════════════════════════════════════════════ */
     const Prayers = {
-        /** تحويل HH:MM محلي إلى UTC مللي ثانية */
         toMS: (hhmm, offMins, tmrw = false) => {
             const iso = `${dateStr(tmrw ? 1 : 0)}T${hhmm}:00Z`;
             return new Date(iso).getTime() - offMins * 60000;
         },
 
-        /** الصلاة القادمة */
         getNext: () => {
             if (!S.prayers || !S.solar) return null;
             const { utcOff } = S.solar;
@@ -317,11 +275,9 @@ const App = (() => {
                 const ms = Prayers.toMS(S.prayers[n], utcOff);
                 if (ms > now) return { name: n, ms };
             }
-            // فاتت كل صلوات اليوم → الفجر القادم
             return { name: 'Fajr', ms: Prayers.toMS(S.prayers.Fajr, utcOff, true) };
         },
 
-        /** رسم شريط أوقات الصلاة */
         renderBar: () => {
             if (!S.prayers || !S.solar) {
                 D.prayerBar.classList.add('hidden');
@@ -343,13 +299,6 @@ const App = (() => {
             }).join('');
         },
 
-        /**
-         * رسم مؤشرات الصلاة على القوس
-         * الإحداثيات تستخدم نفس معادلة الجسم السماوي:
-         *   angle = π × (1 − progress)
-         *   cx = 150 + 130 × cos(angle)
-         *   cy = 140 − 130 × sin(angle)   ← ناقص = فوق الأفق ✓
-         */
         drawMarkers: (phase, startMs, endMs) => {
             D.prayerMrks.innerHTML = '';
             if (!S.prayers || !S.solar) return;
@@ -362,20 +311,18 @@ const App = (() => {
             const NS = document.createElementNS.bind(document, 'http://www.w3.org/2000/svg');
 
             keys.forEach(k => {
-                // الفجر في فترة الليل بعد منتصف الليل ينتمي لليوم التالي
                 const isTmrwFajr = k === 'Fajr' && phase === 'الليل' && now >= S.solar.todaySunset;
                 const ms = Prayers.toMS(S.prayers[k], utcOff, isTmrwFajr);
 
-                if (ms <= startMs || ms >= endMs) return;   // خارج الفترة الحالية
+                if (ms <= startMs || ms >= endMs) return;   
 
                 const prog  = (ms - startMs) / (endMs - startMs);
                 const angle = Math.PI * (1 - prog);
                 const cx    = (150 + 130 * Math.cos(angle)).toFixed(1);
-                const cy    = (140 - 130 * Math.sin(angle)).toFixed(1); // فوق الأفق ✓
+                const cy    = (140 - 130 * Math.sin(angle)).toFixed(1); 
 
                 const isNxt = next && next.name === k;
 
-                // حلقة نبض للصلاة القادمة
                 if (isNxt) {
                     const pulse = NS('circle');
                     pulse.setAttribute('cx', cx);
@@ -385,7 +332,6 @@ const App = (() => {
                     D.prayerMrks.appendChild(pulse);
                 }
 
-                // نقطة الصلاة
                 const dot = NS('circle');
                 dot.setAttribute('cx', cx);
                 dot.setAttribute('cy', cy);
@@ -402,7 +348,7 @@ const App = (() => {
 
 
     /* ═══════════════════════════════════════════════════════
-       7.  CLOCK ENGINE  — يُستدعى كل ثانية
+       7.  CLOCK ENGINE  
     ═══════════════════════════════════════════════════════ */
     const Clock = {
         run: () => {
@@ -455,18 +401,18 @@ const App = (() => {
             /* ── لون تدرج القوس ── */
             D.arc.setAttribute('stroke', isNight ? 'url(#g-night)' : 'url(#g-day)');
 
-            /* ══ الحساب النسبي للساعة السواحلية ══
+            /* ══ الحساب التكيفي الجديد للساعة (المعيارية) ══
              *
-             *  المبدأ: 12 ساعة نسبية لكل فترة (نهار أو ليل)
-             *  elapsed = progress × 12 ساعة
-             *  displayHour ∈ [1 .. 12] (مقيّدة بـ Math.min)
+             *  المبدأ: الساعة مدتها 60 دقيقة قياسية، والعد يبدأ من الشروق/الغروب.
+             *  عدد الساعات غير مقيد بـ 12، بل يعكس الطول الفعلي للنهار أو الليل.
              */
-            const elapsed = prog * 12 * 3600000;
+            const elapsed = now - startMs; 
+
             const pH = Math.floor(elapsed / 3600000);
             const pM = Math.floor((elapsed % 3600000) / 60000);
             const pS = Math.floor((elapsed % 60000)   / 1000);
 
-            D.hourNum.textContent   = Math.min(pH + 1, 12);   // [BUG FIX #3] لا يصل إلى 13
+            D.hourNum.textContent   = pH + 1; 
             D.phaseDisp.textContent = `من ${phase}`;
             D.metricDisp.textContent = fmt(pH, pM, pS);
 
@@ -490,21 +436,10 @@ const App = (() => {
                 local.getUTCSeconds()
             );
 
-            /* ══ تحريك الجسم السماوي ══
-             *
-             *  القوس: sweep-flag=0 → نصف الدائرة العلوي (فوق الأفق)
-             *
-             *  المسار: من (20,140) → أعلى (150,10) → إلى (280,140)
-             *  معادلة الزاوية: angle = π × (1 − progress)
-             *    progress=0   → angle=π   → cos(π)=-1  → cx=20,  cy=140  (شروق)
-             *    progress=0.5 → angle=π/2 → cos=0,sin=1 → cx=150, cy=10   (ذروة)
-             *    progress=1   → angle=0   → cos(0)=1   → cx=280, cy=140  (غروب)
-             *
-             *  cy = 140 − 130×sin(angle)  →  قيم ≤ 140  →  فوق الأفق دائماً ✓
-             */
+            /* ══ تحريك الجسم السماوي ══ */
             const angle = Math.PI * (1 - prog);
             const cx    = 150 + 130 * Math.cos(angle);
-            const cy    = 140 - 130 * Math.sin(angle);   // فوق الأفق ✓
+            const cy    = 140 - 130 * Math.sin(angle);  
 
             D.arc.setAttribute('stroke-dashoffset', (100 - prog * 100).toFixed(2));
             D.celestial.setAttribute('transform', `translate(${cx.toFixed(2)},${cy.toFixed(2)})`);
@@ -549,13 +484,11 @@ const App = (() => {
         window.history.replaceState(null, '', `?city=${encodeURIComponent(city.name)}`);
 
         try {
-            /* جلب البيانات بالتوازي — الصلاة لا توقف التطبيق عند الفشل */
             const [solar, prayers] = await Promise.all([
                 API.fetchSolar(city.lat, city.lng),
                 API.fetchPrayers(city.lat, city.lng)
             ]);
 
-            // [BUG FIX #2] null-check صريح قبل الوصول لأي خاصية
             if (!solar)
                 throw new Error('تعذر تحليل بيانات الشمس. يرجى المحاولة مجدداً.');
 
@@ -637,13 +570,12 @@ const App = (() => {
 
 
     /* ═══════════════════════════════════════════════════════
-       10. INIT — تسجيل الأحداث وإطلاق التطبيق
+       10. INIT 
     ═══════════════════════════════════════════════════════ */
     const init = () => {
         genStars();
         buildBtns();
 
-        /* ── إضافة مدينة ── */
         D.addBtn.onclick = async () => {
             const val = D.cityInput.value.trim();
             if (!val) return;
@@ -677,7 +609,6 @@ const App = (() => {
             if (e.key === 'Enter') D.addBtn.click();
         });
 
-        /* ── تبديل الثيم يدوياً ── */
         D.themeBtn.onclick = () => {
             S.manualTheme = true;
             document.body.classList.remove('theme-golden');
@@ -686,44 +617,38 @@ const App = (() => {
             D.sunIco.classList.toggle('hidden', isNight);
             D.moonIco.classList.toggle('hidden', !isNight);
             D.stars.style.opacity = isNight ? '0.9' : '0';
-            setSkyManual(isNight);  // ضبط خلفية السماء فوراً
+            setSkyManual(isNight);  
 
-            /* إظهار زر الإعادة */
             D.resetBtn.classList.remove('hidden');
             requestAnimationFrame(() =>
                 D.resetBtn.classList.remove('opacity-0', 'translate-x-3')
             );
         };
 
-        /* ── إعادة الوضع التلقائي ── [BUG FIX #4] */
         D.resetBtn.onclick = () => {
             S.manualTheme = false;
             D.resetBtn.classList.add('opacity-0', 'translate-x-3');
             setTimeout(() => D.resetBtn.classList.add('hidden'), 300);
-            Clock.run(); // يُطبّق الثيم الصحيح والسماء الصحيحة فوراً
+            Clock.run(); 
         };
 
-        /* ── إعادة المحاولة بعد خطأ ── */
         D.retryBtn.onclick = () => loadCity(S.key);
 
-        /* ── مشاركة الرابط ── */
         D.shareBtn.onclick = async () => {
             try {
                 if (navigator.share) {
                     await navigator.share({ title: 'التوقيت السواحلي', url: location.href });
                 } else {
                     await navigator.clipboard.writeText(location.href);
-                    /* تأكيد مرئي مؤقت */
                     const orig = D.shareBtn.innerHTML;
                     D.shareBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor"
                         viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round"
                         stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>`;
                     setTimeout(() => { D.shareBtn.innerHTML = orig; }, 2200);
                 }
-            } catch { /* المستخدم ألغى العملية */ }
+            } catch { }
         };
 
-        /* ── URL parameter: استعادة المدينة من الرابط ── */
         const param = new URLSearchParams(location.search).get('city');
         let startKey = 'tobruk';
 
@@ -732,7 +657,6 @@ const App = (() => {
             if (found) {
                 startKey = found;
             } else {
-                /* مدينة غير موجودة في القائمة → ابحث عنها تلقائياً */
                 D.cityInput.value = param;
                 setTimeout(() => D.addBtn.click(), 150);
                 return;
