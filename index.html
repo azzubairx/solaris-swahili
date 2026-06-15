@@ -8,101 +8,118 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: { extend: {
-                fontFamily: {
-                    sans: ['"Tajawal"', 'sans-serif'],
-                    mono: ['"JetBrains Mono"', 'monospace']
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Tajawal"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace']
+                    }
                 }
-            }}
+            }
         }
     </script>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="antialiased min-h-screen flex flex-col items-center px-4 relative">
-
-    <!-- ── شريط التنقل ──────────────────────────────────────── -->
-    <nav class="site-nav">
-        <a href="index.html" class="nav-logo" aria-label="SolarisSwahili — الصفحة الرئيسية">
-            <img src="assets/logo.svg" alt="SolarisSwahili" height="28">
-        </a>
-        <div class="nav-links">
-            <a href="index.html"     class="nav-link active" data-i18n="navHome">الرئيسية</a>
-            <a href="about.html"     class="nav-link"        data-i18n="navAbout">عن المشروع</a>
-            <a href="compare.html"   class="nav-link"        data-i18n="navCompare">مقارنة</a>
-            <a href="dashboard.html" class="nav-link"        data-i18n="navDashboard">إحصائيات</a>
-        </div>
-        <div class="nav-right">
-            <button id="lang-toggle" class="lang-btn">EN</button>
-        </div>
-    </nav>
+<body class="antialiased min-h-screen flex flex-col items-center py-6 px-4 relative">
 
     <!-- ── طبقة النجوم ─────────────────────────────────────── -->
-    <div id="stars-layer" class="fixed inset-0 pointer-events-none z-0 opacity-0" aria-hidden="true"></div>
+    <div id="stars-layer"
+         class="fixed inset-0 pointer-events-none z-0 opacity-0"
+         aria-hidden="true"></div>
 
     <!-- ── شاشة التحميل ───────────────────────────────────── -->
-    <div id="loader" role="status" aria-live="polite"
+    <div id="loader"
+         role="status"
+         aria-live="polite"
          class="fixed inset-0 z-[100] flex flex-col gap-5 items-center justify-center transition-opacity duration-700">
         <div class="loader-ring"></div>
-        <span id="loader-text" class="font-sans text-xs font-medium tracking-widest"
-              style="color:var(--text-sec)">جاري تهيئة النظام...</span>
+        <span id="loader-text"
+              class="font-sans text-xs font-medium tracking-widest"
+              style="color: var(--text-sec)">
+            جاري تهيئة النظام...
+        </span>
     </div>
 
     <!-- ── شاشة الخطأ ─────────────────────────────────────── -->
-    <div id="error-overlay" role="alert" aria-live="assertive" aria-hidden="true"
+    <div id="error-overlay"
+         role="alert"
+         aria-live="assertive"
+         aria-hidden="true"
          class="err-backdrop fixed inset-0 z-[110] flex items-center justify-center
                 transition-opacity duration-500 opacity-0 pointer-events-none hidden">
         <div class="err-card rounded-3xl p-8 flex flex-col items-center text-center max-w-sm w-full mx-4">
             <div class="err-icon-bg w-14 h-14 rounded-full flex items-center justify-center mb-5">
                 <svg class="err-icon w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667
+                             1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77
+                             1.333.192 3 1.732 3z"/>
                 </svg>
             </div>
-            <h2 class="err-title text-lg font-extrabold mb-2" data-i18n="errorTitle">تعذر جلب البيانات</h2>
-            <p id="error-message" class="err-body text-sm mb-6 leading-relaxed">يرجى التحقق من اتصالك بالإنترنت.</p>
-            <button id="retry-btn" class="retry-btn px-7 py-2.5 rounded-full text-sm border-0" data-i18n="retry">
+            <h2 class="err-title text-lg font-extrabold mb-2">تعذر جلب البيانات</h2>
+            <p id="error-message" class="err-body text-sm mb-6 leading-relaxed">
+                يرجى التحقق من اتصالك بالإنترنت.
+            </p>
+            <button id="retry-btn"
+                    class="retry-btn px-7 py-2.5 rounded-full text-sm border-0">
                 إعادة المحاولة
             </button>
         </div>
     </div>
 
     <!-- ── أزرار التحكم (يسار أعلى) ──────────────────────── -->
-    <div class="fixed top-[58px] left-4 z-50 flex gap-2 items-center">
-        <button id="theme-auto-reset" data-i18n-aria="autoReset" aria-label="إعادة الوضع التلقائي" title="إعادة التلقائي"
+    <div class="fixed top-5 left-5 z-50 flex gap-2 items-center">
+
+        <!-- زر إعادة الوضع التلقائي -->
+        <button id="theme-auto-reset"
+                aria-label="إعادة الوضع التلقائي"
+                title="إعادة التلقائي"
                 class="ctrl-btn opacity-0 translate-x-3 hidden transition-all duration-300">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11
+                         11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
         </button>
+
+        <!-- زر تبديل الثيم -->
         <button id="theme-toggle"
-                data-i18n-aria="themeToggle"
-                aria-label="تبديل الوضع الليلي"
+                aria-label="تبديل الوضع الليلي والنهاري"
                 class="ctrl-btn">
             <svg id="moon-icon" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
             </svg>
             <svg id="sun-icon" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" clip-rule="evenodd"
-                      d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 1.32a1 1 0 011.415 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM14.657 15.343a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM10 18a1 1 0 01-1-1v-1a1 1 0 112 0v1a1 1 0 01-1 1zM5.343 15.343a1 1 0 01-1.414 0l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM4 10a1 1 0 01-1 1H2a1 1 0 110-2h1a1 1 0 011 1zM5.343 4.657a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM10 5a5 5 0 100 10 5 5 0 000-10z"/>
+                      d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 1.32a1 1 0
+                         011.415 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0
+                         010-1.414zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011
+                         1zM14.657 15.343a1 1 0 010 1.414l-.707.707a1 1 0
+                         01-1.414-1.414l.707-.707a1 1 0 011.414 0zM10 18a1 1 0 01-1-1v-1a1 1
+                         0 112 0v1a1 1 0 01-1 1zM5.343 15.343a1 1 0 01-1.414 0l-.707-.707a1
+                         1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM4 10a1 1 0 01-1 1H2a1
+                         1 0 110-2h1a1 1 0 011 1zM5.343 4.657a1 1 0 010-1.414l.707-.707a1 1
+                         0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM10 5a5 5 0 100 10 5 5
+                         0 000-10z"/>
             </svg>
         </button>
-        <button id="share-btn" data-i18n-aria="shareLink" aria-label="نسخ رابط المدينة الحالية" title="مشاركة الرابط" class="ctrl-btn">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
-            </svg>
-        </button>
-        <button id="ambient-btn" data-i18n-aria="ambientMode" aria-label="وضع الحائط" title="وضع الحائط (F)"
+
+        <!-- زر المشاركة -->
+        <button id="share-btn"
+                aria-label="نسخ رابط المدينة الحالية"
+                title="مشاركة الرابط"
                 class="ctrl-btn">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg id="share-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0
+                         2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3
+                         0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3
+                         0 00-5.368-2.684z"/>
             </svg>
         </button>
     </div>
@@ -110,20 +127,17 @@
     <!-- ══════════════════════════════════════════════════════ -->
     <!--  حاوية التطبيق الرئيسية                               -->
     <!-- ══════════════════════════════════════════════════════ -->
-    <div id="app-container" style="opacity:0"
-         class="w-full max-w-xl flex flex-col gap-5 transition-opacity duration-700 mt-[70px] pb-10">
+    <div id="app-container"
+         style="opacity:0"
+         class="w-full max-w-xl flex flex-col gap-5 transition-opacity duration-700 mt-14 md:mt-6 pb-10">
 
         <!-- الترويسة -->
         <header class="card rounded-2xl px-6 py-4 text-center">
-            <h1 class="header-title font-extrabold text-base mb-1 tracking-wide" data-i18n="siteTitle">
-                النظام السواحلي الغروبي
+            <h1 class="header-title font-extrabold text-base mb-1 tracking-wide">
+                نظام التوقيت السواحلي
             </h1>
-            <!--
-                ✅ T6 — نص محدَّث: يشرح أن كل ساعة = 60 دقيقة قياسية،
-                        بدلاً من الوصف القديم "كل ساعة نسبية"
-            -->
-            <p class="header-sub text-xs leading-relaxed max-w-sm mx-auto" data-i18n="siteSubtitle">
-                يبدأ اليوم عند شروق الشمس (الساعة&nbsp;1). كل ساعة تساوي 60 دقيقة حقيقية — إذا مرّت ثلاث ساعات منذ الشروق فأنت في الساعة الرابعة.
+            <p class="header-sub text-xs leading-relaxed max-w-sm mx-auto">
+                يعتمد هذا النظام على حركة الشمس الفعلية في مدينتك. يبدأ اليوم عند شروق الشمس، وتُحسب الساعة الأولى نهارًا من لحظة الشروق. الساعات هنا قياسية (60 دقيقة)، لذلك يعكس عددها الطول الفعلي للنهار والليل في موقعك الجغرافي.
             </p>
         </header>
 
@@ -132,45 +146,49 @@
 
             <!-- ── اختيار المدن ──────────────────────────── -->
             <section class="w-full mb-7 pb-6 border-b border-dashed"
-                     style="border-color:var(--accent-faint)"
+                     style="border-color: var(--accent-faint)"
                      aria-label="اختيار المدينة أو إضافة مدينة جديدة">
 
-                <!-- زر GPS -->
-                <div class="flex justify-center mb-3">
-                    <button id="gps-badge" class="gps-badge" title="اكتشاف موقعك تلقائياً">
-                        <span class="gps-dot"></span>
-                        <span data-i18n="yourLocation">موقعك</span>
-                    </button>
-                </div>
-
-                <nav id="city-selector" class="flex flex-wrap justify-center gap-2 mb-3"
-                     aria-label="قائمة المدن" role="navigation"></nav>
+                <nav id="city-selector"
+                     class="flex flex-wrap justify-center gap-2 mb-3"
+                     aria-label="قائمة المدن"
+                     role="navigation"></nav>
 
                 <div class="flex flex-wrap justify-center gap-2">
                     <label for="city-input" class="sr-only">اسم المدينة بالإنجليزية</label>
-                    <input id="city-input" type="text" dir="ltr" autocomplete="off" spellcheck="false"
+                    <input id="city-input"
+                           type="text"
+                           dir="ltr"
+                           autocomplete="off"
+                           spellcheck="false"
                            placeholder="London, Cairo, Istanbul..."
-                           data-i18n-placeholder="cityPlaceholder"
-                           class="city-input text-sm rounded-full px-4 py-2 w-full max-w-[240px] text-center"/>
-                    <button id="add-btn" type="button" data-i18n-aria="addCity" aria-label="إضافة المدينة المكتوبة"
-                            class="add-btn text-sm font-bold rounded-full px-5 py-2" data-i18n="addCity">
+                           class="city-input text-sm rounded-full px-4 py-2
+                                  w-full max-w-[240px] text-center"/>
+                    <button id="add-btn"
+                            type="button"
+                            aria-label="إضافة المدينة المكتوبة"
+                            class="add-btn text-sm font-bold rounded-full px-5 py-2">
                         إضافة
                     </button>
                 </div>
-                <p id="city-error" class="input-err text-xs text-center mt-2 hidden"
-                   role="alert" aria-live="assertive"></p>
+                <p id="city-error"
+                   class="input-err text-xs text-center mt-2 hidden"
+                   role="alert"
+                   aria-live="assertive"></p>
             </section>
 
-            <!-- ── اسم المدينة والتاريخ الميلادي ─────────── -->
-            <div class="w-full text-center mb-8 flex flex-col items-center gap-1">
-                <h2 id="city-name" class="city-title font-extrabold text-3xl tracking-wide">--</h2>
-                <p id="country-sub" class="country-sub">--</p>
-                <div class="flex items-center gap-2 text-xs date-label mt-1">
-                    <svg class="w-3.5 h-3.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- ── اسم المدينة والتاريخ الهجري ─────────── -->
+            <div class="w-full text-center mb-8 flex flex-col items-center gap-1.5">
+                <h2 id="city-name"
+                    class="city-title font-extrabold text-3xl tracking-wide">--</h2>
+                <div class="flex items-center gap-2 text-xs hijri-label">
+                    <svg class="w-3.5 h-3.5 opacity-60" fill="none"
+                         stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0
+                                 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
-                    <span id="gregorian-date" aria-live="polite">--</span>
+                    <span id="hijri-date" aria-live="polite">--</span>
                 </div>
             </div>
 
@@ -178,97 +196,139 @@
             <section class="text-center w-full flex flex-col items-center mb-8"
                      aria-label="التوقيت السواحلي الحالي">
 
+                <!-- الرقم الكبير + Tooltip تفاعلي -->
                 <div class="relative group inline-flex items-end gap-3 mb-2 cursor-help" dir="rtl">
-                    <span class="hour-word font-sans font-light text-4xl md:text-5xl" data-i18n="hourLabel">الساعة</span>
+                    <span class="hour-word font-sans font-light text-4xl md:text-5xl">الساعة</span>
                     <span id="hour-display"
                           class="hour-num font-mono font-extrabold text-7xl md:text-8xl tracking-tighter"
-                          aria-live="off" aria-atomic="true" aria-label="ساعة التوقيت السواحلي">--</span>
-                    <div class="tip-icon absolute -left-5 top-2 opacity-25 group-hover:opacity-70 transition-opacity hidden md:block">
+                          aria-live="polite"
+                          aria-label="ساعة التوقيت السواحلي">--</span>
+
+                    <!-- أيقونة معلومة -->
+                    <div class="tip-icon absolute -left-5 top-2 opacity-25
+                                group-hover:opacity-70 transition-opacity hidden md:block">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                     </div>
-                    <!--
-                        ✅ T6 — Tooltip محدَّث: يشرح نظام الساعات المعيارية (60 دقيقة)
-                                بدلاً من النص القديم عن الساعات النسبية
-                    -->
+
+                    <!-- Tooltip Box -->
                     <div class="tip-box absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-72
                                 text-xs p-4 rounded-2xl z-50 pointer-events-none
                                 opacity-0 invisible group-hover:opacity-100 group-hover:visible
                                 transition-all duration-200" dir="rtl">
-                        <strong class="block mb-1.5 text-sm" data-i18n="tooltipTitle">كيف تُحسَب الساعة السواحلية؟</strong>
-                        <span data-i18n="tooltipBody">الساعة 1 تبدأ عند الشروق نهاراً وعند الغروب ليلاً. كل ساعة تساوي 60 دقيقة قياسية — الرقم الذي تراه هو عدد الساعات الحقيقية المنقضية منذ الحدث الفلكي الأخير.</span>
-                        <div class="tip-arrow absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent"></div>
+                        <strong class="block mb-1.5 text-sm">كيف يعمل هذا التوقيت؟</strong>
+                        يعتمد هذا النظام على ساعات قياسية (60 دقيقة)، لكنه يصفّر العداد ليبدأ بـ"الساعة&nbsp;1" عند لحظة الشروق والغروب في مدينتك. لذلك، قد يتجاوز العداد 12 ساعة في الصيف، أو يقل عنها في الشتاء، ليعكس الطول الحقيقي لنهارك وليلك.
+                        <div class="tip-arrow absolute top-full left-1/2 -translate-x-1/2
+                                    border-8 border-transparent"></div>
                     </div>
                 </div>
 
+                <!-- شارة الطور -->
                 <div id="phase-display"
-                     class="phase-pill text-sm font-bold px-6 py-1.5 rounded-full mb-5 inline-block tracking-wide"
+                     class="phase-pill text-sm font-bold px-6 py-1.5 rounded-full
+                            mb-5 inline-block tracking-wide"
                      aria-live="polite">من --</div>
 
-                <div id="metric-display" class="metric-num font-mono text-3xl md:text-4xl font-bold mb-3"
-                     dir="ltr" aria-live="polite">--:--:--</div>
+                <!-- الوقت النسبي التفصيلي -->
+                <div id="metric-display"
+                     class="metric-num font-mono text-3xl md:text-4xl font-bold mb-3"
+                     dir="ltr"
+                     aria-live="polite">--:--:--</div>
 
                 <!-- العداد التنازلي -->
-                <div class="cd-wrap flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide"
+                <div class="cd-wrap flex items-center gap-2 px-4 py-1.5
+                            rounded-full text-xs font-bold tracking-wide"
                      aria-live="polite">
                     <span class="cd-dot w-1.5 h-1.5 rounded-full inline-block animate-pulse"></span>
-                    <span data-i18n="remaining">بقي على</span>
+                    بقي على
                     <span id="next-event-name" class="cd-event mx-0.5">--</span>:
                     <span id="countdown-display" class="cd-num font-mono">--:--:--</span>
                 </div>
             </section>
 
-            <!-- ── القوس الشمسي (SVG) ──────────────────── -->
-            <div class="relative w-full max-w-[340px] h-[185px] flex justify-center items-end mb-4" aria-hidden="true">
+            <!-- ════════════════════════════════════════════ -->
+            <!--  القوس الشمسي (SVG)                              -->
+            <!-- ════════════════════════════════════════════ -->
+            <div class="relative w-full max-w-[340px] h-[185px] flex justify-center items-end mb-4"
+                 aria-hidden="true">
                 <svg id="sky-svg" viewBox="0 0 300 160" class="w-full h-full overflow-visible">
                     <defs>
+                        <!-- توهج الشمس -->
                         <filter id="f-sun" x="-130%" y="-130%" width="360%" height="360%">
                             <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/>
-                            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            <feMerge>
+                                <feMergeNode in="b"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
                         </filter>
+                        <!-- توهج القمر -->
                         <filter id="f-moon" x="-100%" y="-100%" width="300%" height="300%">
                             <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="b"/>
-                            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            <feMerge>
+                                <feMergeNode in="b"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
                         </filter>
+                        <!-- تدرج قوس النهار -->
                         <linearGradient id="g-day" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%"   stop-color="#F59E0B"/>
                             <stop offset="45%"  stop-color="#38BDF8"/>
                             <stop offset="100%" stop-color="#F97316"/>
                         </linearGradient>
+                        <!-- تدرج قوس الليل -->
                         <linearGradient id="g-night" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%"   stop-color="#3730A3"/>
                             <stop offset="50%"  stop-color="#818CF8"/>
                             <stop offset="100%" stop-color="#3730A3"/>
                         </linearGradient>
                     </defs>
-                    <line x1="0" y1="140" x2="300" y2="140" stroke="var(--accent)" stroke-width="1" stroke-dasharray="5 5" opacity="0.4"/>
+
+                    <!-- خط الأفق -->
+                    <line x1="0" y1="140" x2="300" y2="140"
+                          stroke="var(--accent)" stroke-width="1"
+                          stroke-dasharray="5 5" opacity="0.4"/>
+
+                    <!-- نقاط تثبيت الأفق -->
                     <circle cx="20"  cy="140" r="3" fill="var(--accent)" opacity="0.45"/>
                     <circle cx="280" cy="140" r="3" fill="var(--accent)" opacity="0.45"/>
-                    <circle cx="150" cy="10"  r="2" fill="var(--accent)" opacity="0.30"/>
-                    <line x1="150" y1="12" x2="150" y2="22" stroke="var(--accent)" stroke-width="1" opacity="0.20"/>
-                    <path d="M 20 140 A 130 130 0 0 1 280 140" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.20"/>
-                    <path id="progress-arc" d="M 20 140 A 130 130 0 0 1 280 140"
-                          fill="none" stroke="url(#g-day)" stroke-width="4.5"
-                          pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" stroke-linecap="round"/>
+
+                    <!-- علامة الذروة -->
+                    <circle cx="150" cy="10" r="2" fill="var(--accent)" opacity="0.30"/>
+                    <line x1="150" y1="12" x2="150" y2="22"
+                          stroke="var(--accent)" stroke-width="1" opacity="0.20"/>
+
+                    <!-- القوس الخلفي -->
+                    <path d="M 20 140 A 130 130 0 0 1 280 140"
+                          fill="none"
+                          stroke="var(--accent)"
+                          stroke-width="1.5"
+                          opacity="0.20"/>
+
+                    <!-- قوس التقدم -->
+                    <path id="progress-arc"
+                          d="M 20 140 A 130 130 0 0 1 280 140"
+                          fill="none"
+                          stroke="url(#g-day)"
+                          stroke-width="4.5"
+                          pathLength="100"
+                          stroke-dasharray="100"
+                          stroke-dashoffset="100"
+                          stroke-linecap="round"/>
+
+                    <!-- طبقة مؤشرات الصلاة -->
                     <g id="prayer-markers"></g>
+
+                    <!-- الجسم السماوي (شمس / قمر) -->
                     <g id="celestial-body" transform="translate(20, 140)">
-                        <circle id="sun-halo"  cx="0" cy="0" r="14" fill="var(--glow-sun)"/>
-                        <circle id="sun-shape" cx="0" cy="0" r="7.5" fill="var(--surface)" stroke="#F59E0B" stroke-width="3" filter="url(#f-sun)"/>
-                        <!--
-                            ✅ T5 — القمر: استبدال <path> المعقّد بـ <circle> بدر مكتمل
-                            المركز cx="0" cy="0" يتطابق تماماً مع نقطة transform
-                            للـ <g id="celestial-body"> فلا إزاحة بصرية.
-                            اللون: أبيض بارد #F1F5F9 | الإطار: نيلي #818CF8
-                        -->
-                        <circle id="moon-shape"
-                                cx="0" cy="0" r="8"
-                                fill="#F1F5F9"
-                                stroke="#818CF8"
-                                stroke-width="2.5"
-                                filter="url(#f-moon)"
-                                style="opacity:0"/>
+                        <circle id="sun-halo" cx="0" cy="0" r="14" fill="var(--glow-sun)"/>
+                        <circle id="sun-shape" cx="0" cy="0" r="7.5"
+                                fill="var(--surface)" stroke="#F59E0B" stroke-width="3"
+                                filter="url(#f-sun)"/>
+                        <path id="moon-shape"
+                              d="M -2,-8 A 9,9 0 1,0 6,6 A 11,11 0 1,1 -2,-8 Z"
+                              fill="#E0E7FF" filter="url(#f-moon)" style="opacity:0"/>
                     </g>
                 </svg>
             </div>
@@ -282,12 +342,13 @@
                 </div>
                 <div class="flex justify-between items-center text-[0.64rem]">
                     <div class="flex flex-col gap-0.5">
-                        <span class="dl-day-lbl font-bold tracking-wider" data-i18n="daytime">النهار</span>
+                        <span class="dl-day-lbl font-bold tracking-wider">النهار</span>
                         <span id="day-length" class="dl-sec">--</span>
                     </div>
-                    <span id="comparison-text" class="dl-badge px-3 py-1 rounded-full font-bold border text-center">--</span>
+                    <span id="comparison-text"
+                          class="dl-badge px-3 py-1 rounded-full font-bold border text-center">--</span>
                     <div class="flex flex-col gap-0.5 items-end">
-                        <span class="dl-night-lbl font-bold tracking-wider" data-i18n="nighttime">الليل</span>
+                        <span class="dl-night-lbl font-bold tracking-wider">الليل</span>
                         <span id="night-length" class="dl-sec">--</span>
                     </div>
                 </div>
@@ -295,121 +356,45 @@
 
             <!-- ── شريط أوقات الصلاة ─────────────────────── -->
             <div id="prayer-bar"
-                 class="prayer-bar w-full max-w-[340px] rounded-2xl p-3 mb-6 hidden transition-all duration-500">
-                <p class="text-center hijri-label text-[0.58rem] font-bold tracking-widest uppercase mb-2"
-                   data-i18n="prayers">مواقيت الصلاة</p>
-                <div id="prayer-list" class="flex justify-around flex-wrap gap-y-1"></div>
+                 class="prayer-bar w-full max-w-[340px] rounded-2xl p-3 mb-6 hidden
+                        transition-all duration-500">
+                <p class="text-center hijri-label text-[0.58rem] font-bold
+                          tracking-widest uppercase mb-2">مواقيت الصلاة (تقريبية)</p>
+                <div id="prayer-list"
+                     class="flex justify-around flex-wrap gap-y-1"></div>
             </div>
 
-            <!-- ── زر مشاركة الصورة ──────────────────────── -->
-            <div class="w-full max-w-[340px] mb-4">
-                <button id="share-img-btn"
-                        class="city-btn w-full justify-center text-sm py-2.5 rounded-xl"
-                        style="border-radius:0.75rem;">
-                    📷 <span data-i18n="shareImage">مشاركة صورة</span>
-                </button>
-            </div>
-
-            <!-- ── التذييل ────────────────────────────────── -->
+            <!-- ── التذييل: الشروق | التوقيت القياسي | الغروب ── -->
             <footer class="footer-card w-full grid grid-cols-3 rounded-2xl py-5 px-3 text-center"
                     aria-label="أوقات الشروق والغروب والتوقيت القياسي">
                 <div class="flex flex-col gap-1.5">
-                    <span class="footer-lbl text-[0.65rem] font-bold uppercase tracking-widest" data-i18n="sunrise">الشروق</span>
-                    <span id="sunrise-time" class="footer-val font-mono text-sm font-bold">--:--</span>
+                    <span class="footer-lbl text-[0.65rem] font-bold uppercase tracking-widest">
+                        الشروق
+                    </span>
+                    <span id="sunrise-time"
+                          class="footer-val font-mono text-sm font-bold">--:--</span>
                 </div>
-                <div class="flex flex-col gap-1.5" style="border-inline:1px solid var(--glass-border)">
-                    <span class="footer-lbl text-[0.6rem] font-bold uppercase tracking-widest" data-i18n="standardTime">التوقيت القياسي</span>
-                    <span id="standard-time" class="footer-val font-mono text-base font-extrabold"
-                          dir="ltr" aria-live="polite">--:--:--</span>
+                <div class="flex flex-col gap-1.5"
+                     style="border-inline: 1px solid var(--glass-border)">
+                    <span class="footer-lbl text-[0.6rem] font-bold uppercase tracking-widest">
+                        التوقيت القياسي
+                    </span>
+                    <span id="standard-time"
+                          class="footer-val font-mono text-base font-extrabold"
+                          dir="ltr"
+                          aria-live="polite">--:--:--</span>
                 </div>
                 <div class="flex flex-col gap-1.5">
-                    <span class="footer-lbl text-[0.65rem] font-bold uppercase tracking-widest" data-i18n="sunset">الغروب</span>
-                    <span id="sunset-time" class="footer-val font-mono text-sm font-bold">--:--</span>
+                    <span class="footer-lbl text-[0.65rem] font-bold uppercase tracking-widest">
+                        الغروب
+                    </span>
+                    <span id="sunset-time"
+                          class="footer-val font-mono text-sm font-bold">--:--</span>
                 </div>
             </footer>
 
         </main>
     </div><!-- /app-container -->
-
-    <!-- ══════════════════════════════════════════════════════ -->
-    <!--  وضع الحائط — Ambient Mode Overlay                    -->
-    <!-- ══════════════════════════════════════════════════════ -->
-    <div id="ambient-overlay"
-         style="display:none; background:linear-gradient(160deg,#F3F4F6,#E5E7EB)"
-         aria-label="وضع الحائط — اضغط ESC للخروج">
-
-        <div id="amb-stars" class="ambient-stars"></div>
-
-        <div class="relative z-10 flex flex-col items-center text-center px-4 w-full">
-            <div id="amb-city"    class="ambient-city">--</div>
-            <div id="amb-country" class="ambient-country">--</div>
-
-            <div id="ambient-arc-wrap" class="flex justify-center">
-                <svg viewBox="0 0 600 280" class="w-full h-full overflow-visible">
-                    <defs>
-                        <filter id="amb-f-sun" x="-130%" y="-130%" width="360%" height="360%">
-                            <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="b"/>
-                            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-                        </filter>
-                        <filter id="amb-f-moon" x="-100%" y="-100%" width="300%" height="300%">
-                            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/>
-                            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-                        </filter>
-                        <linearGradient id="amb-g-day" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%"   stop-color="#F59E0B"/>
-                            <stop offset="45%"  stop-color="#38BDF8"/>
-                            <stop offset="100%" stop-color="#F97316"/>
-                        </linearGradient>
-                        <linearGradient id="amb-g-night" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%"   stop-color="#3730A3"/>
-                            <stop offset="50%"  stop-color="#818CF8"/>
-                            <stop offset="100%" stop-color="#3730A3"/>
-                        </linearGradient>
-                    </defs>
-                    <line x1="30" y1="270" x2="570" y2="270" stroke="var(--accent)" stroke-width="1" stroke-dasharray="8 8" opacity="0.3"/>
-                    <circle cx="30"  cy="270" r="4" fill="var(--accent)" opacity="0.3"/>
-                    <circle cx="570" cy="270" r="4" fill="var(--accent)" opacity="0.3"/>
-                    <path d="M 30 270 A 270 270 0 0 1 570 270" fill="none" stroke="var(--accent)" stroke-width="2" opacity="0.15"/>
-                    <path id="amb-progress-arc"
-                          d="M 30 270 A 270 270 0 0 1 570 270"
-                          fill="none" stroke="url(#amb-g-day)" stroke-width="6"
-                          pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"
-                          stroke-linecap="round" style="transition:stroke-dashoffset 0.95s linear"/>
-                    <g id="amb-celestial" transform="translate(30,270)" style="transition:transform 0.95s linear">
-                        <circle cx="0" cy="0" r="22" fill="var(--glow-sun)" id="amb-sun-halo"/>
-                        <circle id="amb-sun"  cx="0" cy="0" r="13" fill="var(--surface)" stroke="#F59E0B" stroke-width="4.5" filter="url(#amb-f-sun)"/>
-                        <!--
-                            ✅ T5 — القمر في وضع الحائط: <circle> بدر مكتمل
-                            cx="0" cy="0" → يتمركز بدقة مع نقطة transform الخاصة بـ <g>
-                        -->
-                        <circle id="amb-moon"
-                                cx="0" cy="0" r="14"
-                                fill="#F1F5F9"
-                                stroke="#818CF8"
-                                stroke-width="4"
-                                filter="url(#amb-f-moon)"
-                                style="opacity:0"/>
-                    </g>
-                </svg>
-            </div>
-
-            <div class="ambient-hour-wrap">
-                <span class="ambient-hour-label" data-i18n="hourLabel">الساعة</span>
-                <span id="amb-hour" class="ambient-hour-num">--</span>
-            </div>
-            <div id="amb-phase"     class="ambient-phase">--</div>
-            <div id="amb-std"       class="ambient-std" dir="ltr">--:--:--</div>
-            <div id="amb-countdown" class="ambient-countdown">--</div>
-            <div id="amb-date"      class="ambient-date">--</div>
-        </div>
-
-        <button id="amb-close"
-                class="ambient-exit-hint"
-                style="background:transparent;border:none;cursor:pointer;pointer-events:auto;"
-                data-i18n="exitHint">
-            ESC للخروج • F للدخول
-        </button>
-    </div>
 
     <script src="js/app.js"></script>
 </body>
