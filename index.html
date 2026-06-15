@@ -137,7 +137,7 @@
                 نظام التوقيت السواحلي
             </h1>
             <p class="header-sub text-xs leading-relaxed max-w-sm mx-auto">
-                يعتمد هذا النظام على حركة الشمس الفعلية في مدينتك، لا على الساعة الثابتة. يبدأ اليوم عند شروق الشمس، وتُحسب الساعة الأولى نهارًا من لحظة الشروق. بعد ذلك تتدرج الساعات نسبيًّا بحسب طول النهار الحقيقي، لذلك يختلف توقيت الساعات من مدينة إلى أخرى وفق موقعها الجغرافي وفصل السنة.
+                يعتمد هذا النظام على حركة الشمس الفعلية في مدينتك. يبدأ اليوم عند شروق الشمس، وتُحسب الساعة الأولى نهارًا من لحظة الشروق. الساعات هنا قياسية (60 دقيقة)، لذلك يعكس عددها الطول الفعلي للنهار والليل في موقعك الجغرافي.
             </p>
         </header>
 
@@ -218,10 +218,8 @@
                                 text-xs p-4 rounded-2xl z-50 pointer-events-none
                                 opacity-0 invisible group-hover:opacity-100 group-hover:visible
                                 transition-all duration-200" dir="rtl">
-                        <strong class="block mb-1.5 text-sm">ما هو التوقيت السواحلي؟</strong>
-                        يبدأ بـ"الساعة&nbsp;1" عند شروق الشمس وينتهي بـ"12" عند غروبها. كل ساعة
-                        تُحسَب نسبةً إلى طول اليوم الفعلي في مدينتك، فتتغير دقائقها يومياً
-                        لتوافق حركة الشمس الحقيقية.
+                        <strong class="block mb-1.5 text-sm">كيف يعمل هذا التوقيت؟</strong>
+                        يعتمد هذا النظام على ساعات قياسية (60 دقيقة)، لكنه يصفّر العداد ليبدأ بـ"الساعة&nbsp;1" عند لحظة الشروق والغروب في مدينتك. لذلك، قد يتجاوز العداد 12 ساعة في الصيف، أو يقل عنها في الشتاء، ليعكس الطول الحقيقي لنهارك وليلك.
                         <div class="tip-arrow absolute top-full left-1/2 -translate-x-1/2
                                     border-8 border-transparent"></div>
                     </div>
@@ -252,13 +250,6 @@
 
             <!-- ════════════════════════════════════════════ -->
             <!--  القوس الشمسي (SVG)                              -->
-            <!--                                                 -->
-            <!--  sweep-flag = 1  →  clockwise                  -->
-            <!--  من نقطة 9 الساعة (20,140) باتجاه 12 → 3       -->
-            <!--  يمرّ بـ (150,10) فوق الأفق  ✓                 -->
-            <!--                                                 -->
-            <!--  sweep-flag = 0  →  counter-clockwise           -->
-            <!--  يمرّ بـ (150,270) تحت الأفق  ✗                -->
             <!-- ════════════════════════════════════════════ -->
             <div class="relative w-full max-w-[340px] h-[185px] flex justify-center items-end mb-4"
                  aria-hidden="true">
@@ -280,16 +271,13 @@
                                 <feMergeNode in="SourceGraphic"/>
                             </feMerge>
                         </filter>
-                        <!--
-                            تدرج قوس النهار:
-                            أصفر (شروق) ← أزرق سماوي (ظهر) ← برتقالي (غروب)
-                        -->
+                        <!-- تدرج قوس النهار -->
                         <linearGradient id="g-day" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%"   stop-color="#F59E0B"/>
                             <stop offset="45%"  stop-color="#38BDF8"/>
                             <stop offset="100%" stop-color="#F97316"/>
                         </linearGradient>
-                        <!-- تدرج قوس الليل: كحلي ← بنفسجي ← كحلي -->
+                        <!-- تدرج قوس الليل -->
                         <linearGradient id="g-night" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%"   stop-color="#3730A3"/>
                             <stop offset="50%"  stop-color="#818CF8"/>
@@ -306,28 +294,19 @@
                     <circle cx="20"  cy="140" r="3" fill="var(--accent)" opacity="0.45"/>
                     <circle cx="280" cy="140" r="3" fill="var(--accent)" opacity="0.45"/>
 
-                    <!-- علامة الذروة (الظهر الشمسي) -->
+                    <!-- علامة الذروة -->
                     <circle cx="150" cy="10" r="2" fill="var(--accent)" opacity="0.30"/>
                     <line x1="150" y1="12" x2="150" y2="22"
                           stroke="var(--accent)" stroke-width="1" opacity="0.20"/>
 
-                    <!--
-                        القوس الخلفي — sweep-flag=1 → فوق الأفق ✓
-                        ساعاتي من 9 → 12 → 3  (يمرّ بـ 150,10)
-                    -->
+                    <!-- القوس الخلفي -->
                     <path d="M 20 140 A 130 130 0 0 1 280 140"
                           fill="none"
                           stroke="var(--accent)"
                           stroke-width="1.5"
                           opacity="0.20"/>
 
-                    <!--
-                        قوس التقدم — sweep-flag=1 → فوق الأفق ✓
-                        dashoffset = 100 − (progress × 100)
-                        عند progress=0   → offset=100 → لا شيء مرئي
-                        عند progress=0.5 → offset=50  → نصف القوس (ذروة)
-                        عند progress=1   → offset=0   → القوس مكتمل
-                    -->
+                    <!-- قوس التقدم -->
                     <path id="progress-arc"
                           d="M 20 140 A 130 130 0 0 1 280 140"
                           fill="none"
@@ -343,21 +322,13 @@
 
                     <!-- الجسم السماوي (شمس / قمر) -->
                     <g id="celestial-body" transform="translate(20, 140)">
-                        <!-- هالة الشمس النابضة -->
-                        <circle id="sun-halo" cx="0" cy="0" r="14"
-                                fill="var(--glow-sun)"/>
-                        <!-- قرص الشمس -->
+                        <circle id="sun-halo" cx="0" cy="0" r="14" fill="var(--glow-sun)"/>
                         <circle id="sun-shape" cx="0" cy="0" r="7.5"
-                                fill="var(--surface)"
-                                stroke="#F59E0B"
-                                stroke-width="3"
+                                fill="var(--surface)" stroke="#F59E0B" stroke-width="3"
                                 filter="url(#f-sun)"/>
-                        <!-- هلال القمر -->
                         <path id="moon-shape"
                               d="M -2,-8 A 9,9 0 1,0 6,6 A 11,11 0 1,1 -2,-8 Z"
-                              fill="#E0E7FF"
-                              filter="url(#f-moon)"
-                              style="opacity:0"/>
+                              fill="#E0E7FF" filter="url(#f-moon)" style="opacity:0"/>
                     </g>
                 </svg>
             </div>
