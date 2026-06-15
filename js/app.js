@@ -227,13 +227,36 @@ const App = (() => {
                 throw new Error('بيانات الشمس غير متاحة حالياً. يرجى المحاولة لاحقاً.');
 
             const off = API.normOff(tR.results.utc_offset);
+
+            // تحويل الأوقات إلى مللي ثانية
+            let ySS = API.toUTC(dateStr(-1), yR.results.sunset, off);
+            let ySR = API.toUTC(dateStr(-1), yR.results.sunrise, off);
+            
+            let tSR = API.toUTC(dateStr( 0), tR.results.sunrise, off);
+            let tSS = API.toUTC(dateStr( 0), tR.results.sunset, off);
+            
+            let tmSR = API.toUTC(dateStr( 1), tmR.results.sunrise, off);
+
+            // 🔴 الإصلاح الجوهري للمدن المتطرفة (مثل أولو):
+            // إذا كان وقت الغروب يسبق وقت الشروق، فهذا يعني أن الشمس تغرب بعد منتصف الليل
+            if (ySS < ySR) ySS += 24 * 3600000;
+            if (tSS < tSR) tSS += 24 * 3600000;
+
+            // دالة لسحب طول النهار الرسمي من الـ API
+            const parseDur = str => {
+                if (!str) return 0;
+                const [h, m, s] = str.split(':').map(Number);
+                return (h * 3600 + m * 60 + s) * 1000;
+            };
+
             const data = {
-                yesterdaySunset : API.toUTC(dateStr(-1), yR.results.sunset,   off),
-                todaySunrise    : API.toUTC(dateStr( 0), tR.results.sunrise,  off),
-                todaySunset     : API.toUTC(dateStr( 0), tR.results.sunset,   off),
-                tomorrowSunrise : API.toUTC(dateStr( 1), tmR.results.sunrise, off),
+                yesterdaySunset : ySS,
+                todaySunrise    : tSR,
+                todaySunset     : tSS,
+                tomorrowSunrise : tmSR,
                 todaySunriseStr : tR.results.sunrise,
                 todaySunsetStr  : tR.results.sunset,
+                dayLengthMs     : parseDur(tR.results.day_length), // طول النهار الدقيق
                 utcOff          : off
             };
             Cache.set(k, data);
