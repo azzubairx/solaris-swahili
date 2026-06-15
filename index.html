@@ -322,14 +322,24 @@
 
                     <!-- الجسم السماوي (شمس / قمر) -->
                     <g id="celestial-body" transform="translate(20, 140)">
-                        <circle id="sun-halo" cx="0" cy="0" r="14" fill="var(--glow-sun)"/>
+                        <!-- هالة الشمس النابضة -->
+                        <circle id="sun-halo" cx="0" cy="0" r="14"
+                                fill="var(--glow-sun)"/>
+                        
+                        <!-- قرص الشمس -->
                         <circle id="sun-shape" cx="0" cy="0" r="7.5"
-                                fill="var(--surface)" stroke="#F59E0B" stroke-width="3"
+                                fill="var(--surface)"
+                                stroke="#F59E0B"
+                                stroke-width="3"
                                 filter="url(#f-sun)"/>
-                        <path id="moon-shape"
-      transform="translate(-1, 1.5)"
-      d="M -2,-8 A 9,9 0 1,0 6,6 A 11,11 0 1,1 -2,-8 Z"
-      fill="#E0E7FF" filter="url(#f-moon)" style="opacity:0"/>
+                                
+                        <!-- البدر (قمر مكتمل متمركز تماماً) -->
+                        <circle id="moon-shape" cx="0" cy="0" r="7.5"
+                                fill="#F1F5F9"
+                                stroke="#818CF8"
+                                stroke-width="2.5"
+                                filter="url(#f-moon)"
+                                style="opacity:0"/>
                     </g>
                 </svg>
             </div>
