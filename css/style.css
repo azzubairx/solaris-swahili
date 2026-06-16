@@ -1,102 +1,63 @@
 /* ================================================================
-   SolarisSwahili v3.1 — Adaptive Astronomical Clock
+   SolarisSwahili v2.0 — نظام التصميم الاحترافي
    css/style.css
-   ================================================================
-
-   Table of Contents
-   ─────────────────
-   01. CSS custom properties (day theme — default)
-   02. Golden-hour / twilight theme
-   03. Night theme
-   04. Base body & background
-   05. Topographic texture overlay
-   06. Stars layer
-   07. Loader
-   08. Glassmorphism cards
-   09. Control buttons
-   10. City buttons
-   11. City input & add button
-   12. Typography helpers
-   13. Large clock digits
-   14. Phase badge
-   15. Relative metric display
-   16. Tooltip
-   17. Countdown strip
-   18. Prayer markers (SVG)
-   19. Celestial body & arc
-   20. Moon night glow
-   21. Day / night bar
-   22. Prayer times bar
-   23. Footer card
-   24. Error overlay
-   25. Input error text
    ================================================================ */
 
-
-/* ── 01. CSS CUSTOM PROPERTIES — Day theme (default) ─────────── */
+/* ── 1. متغيرات الجذر: ثيم النهار الافتراضي ─────────────────── */
 :root {
-    /* Sky gradient — overridden by JS every second */
-    --sky-top:      #F3F4F6;
-    --sky-bot:      #E5E7EB;
+    /* السماء — يتحكم فيها JS كل ثانية */
+    --sky-top:       #F3F4F6;
+    --sky-bot:       #E5E7EB;
 
-    /* Surfaces */
-    --surface:      #FFFFFF;
-    --glass:        rgba(255, 255, 255, 0.60);
-    --glass-border: rgba(0, 0, 0, 0.08);
+    /* الأسطح */
+    --surface:       #FFFFFF;
+    --glass:         rgba(255, 255, 255, 0.60);
+    --glass-border:  rgba(0, 0, 0, 0.08);
 
-    /* Text */
-    --text-pri:     #111827;
-    --text-sec:     #4B5563;   /* WCAG AA contrast on white */
+    /* النصوص */
+    --text-pri:      #111827;
+    --text-sec:      #4B5563;   /* تباين > 4.5:1 على الأبيض */
 
-    /* Accent & tints */
-    --accent:       #9CA3AF;
-    --accent-faint: rgba(156, 163, 175, 0.25);
-    --day-clr:      #D97706;   /* Amber 600 */
-    --night-clr:    #4338CA;   /* Indigo 700 */
-
-    /* Celestial glows */
-    --glow-sun:     rgba(251, 191, 36, 0.35);
-    --glow-moon:    rgba(129, 140, 248, 0.28);
-
-    --shadow:       rgba(0, 0, 0, 0.06);
+    /* المساحد والتفاصيل */
+    --accent:        #9CA3AF;
+    --accent-faint:  rgba(156, 163, 175, 0.25);
+    --day-clr:       #D97706;   /* Amber 600 */
+    --night-clr:     #4338CA;   /* Indigo 700 */
+    --glow-sun:      rgba(251, 191, 36, 0.35);
+    --shadow:        rgba(0, 0, 0, 0.06);
 }
 
-
-/* ── 02. TWILIGHT / GOLDEN-HOUR THEME ────────────────────────── */
+/* ── 2. ثيم الغسق / الفجر ────────────────────────────────────── */
 body.theme-golden {
-    --surface:      #FFFDF8;
-    --glass:        rgba(255, 253, 248, 0.65);
-    --glass-border: rgba(161, 98, 7, 0.14);
-    --text-pri:     #451A03;
-    --text-sec:     #92400E;
-    --accent:       #CA8A04;
-    --accent-faint: rgba(202, 138, 4, 0.18);
-    --day-clr:      #EA580C;
-    --night-clr:    #3730A3;
-    --glow-sun:     rgba(251, 146, 60, 0.45);
-    --glow-moon:    rgba(165, 180, 252, 0.32);
-    --shadow:       rgba(120, 53, 15, 0.08);
+    --surface:       #FFFDF8;
+    --glass:         rgba(255, 253, 248, 0.65);
+    --glass-border:  rgba(161, 98, 7, 0.14);
+    --text-pri:      #451A03;
+    --text-sec:      #92400E;
+    --accent:        #CA8A04;
+    --accent-faint:  rgba(202, 138, 4, 0.18);
+    --day-clr:       #EA580C;
+    --night-clr:     #3730A3;
+    --glow-sun:      rgba(251, 146, 60, 0.45);
+    --shadow:        rgba(120, 53, 15, 0.08);
 }
 
-
-/* ── 03. NIGHT THEME ──────────────────────────────────────────── */
+/* ── 3. ثيم الليل ────────────────────────────────────────────── */
 body.theme-night {
-    --surface:      #1E293B;
-    --glass:        rgba(30, 41, 59, 0.70);
-    --glass-border: rgba(255, 255, 255, 0.07);
-    --text-pri:     #F1F5F9;
-    --text-sec:     #94A3B8;
-    --accent:       #475569;
-    --accent-faint: rgba(71, 85, 105, 0.30);
-    --day-clr:      #F59E0B;
-    --night-clr:    #818CF8;
-    --glow-sun:     rgba(165, 180, 252, 0.30);
-    --glow-moon:    rgba(129, 140, 248, 0.40);
-    --shadow:       rgba(0, 0, 0, 0.35);
+    --surface:       #1E293B;
+    --glass:         rgba(30, 41, 59, 0.70);
+    --glass-border:  rgba(255, 255, 255, 0.07);
+    --text-pri:      #F1F5F9;
+    --text-sec:      #94A3B8;
+    --accent:        #475569;
+    --accent-faint:  rgba(71, 85, 105, 0.30);
+    --day-clr:       #F59E0B;
+    --night-clr:     #818CF8;
+    --glow-sun:      rgba(165, 180, 252, 0.30);
+    --shadow:        rgba(0, 0, 0, 0.35);
 }
 
-
-/* ── 04. BODY & BACKGROUND ────────────────────────────────────── */
+/* ── 4. الجسم ────────────────────────────────────────────────── */
 body {
     background: linear-gradient(160deg, var(--sky-top) 0%, var(--sky-bot) 100%);
     background-attachment: fixed;
@@ -105,42 +66,32 @@ body {
     transition: color 1.5s ease;
 }
 
-
-/* ── 05. TOPOGRAPHIC TEXTURE OVERLAY ─────────────────────────── */
+/* ── 5. نمط الخلفية الطبوغرافي ───────────────────────────────── */
 body::before {
     content: '';
     position: fixed;
     inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' \
-viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E\
-%3Cpath d='M0 60 Q30 38,60 60 T120 60 M0 90 Q30 68,60 90 T120 90 \
-M0 30 Q30 8,60 30 T120 30' fill='none' stroke='%23888' \
-stroke-width='0.4' opacity='0.07'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 60 Q30 38,60 60 T120 60 M0 90 Q30 68,60 90 T120 90 M0 30 Q30 8,60 30 T120 30' fill='none' stroke='%23888' stroke-width='0.4' opacity='0.07'/%3E%3C/svg%3E");
     background-size: 200px 200px;
     pointer-events: none;
     z-index: -2;
 }
 body.theme-night::before { opacity: 0.30; }
 
-
-/* ── 06. STARS LAYER ──────────────────────────────────────────── */
-#stars-layer {
-    animation: twinkle 7s infinite alternate ease-in-out;
-}
+/* ── 6. طبقة النجوم ──────────────────────────────────────────── */
+#stars-layer { animation: twinkle 7s infinite alternate ease-in-out; }
 @keyframes twinkle {
     from { opacity: 0;    }
     to   { opacity: 0.92; }
 }
 
-
-/* ── 07. LOADER ───────────────────────────────────────────────── */
+/* ── 7. Loader ───────────────────────────────────────────────── */
 #loader {
     background: linear-gradient(160deg, var(--sky-top) 0%, var(--sky-bot) 100%);
     transition: opacity 0.6s ease;
 }
 .loader-ring {
-    width: 42px;
-    height: 42px;
+    width: 42px; height: 42px;
     border: 3px solid var(--accent-faint);
     border-top-color: var(--text-pri);
     border-radius: 50%;
@@ -148,8 +99,7 @@ body.theme-night::before { opacity: 0.30; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-
-/* ── 08. GLASSMORPHISM CARDS ──────────────────────────────────── */
+/* ── 8. بطاقات الزجاج (Glassmorphism) ───────────────────────── */
 .card {
     background: var(--glass);
     border: 1px solid var(--glass-border);
@@ -164,15 +114,10 @@ body.theme-night::before { opacity: 0.30; }
     box-shadow: 0 10px 50px var(--shadow);
 }
 
-
-/* ── 09. CONTROL BUTTONS ──────────────────────────────────────── */
+/* ── 9. أزرار التحكم ─────────────────────────────────────────── */
 .ctrl-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 50%;
     background: var(--glass);
     border: 1px solid var(--glass-border);
     color: var(--text-pri);
@@ -181,15 +126,11 @@ body.theme-night::before { opacity: 0.30; }
     box-shadow: 0 2px 10px var(--shadow);
     transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
-.ctrl-btn:hover  { transform: scale(1.10);  box-shadow: 0 4px 18px var(--shadow); }
+.ctrl-btn:hover  { transform: scale(1.1);  box-shadow: 0 4px 18px var(--shadow); }
 .ctrl-btn:active { transform: scale(0.94); }
-.ctrl-btn:focus-visible {
-    outline: 2px solid var(--text-pri);
-    outline-offset: 3px;
-}
+.ctrl-btn:focus-visible { outline: 2px solid var(--text-pri); outline-offset: 3px; }
 
-
-/* ── 10. CITY BUTTONS ─────────────────────────────────────────── */
+/* ── 10. أزرار المدن ─────────────────────────────────────────── */
 .city-btn {
     font-family: 'Tajawal', sans-serif;
     font-size: 0.875rem;
@@ -201,8 +142,7 @@ body.theme-night::before { opacity: 0.30; }
     cursor: pointer;
     transition: color 0.18s, background 0.18s, transform 0.18s, border-color 0.18s;
 }
-.city-btn:hover,
-.city-btn:focus-visible {
+.city-btn:hover, .city-btn:focus-visible {
     color: var(--text-pri);
     background: var(--glass);
     border-color: var(--accent);
@@ -219,8 +159,7 @@ body.theme-night::before { opacity: 0.30; }
     transform: translateY(0);
 }
 
-
-/* ── 11. CITY INPUT & ADD BUTTON ──────────────────────────────── */
+/* ── 11. حقل الإدخال وزر الإضافة ────────────────────────────── */
 .city-input {
     background: var(--surface);
     border: 1px solid var(--glass-border);
@@ -233,36 +172,27 @@ body.theme-night::before { opacity: 0.30; }
     box-shadow: 0 0 0 3px var(--accent-faint);
     outline: none;
 }
-
 .add-btn {
     background: var(--text-pri);
     color: var(--surface);
-    border: none;
-    cursor: pointer;
+    border: none; cursor: pointer;
     transition: opacity 0.18s, transform 0.18s;
 }
 .add-btn:hover  { opacity: 0.80; transform: translateY(-1px); }
 .add-btn:active { opacity: 1;    transform: scale(0.97); }
-.add-btn:disabled {
-    opacity: 0.42;
-    cursor: not-allowed;
-    transform: none;
-}
+.add-btn:disabled { opacity: 0.42; cursor: not-allowed; transform: none; }
 
-
-/* ── 12. TYPOGRAPHY HELPERS ───────────────────────────────────── */
+/* ── 12. الترويسة والعناوين ──────────────────────────────────── */
 .header-title { color: var(--text-pri); }
 .header-sub   { color: var(--text-sec); }
 .city-title   { color: var(--text-pri); }
 .hijri-label  { color: var(--text-sec); }
 
-
-/* ── 13. LARGE CLOCK DIGITS ───────────────────────────────────── */
+/* ── 13. الساعة الكبيرة ──────────────────────────────────────── */
 .hour-word { color: var(--text-sec); }
 .hour-num  { color: var(--text-pri); line-height: 0.9; }
 
-
-/* ── 14. PHASE BADGE ──────────────────────────────────────────── */
+/* ── 14. شارة الطور ──────────────────────────────────────────── */
 .phase-pill {
     background: var(--glass);
     border: 1px solid var(--glass-border);
@@ -270,15 +200,10 @@ body.theme-night::before { opacity: 0.30; }
     transition: all 0.6s ease;
 }
 
+/* ── 15. الرقم التفصيلي النسبي ───────────────────────────────── */
+.metric-num { color: var(--text-pri); letter-spacing: 0.06em; }
 
-/* ── 15. RELATIVE METRIC ──────────────────────────────────────── */
-.metric-num {
-    color: var(--text-pri);
-    letter-spacing: 0.06em;
-}
-
-
-/* ── 16. TOOLTIP ──────────────────────────────────────────────── */
+/* ── 16. Tooltip ─────────────────────────────────────────────── */
 .tip-box {
     background: var(--text-pri);
     color: var(--surface);
@@ -288,8 +213,7 @@ body.theme-night::before { opacity: 0.30; }
 .tip-arrow { border-top-color: var(--text-pri); }
 .tip-icon  { color: var(--text-sec); }
 
-
-/* ── 17. COUNTDOWN STRIP ──────────────────────────────────────── */
+/* ── 17. العداد التنازلي ─────────────────────────────────────── */
 .cd-wrap {
     background: var(--accent-faint);
     border: 1px solid var(--glass-border);
@@ -300,8 +224,7 @@ body.theme-night::before { opacity: 0.30; }
 .cd-num   { color: var(--text-pri); }
 body.theme-night .cd-dot { background: var(--night-clr); }
 
-
-/* ── 18. PRAYER MARKERS (SVG) ─────────────────────────────────── */
+/* ── 18. مؤشرات الصلاة على القوس ────────────────────────────── */
 .prayer-dot {
     fill: var(--surface);
     stroke: var(--text-sec);
@@ -309,8 +232,8 @@ body.theme-night .cd-dot { background: var(--night-clr); }
     cursor: help;
     transition: r 0.2s ease, fill 0.2s ease;
 }
-.prayer-dot:hover { fill: var(--text-pri); }
-.prayer-dot-next  { stroke: #F59E0B; stroke-width: 2.5; }
+.prayer-dot:hover   { fill: var(--text-pri); }
+.prayer-dot-next    { stroke: #F59E0B; stroke-width: 2.5; }
 
 @keyframes pulse-ring {
     0%   { r: 5;  opacity: 0.85; }
@@ -323,41 +246,19 @@ body.theme-night .cd-dot { background: var(--night-clr); }
     animation: pulse-ring 2.4s ease-out infinite;
 }
 
-
-/* ── 19. CELESTIAL BODY & ARC ─────────────────────────────────── */
-#progress-arc   { transition: stroke-dashoffset 0.95s linear; }
-#celestial-body { transition: transform 0.95s linear; }
-
+/* ── 19. الجسم السماوي والقوس ───────────────────────────────── */
+#progress-arc    { transition: stroke-dashoffset 0.95s linear; }
+#celestial-body  { transition: transform 0.95s linear; }
 #sun-shape,
-#moon-shape     { transition: opacity 2s ease; }
+#moon-shape      { transition: opacity 2s ease; }
 
-/* Pulsing sun halo */
 @keyframes halo-breathe {
     from { opacity: 0.10; r: 11; }
     to   { opacity: 0.30; r: 20; }
 }
-#sun-halo {
-    animation: halo-breathe 4.5s ease-in-out infinite alternate;
-}
+#sun-halo { animation: halo-breathe 4.5s ease-in-out infinite alternate; }
 
-
-/* ── 20. MOON NIGHT GLOW ──────────────────────────────────────── */
-/*
- * Applied only in the night theme so the moon has a subtle,
- * cold indigo shimmer.  The drop-shadow uses --glow-moon from
- * the night theme variables, keeping it contextually restrained.
- */
-@keyframes moon-glow {
-    0%   { filter: url(#f-moon) drop-shadow(0 0 2px var(--glow-moon)); }
-    50%  { filter: url(#f-moon) drop-shadow(0 0 7px var(--glow-moon)); }
-    100% { filter: url(#f-moon) drop-shadow(0 0 3px var(--glow-moon)); }
-}
-body.theme-night #moon-shape {
-    animation: moon-glow 5s ease-in-out infinite alternate;
-}
-
-
-/* ── 21. DAY / NIGHT BAR ──────────────────────────────────────── */
+/* ── 20. شريط النهار والليل ──────────────────────────────────── */
 .dl-bg    { background: var(--accent-faint); }
 .dl-day   { background: var(--day-clr);   transition: width 2s ease; }
 .dl-night { background: var(--night-clr); transition: width 2s ease; }
@@ -372,59 +273,33 @@ body.theme-night #moon-shape {
     white-space: nowrap;
 }
 
-
-/* ── 22. PRAYER TIMES BAR ─────────────────────────────────────── */
+/* ── 21. شريط أوقات الصلاة ───────────────────────────────────── */
 .prayer-bar {
     background: var(--surface);
     border: 1px solid var(--glass-border);
 }
-.prayer-item {
-    transition: background 0.15s;
-    border-radius: 0.5rem;
-}
+.prayer-item { transition: background 0.15s; border-radius: 0.5rem; }
 .prayer-item:hover { background: var(--accent-faint); }
-.p-name {
-    color: var(--text-sec);
-    font-size: 0.58rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-}
-.p-time {
-    color: var(--text-pri);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    font-weight: 600;
-}
+.p-name { color: var(--text-sec); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.04em; }
+.p-time { color: var(--text-pri); font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 600; }
 .prayer-item-next .p-name,
 .prayer-item-next .p-time { color: #F59E0B; }
 
-
-/* ── 23. FOOTER CARD ──────────────────────────────────────────── */
+/* ── 22. التذييل ─────────────────────────────────────────────── */
 .footer-card  { background: var(--surface); border: 1px solid var(--glass-border); }
 .footer-lbl   { color: var(--text-sec); }
 .footer-val   { color: var(--text-pri); }
 
-
-/* ── 24. ERROR OVERLAY ────────────────────────────────────────── */
+/* ── 23. واجهة الخطأ ─────────────────────────────────────────── */
 .err-backdrop { background: rgba(7, 0, 20, 0.88); }
-.err-card     {
-    background: rgba(20, 5, 30, 0.92);
-    border: 1px solid rgba(239, 68, 68, 0.20);
-}
+.err-card     { background: rgba(20, 5, 30, 0.92); border: 1px solid rgba(239, 68, 68, 0.20); }
 .err-icon-bg  { background: rgba(239, 68, 68, 0.14); }
 .err-icon     { color: #FCA5A5; }
 .err-title    { color: #FEF2F2; }
 .err-body     { color: #FECACA; }
-.retry-btn {
-    background: #FEF2F2;
-    color: #4B0000;
-    font-weight: 800;
-    cursor: pointer;
-    transition: background 0.15s;
-}
+.retry-btn    { background: #FEF2F2; color: #4B0000; font-weight: 800; cursor: pointer; transition: background 0.15s; }
 .retry-btn:hover { background: #ffffff; }
 
-
-/* ── 25. INPUT ERROR TEXT ─────────────────────────────────────── */
+/* ── 24. خطأ الإدخال ─────────────────────────────────────────── */
 .input-err { color: #EF4444; }
 body.theme-night .input-err { color: #F87171; }
