@@ -1,5 +1,5 @@
 /* ================================================================
-   SolarisSwahili v2.0 — نظام التصميم الاحترافي
+   SolarisSwahili v3.0 — نظام التصميم الاحترافي (Adaptive Astronomical)
    css/style.css
    ================================================================ */
 
@@ -24,6 +24,7 @@
     --day-clr:       #D97706;   /* Amber 600 */
     --night-clr:     #4338CA;   /* Indigo 700 */
     --glow-sun:      rgba(251, 191, 36, 0.35);
+    --glow-moon:     rgba(129, 140, 248, 0.28); /* Indigo 400 soft glow */
     --shadow:        rgba(0, 0, 0, 0.06);
 }
 
@@ -39,6 +40,7 @@ body.theme-golden {
     --day-clr:       #EA580C;
     --night-clr:     #3730A3;
     --glow-sun:      rgba(251, 146, 60, 0.45);
+    --glow-moon:     rgba(165, 180, 252, 0.32);
     --shadow:        rgba(120, 53, 15, 0.08);
 }
 
@@ -54,6 +56,7 @@ body.theme-night {
     --day-clr:       #F59E0B;
     --night-clr:     #818CF8;
     --glow-sun:      rgba(165, 180, 252, 0.30);
+    --glow-moon:     rgba(129, 140, 248, 0.40);
     --shadow:        rgba(0, 0, 0, 0.35);
 }
 
@@ -252,11 +255,22 @@ body.theme-night .cd-dot { background: var(--night-clr); }
 #sun-shape,
 #moon-shape      { transition: opacity 2s ease; }
 
+/* ── هالة الشمس النابضة ── */
 @keyframes halo-breathe {
     from { opacity: 0.10; r: 11; }
     to   { opacity: 0.30; r: 20; }
 }
 #sun-halo { animation: halo-breathe 4.5s ease-in-out infinite alternate; }
+
+/* ── توهج القمر الأبيض البارد ── */
+@keyframes moon-glow {
+    0%   { filter: url(#f-moon) drop-shadow(0 0 2px  var(--glow-moon)); }
+    50%  { filter: url(#f-moon) drop-shadow(0 0 6px  var(--glow-moon)); }
+    100% { filter: url(#f-moon) drop-shadow(0 0 3px  var(--glow-moon)); }
+}
+body.theme-night #moon-shape {
+    animation: moon-glow 5s ease-in-out infinite alternate;
+}
 
 /* ── 20. شريط النهار والليل ──────────────────────────────────── */
 .dl-bg    { background: var(--accent-faint); }
