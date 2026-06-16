@@ -1,6 +1,6 @@
 /**
  * SolarisSwahili v2.0
- * ساعة التوقيت السواحلي الديناميكية — التوقيت التكيفي المعتدل
+ * ساعة التوقيت السواحلي الديناميكية — التوقيت الفلكي التكيفي المباشر
  */
 
 const App = (() => {
@@ -227,13 +227,40 @@ const App = (() => {
                 throw new Error('بيانات الشمس غير متاحة حالياً. يرجى المحاولة لاحقاً.');
 
             const off = API.normOff(tR.results.utc_offset);
+
+            // استخراج طول النهار المعتمد رسمياً من الـ API
+            const parseLen = str => {
+                if (!str) return 0;
+                const p = str.split(':').map(Number);
+                return (p[0] || 0) * 3600000 + (p[1] || 0) * 60000 + (p[2] || 0) * 1000;
+            };
+            const dayLenMs = parseLen(tR.results.day_length);
+            const nightLenMs = (24 * 3600000) - dayLenMs;
+
+            let ySunset   = API.toUTC(dateStr(-1), yR.results.sunset,   off);
+            let ySunrise  = API.toUTC(dateStr(-1), yR.results.sunrise,  off);
+            let tSunrise  = API.toUTC(dateStr( 0), tR.results.sunrise,  off);
+            let tSunset   = API.toUTC(dateStr( 0), tR.results.sunset,   off);
+            let tmSunrise = API.toUTC(dateStr( 1), tmR.results.sunrise, off);
+
+            /* ── تأمين عبور منتصف الليل للمناطق القطبية والمستثناة ── */
+            // إذا أعطانا النظام أن الغروب حصل قبل الشروق بسبب خطأ في تعيين اليوم محلياً، نصحح الزمن بإضافة 24 ساعة
+            if (ySunset <= ySunrise) ySunset += 86400000;
+            if (tSunset <= tSunrise) tSunset += 86400000;
+            
+            // التأكد الإضافي من الترتيب الزمني للأحداث الفلكية المتتابعة
+            if (tSunrise < ySunset)  tSunrise  += 86400000;
+            if (tmSunrise < tSunset) tmSunrise += 86400000;
+
             const data = {
-                yesterdaySunset : API.toUTC(dateStr(-1), yR.results.sunset,   off),
-                todaySunrise    : API.toUTC(dateStr( 0), tR.results.sunrise,  off),
-                todaySunset     : API.toUTC(dateStr( 0), tR.results.sunset,   off),
-                tomorrowSunrise : API.toUTC(dateStr( 1), tmR.results.sunrise, off),
+                yesterdaySunset : ySunset,
+                todaySunrise    : tSunrise,
+                todaySunset     : tSunset,
+                tomorrowSunrise : tmSunrise,
                 todaySunriseStr : tR.results.sunrise,
                 todaySunsetStr  : tR.results.sunset,
+                dayLengthMs     : dayLenMs,
+                nightLengthMs   : nightLenMs,
                 utcOff          : off
             };
             Cache.set(k, data);
@@ -401,9 +428,9 @@ const App = (() => {
             /* ── لون تدرج القوس ── */
             D.arc.setAttribute('stroke', isNight ? 'url(#g-night)' : 'url(#g-day)');
 
-            /* ══ الحساب التكيفي الجديد للساعة (المعيارية) ══
+            /* ══ الحساب التكيفي المباشر للساعة (Standard Hours) ══
              *
-             *  المبدأ: الساعة مدتها 60 دقيقة قياسية، والعد يبدأ من الشروق/الغروب.
+             *  المبدأ: الساعة مدتها 60 دقيقة قياسية فعلية، والعد يبدأ وتتصفر قيمته من لحظة الشروق والغروب.
              *  عدد الساعات غير مقيد بـ 12، بل يعكس الطول الفعلي للنهار أو الليل.
              */
             const elapsed = now - startMs; 
@@ -412,6 +439,7 @@ const App = (() => {
             const pM = Math.floor((elapsed % 3600000) / 60000);
             const pS = Math.floor((elapsed % 60000)   / 1000);
 
+            // يبدأ التعداد من الساعة 1
             D.hourNum.textContent   = pH + 1; 
             D.phaseDisp.textContent = `من ${phase}`;
             D.metricDisp.textContent = fmt(pH, pM, pS);
@@ -499,9 +527,9 @@ const App = (() => {
             D.sunriseEl.textContent = cleanTime(solar.todaySunriseStr);
             D.sunsetEl.textContent  = cleanTime(solar.todaySunsetStr);
 
-            /* ── شريط النهار والليل ── */
-            const dayL   = solar.todaySunset - solar.todaySunrise;
-            const nightL = 24 * 3600000 - dayL;
+            /* ── شريط النهار والليل (بناءً على طول النهار الرسمي من الـ API) ── */
+            const dayL   = solar.dayLengthMs;
+            const nightL = solar.nightLengthMs;
             const dayPct = (dayL / (24 * 3600000) * 100).toFixed(1);
             const diff   = Math.abs(dayL - nightL);
 
