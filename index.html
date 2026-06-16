@@ -134,10 +134,12 @@
         <!-- الترويسة -->
         <header class="card rounded-2xl px-6 py-4 text-center">
             <h1 class="header-title font-extrabold text-base mb-1 tracking-wide">
-                نظام التوقيت السواحلي
+                نظام التوقيت السواحلي التكيفي
             </h1>
             <p class="header-sub text-xs leading-relaxed max-w-sm mx-auto">
-                يعتمد هذا النظام التكيفي المباشر على حركة الشمس الفعلية في مدينتك. يبدأ عدّاد الساعات من "الساعة 1" بمجرد حدوث الشروق (للنهار) أو الغروب (لليل). الساعات هنا قياسية (60 دقيقة)، لذلك يعكس عددها الإجمالي الطول الفعلي للنهار والليل في موقعك الجغرافي.
+                ساعة فلكية تتكيف تلقائياً مع شروق وغروب الشمس الحقيقيين في مدينتك.
+                الساعة تبدأ من &laquo;الساعة&nbsp;1&raquo; عند كل طور فلكي، ويعكس عدد الساعات
+                الطول الفعلي للنهار أو الليل — فتطول في الصيف وتقصر في الشتاء.
             </p>
         </header>
 
@@ -218,8 +220,11 @@
                                 text-xs p-4 rounded-2xl z-50 pointer-events-none
                                 opacity-0 invisible group-hover:opacity-100 group-hover:visible
                                 transition-all duration-200" dir="rtl">
-                        <strong class="block mb-1.5 text-sm">كيف يعمل هذا التوقيت؟</strong>
-                        يعتمد هذا النظام على ساعات قياسية (60 دقيقة)، لكنه يصفّر العداد ليبدأ بـ"الساعة 1" عند لحظة الشروق والغروب في مدينتك. لذلك، قد يتجاوز العداد 12 ساعة في الصيف، أو يقل عنها في الشتاء، ليعكس الطول الحقيقي لنهارك وليلك بدقة تامة.
+                        <strong class="block mb-1.5 text-sm">كيف يعمل التوقيت التكيفي؟</strong>
+                        تعتمد هذه الساعة على الساعات القياسية (60 دقيقة)، لكنها تُصفّر العداد
+                        لتبدأ بـ &laquo;الساعة&nbsp;1&raquo; عند كل طور فلكي — الشروق للنهار،
+                        والغروب لليل. عدد الساعات في كل طور يعكس الطول الفعلي للنهار أو الليل
+                        في موقعك الجغرافي وحالياً من السنة، فيتجاوز 12 ساعة صيفاً ويقل شتاءً.
                         <div class="tip-arrow absolute top-full left-1/2 -translate-x-1/2
                                     border-8 border-transparent"></div>
                     </div>
@@ -263,11 +268,14 @@
                                 <feMergeNode in="SourceGraphic"/>
                             </feMerge>
                         </filter>
-                        <!-- توهج القمر -->
-                        <filter id="f-moon" x="-100%" y="-100%" width="300%" height="300%">
-                            <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="b"/>
+                        <!-- توهج القمر الأبيض البارد -->
+                        <filter id="f-moon" x="-120%" y="-120%" width="340%" height="340%">
+                            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/>
+                            <feComponentTransfer in="b" result="d">
+                                <feFuncA type="linear" slope="0.55"/>
+                            </feComponentTransfer>
                             <feMerge>
-                                <feMergeNode in="b"/>
+                                <feMergeNode in="d"/>
                                 <feMergeNode in="SourceGraphic"/>
                             </feMerge>
                         </filter>
@@ -323,17 +331,26 @@
                     <!-- الجسم السماوي (شمس / قمر) -->
                     <g id="celestial-body" transform="translate(20, 140)">
                         <!-- هالة الشمس النابضة -->
-                        <circle id="sun-halo" cx="0" cy="0" r="14" fill="var(--glow-sun)"/>
-                        
+                        <circle id="sun-halo" cx="0" cy="0" r="14"
+                                fill="var(--glow-sun)"/>
+
                         <!-- قرص الشمس -->
                         <circle id="sun-shape" cx="0" cy="0" r="7.5"
-                                fill="var(--surface)" stroke="#F59E0B" stroke-width="3"
+                                fill="var(--surface)"
+                                stroke="#F59E0B"
+                                stroke-width="3"
                                 filter="url(#f-sun)"/>
-                                
-                        <!-- البدر (قمر مكتمل ممركز تماماً) -->
+
+                        <!--
+                            البدر — دائرة كاملة متمركزة هندسياً عند (0,0)
+                            لون أبيض بارد: #F1F5F9  |  محيط أنديجو: #818CF8
+                        -->
                         <circle id="moon-shape" cx="0" cy="0" r="7.5"
-                                fill="#F1F5F9" stroke="#818CF8" stroke-width="2.5"
-                                filter="url(#f-moon)" style="opacity:0"/>
+                                fill="#F1F5F9"
+                                stroke="#818CF8"
+                                stroke-width="2.5"
+                                filter="url(#f-moon)"
+                                style="opacity:0"/>
                     </g>
                 </svg>
             </div>
