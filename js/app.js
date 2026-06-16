@@ -383,13 +383,15 @@ const App = (() => {
             }
 
             /*
-             * Official day length
-             * ────────────────────
-             * We read `day_length` directly from the API response ("HH:MM:SS")
-             * instead of computing it as (sunset − sunrise).  This is more
-             * reliable across all latitudes and avoids edge-case negatives.
+             * Correct day length calculation
+             * ───────────────────────────────
+             * The sunrisesunset.io API does not return day_length directly.
+             * We calculate it from the actual sunrise/sunset times we've just
+             * resolved (after midnight-crossing correction).  This ensures
+             * we always have the true astronomical day length for the city
+             * and date, regardless of API response format.
              */
-            const dayLengthMs = Utils.parseDayLength(tRes.results.day_length);
+            const dayLengthMs = todaySunset - todaySunrise;
 
             const data = {
                 yesterdaySunset,
