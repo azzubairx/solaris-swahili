@@ -111,8 +111,8 @@
 
         <!-- زر المشاركة -->
         <button id="share-btn"
-                aria-label="مشاركة رابط التطبيق"
-                title="مشاركة التطبيق"
+                aria-label="نسخ رابط المدينة الحالية"
+                title="مشاركة الرابط"
                 class="ctrl-btn">
             <svg id="share-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -137,7 +137,7 @@
                 نظام التوقيت السواحلي
             </h1>
             <p class="header-sub text-xs leading-relaxed max-w-sm mx-auto">
-                يعتمد هذا النظام التكيفي المباشر على حركة الشمس الفعلية في مدينتك. يبدأ عدّاد الساعات من "الساعة 1" بمجرد حدوث الشروق (للنهار) أو الغروب (لليل). الساعات هنا قياسية (60 دقيقة)، لذلك يعكس عددها الإجمالي الطول الفعلي للنهار والليل في موقعك الجغرافي.
+                يعتمد هذا النظام على حركة الشمس الفعلية في مدينتك. يبدأ اليوم عند شروق الشمس، وتُحسب الساعة الأولى نهارًا من لحظة الشروق. الساعات هنا قياسية (60 دقيقة)، لذلك يعكس عددها الطول الفعلي للنهار والليل في موقعك الجغرافي.
             </p>
         </header>
 
@@ -219,7 +219,7 @@
                                 opacity-0 invisible group-hover:opacity-100 group-hover:visible
                                 transition-all duration-200" dir="rtl">
                         <strong class="block mb-1.5 text-sm">كيف يعمل هذا التوقيت؟</strong>
-                        يعتمد هذا النظام على ساعات قياسية (60 دقيقة)، لكنه يصفّر العداد ليبدأ بـ"الساعة 1" عند لحظة الشروق والغروب في مدينتك. لذلك، قد يتجاوز العداد 12 ساعة في الصيف، أو يقل عنها في الشتاء، ليعكس الطول الحقيقي لنهارك وليلك بدقة تامة.
+                        يعتمد هذا النظام على ساعات قياسية (60 دقيقة)، لكنه يصفّر العداد ليبدأ بـ"الساعة&nbsp;1" عند لحظة الشروق والغروب في مدينتك. لذلك، قد يتجاوز العداد 12 ساعة في الصيف، أو يقل عنها في الشتاء، ليعكس الطول الحقيقي لنهارك وليلك.
                         <div class="tip-arrow absolute top-full left-1/2 -translate-x-1/2
                                     border-8 border-transparent"></div>
                     </div>
@@ -323,17 +323,23 @@
                     <!-- الجسم السماوي (شمس / قمر) -->
                     <g id="celestial-body" transform="translate(20, 140)">
                         <!-- هالة الشمس النابضة -->
-                        <circle id="sun-halo" cx="0" cy="0" r="14" fill="var(--glow-sun)"/>
+                        <circle id="sun-halo" cx="0" cy="0" r="14"
+                                fill="var(--glow-sun)"/>
                         
                         <!-- قرص الشمس -->
                         <circle id="sun-shape" cx="0" cy="0" r="7.5"
-                                fill="var(--surface)" stroke="#F59E0B" stroke-width="3"
+                                fill="var(--surface)"
+                                stroke="#F59E0B"
+                                stroke-width="3"
                                 filter="url(#f-sun)"/>
                                 
-                        <!-- البدر (قمر مكتمل ممركز تماماً) -->
+                        <!-- البدر (قمر مكتمل متمركز تماماً) -->
                         <circle id="moon-shape" cx="0" cy="0" r="7.5"
-                                fill="#F1F5F9" stroke="#818CF8" stroke-width="2.5"
-                                filter="url(#f-moon)" style="opacity:0"/>
+                                fill="#F1F5F9"
+                                stroke="#818CF8"
+                                stroke-width="2.5"
+                                filter="url(#f-moon)"
+                                style="opacity:0"/>
                     </g>
                 </svg>
             </div>
