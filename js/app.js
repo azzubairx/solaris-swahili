@@ -1,6 +1,6 @@
 /**
  * SolarisSwahili v2.0
- * ساعة التوقيت السواحلي الديناميكية — التوقيت الفلكي التكيفي المباشر
+ * ساعة التوقيت السواحلي الديناميكية — التوقيت الفلكي التكيفي المباشر (Absolute Solar Delta)
  */
 
 const App = (() => {
@@ -228,27 +228,21 @@ const App = (() => {
 
             const off = API.normOff(tR.results.utc_offset);
 
-            // استخراج طول النهار المعتمد رسمياً من الـ API
-            const parseLen = str => {
-                if (!str) return 0;
-                const p = str.split(':').map(Number);
-                return (p[0] || 0) * 3600000 + (p[1] || 0) * 60000 + (p[2] || 0) * 1000;
-            };
-            const dayLenMs = parseLen(tR.results.day_length);
-            const nightLenMs = (24 * 3600000) - dayLenMs;
-
+            // جلب الأوقات وتحويلها إلى مللي ثانية مطلقة
             let ySunset   = API.toUTC(dateStr(-1), yR.results.sunset,   off);
-            let ySunrise  = API.toUTC(dateStr(-1), yR.results.sunrise,  off);
             let tSunrise  = API.toUTC(dateStr( 0), tR.results.sunrise,  off);
             let tSunset   = API.toUTC(dateStr( 0), tR.results.sunset,   off);
             let tmSunrise = API.toUTC(dateStr( 1), tmR.results.sunrise, off);
 
-            /* ── تأمين عبور منتصف الليل للمناطق القطبية والمستثناة ── */
-            if (ySunset <= ySunrise) ySunset += 86400000;
-            if (tSunset <= tSunrise) tSunset += 86400000;
-            
-            if (tSunrise < ySunset)  tSunrise  += 86400000;
-            if (tmSunrise < tSunset) tmSunrise += 86400000;
+            /* ── مصحح التسلسل الزمني الصارم (Chronological Enforcer) ── */
+            // يمنع أي تداخل زمني ناتج عن تعارض المناطق الزمنية أو الأيام القطبية
+            if (ySunset >= tSunrise)  ySunset  -= 86400000; // يجب أن يكون غروب الأمس قبل شروق اليوم
+            if (tSunset <= tSunrise)  tSunset  += 86400000; // يجب أن يكون غروب اليوم بعد شروق اليوم
+            if (tmSunrise <= tSunset) tmSunrise += 86400000; // يجب أن يكون شروق الغد بعد غروب اليوم
+
+            /* ── الحساب الفلكي الدقيق لأطوال الفترات (بدون إجبار 24 ساعة) ── */
+            const dayLenMs   = tSunset - tSunrise;       // طول النهار = الغروب - الشروق
+            const nightLenMs = tmSunrise - tSunset;      // طول الليل = شروق الغد - الغروب
 
             const data = {
                 yesterdaySunset : ySunset,
@@ -426,18 +420,13 @@ const App = (() => {
             /* ── لون تدرج القوس ── */
             D.arc.setAttribute('stroke', isNight ? 'url(#g-night)' : 'url(#g-day)');
 
-            /* ══ الحساب التكيفي المباشر للساعة (Standard Hours) ══
-             *
-             *  المبدأ: الساعة مدتها 60 دقيقة قياسية فعلية، والعد يبدأ وتتصفر قيمته من لحظة الشروق والغروب.
-             *  عدد الساعات غير مقيد بـ 12، بل يعكس الطول الفعلي للنهار أو الليل.
-             */
+            /* ══ الحساب التكيفي المباشر للساعة (Standard Hours) ══ */
             const elapsed = now - startMs; 
 
             const pH = Math.floor(elapsed / 3600000);
             const pM = Math.floor((elapsed % 3600000) / 60000);
             const pS = Math.floor((elapsed % 60000)   / 1000);
 
-            // يبدأ التعداد من الساعة 1
             D.hourNum.textContent   = pH + 1; 
             D.phaseDisp.textContent = `من ${phase}`;
             D.metricDisp.textContent = fmt(pH, pM, pS);
@@ -522,10 +511,13 @@ const App = (() => {
             D.sunriseEl.textContent = cleanTime(solar.todaySunriseStr);
             D.sunsetEl.textContent  = cleanTime(solar.todaySunsetStr);
 
-            /* ── شريط النهار والليل (بناءً على طول النهار الرسمي من الـ API) ── */
+            /* ── شريط النهار والليل الدقيق فلكياً ── */
             const dayL   = solar.dayLengthMs;
             const nightL = solar.nightLengthMs;
-            const dayPct = (dayL / (24 * 3600000) * 100).toFixed(1);
+            
+            // حساب النسبة المئوية بناءً على مجموع الدورتين (اليوم الفلكي الكامل)
+            const totalCycle = dayL + nightL; 
+            const dayPct = (dayL / totalCycle * 100).toFixed(1);
             const diff   = Math.abs(dayL - nightL);
 
             D.dayBar.style.width   = `${dayPct}%`;
@@ -672,7 +664,6 @@ const App = (() => {
             } catch { }
         };
 
-        // تحميل المدينة الافتراضية مباشرة بدون قراءة الرابط
         loadCity('tobruk');
     };
 
