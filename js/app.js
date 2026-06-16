@@ -1,6 +1,12 @@
 /**
- * SolarisSwahili v2.0
- * ساعة التوقيت السواحلي الديناميكية — التوقيت الفلكي التكيفي المباشر
+ * SolarisSwahili v3.0 — Adaptive Astronomical Timing
+ * ساعة التوقيت السواحلي الديناميكية — التوقيت التكيفي الفلكي
+ *
+ * Core principle: The clock uses standard 60-minute hours, but resets to
+ * "Hour 1" at each astronomical boundary (sunrise / sunset). The total
+ * number of hours in each phase reflects the actual day_length returned
+ * by the sunrise/sunset API, making the system truly adaptive by city
+ * and by season.
  */
 
 const App = (() => {
@@ -11,6 +17,7 @@ const App = (() => {
     const CFG = {
         CACHE_TTL : 6 * 3600 * 1000,       // 6 ساعات
         GOLD_WIN  : 45 * 60 * 1000,         // نافذة الغسق (45 دقيقة)
+        MS_PER_DAY: 24 * 3600 * 1000,       // 86400000 ms
         CITIES: {
             tobruk:   { name: 'طبرق',   lat: '32.0773', lng: '23.9600' },
             benghazi: { name: 'بنغازي', lat: '32.1167', lng: '20.0667' },
@@ -96,6 +103,21 @@ const App = (() => {
         return mS ? `${hS} و${mS}` : hS;
     };
 
+    /**
+     * Parse an API day_length string ("HH:MM:SS") into milliseconds.
+     * Falls back to 12 hours if the string is missing or malformed.
+     */
+    const parseDayLength = str => {
+        if (!str || typeof str !== 'string') return 12 * 3600 * 1000;
+        const parts = str.trim().split(':');
+        if (parts.length !== 3) return 12 * 3600 * 1000;
+        const hh = parseInt(parts[0], 10);
+        const mm = parseInt(parts[1], 10);
+        const ss = parseInt(parts[2], 10);
+        if ([hh, mm, ss].some(v => Number.isNaN(v))) return 12 * 3600 * 1000;
+        return ((hh * 3600) + (mm * 60) + ss) * 1000;
+    };
+
     const cleanTime = t => {
         const p = t.split(':');
         return p.length >= 3 ? `${p[0]}:${p[1]} ${t.split(' ').pop()}` : t;
@@ -125,11 +147,11 @@ const App = (() => {
     };
 
     const SKY_DAY = [
-        { p: 0.00, t: '#FEF3C7', b: '#FDBA74' },   
-        { p: 0.18, t: '#E0F2FE', b: '#BAE6FD' },   
-        { p: 0.50, t: '#F0F9FF', b: '#E5E7EB' },   
-        { p: 0.82, t: '#FEF9C3', b: '#FDE68A' },   
-        { p: 1.00, t: '#FDE68A', b: '#FDBA74' },   
+        { p: 0.00, t: '#FEF3C7', b: '#FDBA74' },
+        { p: 0.18, t: '#E0F2FE', b: '#BAE6FD' },
+        { p: 0.50, t: '#F0F9FF', b: '#E5E7EB' },
+        { p: 0.82, t: '#FEF9C3', b: '#FDE68A' },
+        { p: 1.00, t: '#FDE68A', b: '#FDBA74' },
     ];
     const SKY_NIGHT = { t: '#020617', b: '#0B1120' };
 
@@ -170,7 +192,7 @@ const App = (() => {
 
 
     /* ═══════════════════════════════════════════════════════
-       4.  CACHE 
+       4.  CACHE
     ═══════════════════════════════════════════════════════ */
     const Cache = {
         get: k => {
@@ -228,40 +250,39 @@ const App = (() => {
 
             const off = API.normOff(tR.results.utc_offset);
 
-            // استخراج طول النهار المعتمد رسمياً من الـ API
-            const parseLen = str => {
-                if (!str) return 0;
-                const p = str.split(':').map(Number);
-                return (p[0] || 0) * 3600000 + (p[1] || 0) * 60000 + (p[2] || 0) * 1000;
-            };
-            const dayLenMs = parseLen(tR.results.day_length);
-            const nightLenMs = (24 * 3600000) - dayLenMs;
+            let todaySunrise    = API.toUTC(dateStr( 0), tR.results.sunrise,  off);
+            let todaySunset     = API.toUTC(dateStr( 0), tR.results.sunset,   off);
+            const yesterdaySunset = API.toUTC(dateStr(-1), yR.results.sunset,   off);
+            const tomorrowSunrise = API.toUTC(dateStr( 1), tmR.results.sunrise, off);
 
-            let ySunset   = API.toUTC(dateStr(-1), yR.results.sunset,   off);
-            let ySunrise  = API.toUTC(dateStr(-1), yR.results.sunrise,  off);
-            let tSunrise  = API.toUTC(dateStr( 0), tR.results.sunrise,  off);
-            let tSunset   = API.toUTC(dateStr( 0), tR.results.sunset,   off);
-            let tmSunrise = API.toUTC(dateStr( 1), tmR.results.sunrise, off);
+            /* ── Midnight-crossing guard ──
+             * In polar / near-polar locations the API may return a sunset
+             * that is numerically earlier than sunrise (e.g. the sun sets
+             * just after midnight local time).  When that happens we add
+             * 24 h to todaySunset so every downstream calculation keeps
+             * a correct chronological order.
+             */
+            if (todaySunset <= todaySunrise) {
+                todaySunset += CFG.MS_PER_DAY;
+            }
 
-            /* ── تأمين عبور منتصف الليل للمناطق القطبية والمستثناة ── */
-            // إذا أعطانا النظام أن الغروب حصل قبل الشروق بسبب خطأ في تعيين اليوم محلياً، نصحح الزمن بإضافة 24 ساعة
-            if (ySunset <= ySunrise) ySunset += 86400000;
-            if (tSunset <= tSunrise) tSunset += 86400000;
-            
-            // التأكد الإضافي من الترتيب الزمني للأحداث الفلكية المتتابعة
-            if (tSunrise < ySunset)  tSunrise  += 86400000;
-            if (tmSunrise < tSunset) tmSunrise += 86400000;
+            /* ── Official day_length from the API ──
+             * We read the authoritative daylight duration directly from
+             * the API response instead of deriving it manually from
+             * timestamps.  This avoids negative or inconsistent values
+             * caused by manual subtraction.
+             */
+            const dayLengthMs = parseDayLength(tR.results.day_length);
 
             const data = {
-                yesterdaySunset : ySunset,
-                todaySunrise    : tSunrise,
-                todaySunset     : tSunset,
-                tomorrowSunrise : tmSunrise,
+                yesterdaySunset,
+                todaySunrise,
+                todaySunset,
+                tomorrowSunrise,
                 todaySunriseStr : tR.results.sunrise,
                 todaySunsetStr  : tR.results.sunset,
-                dayLengthMs     : dayLenMs,
-                nightLengthMs   : nightLenMs,
-                utcOff          : off
+                utcOff          : off,
+                dayLengthMs     // official daylight duration in ms
             };
             Cache.set(k, data);
             return data;
@@ -278,7 +299,7 @@ const App = (() => {
                 `https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lng}&method=4`
             ).then(r => r.json()).catch(() => null);
 
-            if (!res || res.code !== 200) return null;   
+            if (!res || res.code !== 200) return null;
             Cache.set(k, res.data.timings);
             return res.data.timings;
         }
@@ -341,12 +362,12 @@ const App = (() => {
                 const isTmrwFajr = k === 'Fajr' && phase === 'الليل' && now >= S.solar.todaySunset;
                 const ms = Prayers.toMS(S.prayers[k], utcOff, isTmrwFajr);
 
-                if (ms <= startMs || ms >= endMs) return;   
+                if (ms <= startMs || ms >= endMs) return;
 
                 const prog  = (ms - startMs) / (endMs - startMs);
                 const angle = Math.PI * (1 - prog);
                 const cx    = (150 + 130 * Math.cos(angle)).toFixed(1);
-                const cy    = (140 - 130 * Math.sin(angle)).toFixed(1); 
+                const cy    = (140 - 130 * Math.sin(angle)).toFixed(1);
 
                 const isNxt = next && next.name === k;
 
@@ -375,7 +396,7 @@ const App = (() => {
 
 
     /* ═══════════════════════════════════════════════════════
-       7.  CLOCK ENGINE  
+       7.  CLOCK ENGINE  (Adaptive Astronomical Timing)
     ═══════════════════════════════════════════════════════ */
     const Clock = {
         run: () => {
@@ -385,7 +406,12 @@ const App = (() => {
             const { yesterdaySunset, todaySunrise, todaySunset,
                     tomorrowSunrise, utcOff } = S.solar;
 
-            /* ── تحديد الطور ── */
+            /* ── Phase detection ──
+             * Determines whether we are currently in daylight or night.
+             * The boundaries are the actual astronomical sunrise/sunset
+             * timestamps, so the switchover happens exactly at the moment
+             * the sun crosses the horizon.
+             */
             let phase, startMs, endMs;
             if (now < todaySunrise) {
                 phase = 'الليل'; startMs = yesterdaySunset; endMs = todaySunrise;
@@ -398,10 +424,10 @@ const App = (() => {
             const dur  = endMs - startMs;
             const prog = Math.max(0, Math.min(1, (now - startMs) / dur));
 
-            /* ── تحديث لون السماء ── */
+            /* ── Sky colour update ── */
             updateSky(phase, prog);
 
-            /* ── الثيمات التلقائية ── */
+            /* ── Automatic themes ── */
             if (!S.manualTheme) {
                 const dsr = Math.abs(now - todaySunrise);
                 const dss = Math.abs(now - todaySunset);
@@ -419,32 +445,39 @@ const App = (() => {
                 D.stars.style.opacity = isNight ? '0.9' : '0';
             }
 
-            /* ── الجسم السماوي (شمس / قمر) ── */
+            /* ── Celestial body (sun / moon) ── */
             const isNight = phase === 'الليل';
             D.sunShape.style.opacity  = isNight ? '0' : '1';
             D.moonShape.style.opacity = isNight ? '1' : '0';
             D.sunHalo.style.opacity   = isNight ? '0' : '1';
 
-            /* ── لون تدرج القوس ── */
+            /* ── Arc gradient colour ── */
             D.arc.setAttribute('stroke', isNight ? 'url(#g-night)' : 'url(#g-day)');
 
-            /* ══ الحساب التكيفي المباشر للساعة (Standard Hours) ══
+            /* ═══════════════════════════════════════════════════════
+               ADAPTIVE ASTRONOMICAL CLOCK
+               ═══════════════════════════════════════════════════════
              *
-             *  المبدأ: الساعة مدتها 60 دقيقة قياسية فعلية، والعد يبدأ وتتصفر قيمته من لحظة الشروق والغروب.
-             *  عدد الساعات غير مقيد بـ 12، بل يعكس الطول الفعلي للنهار أو الليل.
+             * Principle: Each hour is a standard 60-minute hour.
+             * The counter resets to "Hour 1" at sunrise (day) and
+             * again at sunset (night).  The total number of hours
+             * in the current phase equals the actual astronomical
+             * duration of that phase — so a 14-hour summer day will
+             * show hours 1-14, while an 8-hour winter day shows
+             * hours 1-8.  This makes the clock truly adaptive by
+             * city and by season.
              */
-            const elapsed = now - startMs; 
+            const elapsed = now - startMs;
 
             const pH = Math.floor(elapsed / 3600000);
             const pM = Math.floor((elapsed % 3600000) / 60000);
             const pS = Math.floor((elapsed % 60000)   / 1000);
 
-            // يبدأ التعداد من الساعة 1
-            D.hourNum.textContent   = pH + 1; 
+            D.hourNum.textContent   = pH + 1;
             D.phaseDisp.textContent = `من ${phase}`;
             D.metricDisp.textContent = fmt(pH, pM, pS);
 
-            /* ── العداد التنازلي ── */
+            /* ── Countdown ── */
             const nextMs = phase === 'النهار' ? todaySunset
                          : now < todaySunrise  ? todaySunrise
                          :                      tomorrowSunrise;
@@ -456,7 +489,7 @@ const App = (() => {
                 Math.floor((diff % 60000)   / 1000)
             );
 
-            /* ── التوقيت القياسي للمدينة ── */
+            /* ── City standard time ── */
             const local = new Date(now + utcOff * 60000);
             D.stdTime.textContent = fmt(
                 local.getUTCHours(),
@@ -464,10 +497,10 @@ const App = (() => {
                 local.getUTCSeconds()
             );
 
-            /* ══ تحريك الجسم السماوي ══ */
+            /* ══ Celestial body animation ══ */
             const angle = Math.PI * (1 - prog);
             const cx    = 150 + 130 * Math.cos(angle);
-            const cy    = 140 - 130 * Math.sin(angle);  
+            const cy    = 140 - 130 * Math.sin(angle);
 
             D.arc.setAttribute('stroke-dashoffset', (100 - prog * 100).toFixed(2));
             D.celestial.setAttribute('transform', `translate(${cx.toFixed(2)},${cy.toFixed(2)})`);
@@ -481,13 +514,13 @@ const App = (() => {
     const loadCity = async key => {
         if (S.tickId) clearInterval(S.tickId);
 
-        /* ── إظهار الـ Loader ── */
+        /* ── Show loader ── */
         D.loader.classList.remove('opacity-0');
         D.loader.style.pointerEvents = 'auto';
         D.app.style.opacity = '0';
         D.loaderTxt.textContent = 'جاري تهيئة النظام...';
 
-        /* ── إخفاء الخطأ السابق ── */
+        /* ── Hide previous error ── */
         D.errOverlay.classList.add('opacity-0', 'pointer-events-none');
         setTimeout(() => D.errOverlay.classList.add('hidden'), 500);
 
@@ -500,7 +533,7 @@ const App = (() => {
 
         D.cityName.textContent = city.name;
 
-        /* ── التاريخ الهجري ── */
+        /* ── Hijri date ── */
         try {
             D.hijri.textContent = new Intl.DateTimeFormat(
                 'ar-LY-u-ca-islamic-nu-latn',
@@ -523,14 +556,18 @@ const App = (() => {
             S.solar   = solar;
             S.prayers = prayers;
 
-            /* ── الشروق والغروب ── */
+            /* ── Sunrise & sunset display ── */
             D.sunriseEl.textContent = cleanTime(solar.todaySunriseStr);
             D.sunsetEl.textContent  = cleanTime(solar.todaySunsetStr);
 
-            /* ── شريط النهار والليل (بناءً على طول النهار الرسمي من الـ API) ── */
+            /* ── Day / night bar ──
+             * We now use the OFFICIAL day_length from the API instead of
+             * manually subtracting timestamps.  This guarantees accurate
+             * values even in edge-case locations.
+             */
             const dayL   = solar.dayLengthMs;
-            const nightL = solar.nightLengthMs;
-            const dayPct = (dayL / (24 * 3600000) * 100).toFixed(1);
+            const nightL = CFG.MS_PER_DAY - dayL;
+            const dayPct = (dayL / CFG.MS_PER_DAY * 100).toFixed(1);
             const diff   = Math.abs(dayL - nightL);
 
             D.dayBar.style.width   = `${dayPct}%`;
@@ -544,7 +581,7 @@ const App = (() => {
                     ? `النهار أطول بـ ${fmtDur(diff)}`
                     : `الليل أطول بـ ${fmtDur(diff)}`;
 
-            /* ── مؤشرات الصلاة ── */
+            /* ── Prayer markers ── */
             const now = Date.now();
             let pPhase, pStart, pEnd;
             if (now >= solar.todaySunrise && now < solar.todaySunset) {
@@ -557,11 +594,11 @@ const App = (() => {
             Prayers.drawMarkers(pPhase, pStart, pEnd);
             Prayers.renderBar();
 
-            /* ── تشغيل الساعة ── */
+            /* ── Start the clock ── */
             Clock.run();
             S.tickId = setInterval(Clock.run, 1000);
 
-            /* ── إخفاء Loader وإظهار التطبيق ── */
+            /* ── Hide loader, show app ── */
             D.loader.classList.add('opacity-0');
             D.loader.style.pointerEvents = 'none';
             D.app.style.opacity = '1';
@@ -598,7 +635,7 @@ const App = (() => {
 
 
     /* ═══════════════════════════════════════════════════════
-       10. INIT 
+       10. INIT
     ═══════════════════════════════════════════════════════ */
     const init = () => {
         genStars();
@@ -645,7 +682,7 @@ const App = (() => {
             D.sunIco.classList.toggle('hidden', isNight);
             D.moonIco.classList.toggle('hidden', !isNight);
             D.stars.style.opacity = isNight ? '0.9' : '0';
-            setSkyManual(isNight);  
+            setSkyManual(isNight);
 
             D.resetBtn.classList.remove('hidden');
             requestAnimationFrame(() =>
@@ -657,7 +694,7 @@ const App = (() => {
             S.manualTheme = false;
             D.resetBtn.classList.add('opacity-0', 'translate-x-3');
             setTimeout(() => D.resetBtn.classList.add('hidden'), 300);
-            Clock.run(); 
+            Clock.run();
         };
 
         D.retryBtn.onclick = () => loadCity(S.key);
