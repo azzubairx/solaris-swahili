@@ -501,8 +501,8 @@ const App = (() => {
 
              /* ── شريط النهار والليل ── */
              const dayL   = solar.todaySunset - solar.todaySunrise;
-             const nightL = 24 * 3600000 - dayL;
-             const dayPct = (dayL / (24 * 3600000) * 100).toFixed(1);
+             const nightL = solar.tomorrowSunrise - solar.todaySunset;
+             const dayPct = (dayL / (dayL + nightL) * 100).toFixed(1);
              const diff   = Math.abs(dayL - nightL);
 
              D.dayBar.style.width   = `${dayPct}%`;
