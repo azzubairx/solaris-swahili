@@ -97,8 +97,11 @@ const App = (() => {
      };
 
      const cleanTime = t => {
-         const p = t.split(':');
-         return p.length >= 3 ? `${p[0]}:${p[1]} ${t.split(' ').pop()}` : t;
+         // تحويل الوقت من صيغة 24 ساعة إلى الصيغة المعروضة
+         if (!t || t === 'null' || t === '(null)') return '--:--';
+         const parts = t.split(':');
+         if (parts.length < 2) return t;
+         return `${parts[0]}:${parts[1]}`;
      };
 
      const dateStr = (off = 0) =>
@@ -190,23 +193,34 @@ const App = (() => {
 
 
      /* ═══════════════════════════════════════════════════════
-        5.  API MODULE
+        5.  API MODULE (sunrise-sunset.org API)
      ═══════════════════════════════════════════════════════ */
      const API = {
-         normOff: raw => {
-             const n = parseFloat(raw);
-             return isNaN(n) ? 0 : Math.abs(n) < 24 ? Math.round(n * 60) : Math.round(n);
+         timeToMs: (timeStr, dateStr, utcOffMins) => {
+             // تحويل الوقت من صيغة "HH:MM:SS" إلى milliseconds
+             if (!timeStr || timeStr === '(null)') return null;
+             const [h, m, s] = timeStr.split(':').map(x => parseInt(x, 10));
+             const iso = `${dateStr}T${pad(h)}:${pad(m)}:${pad(s)}Z`;
+             return new Date(iso).getTime() - utcOffMins * 60000;
          },
 
-         toUTC: (dateS, timeStr, offMins) => {
-             if (!timeStr) return 0;
-             const [time, mod] = timeStr.split(' ');
-             const [hh, mm, ss = '0'] = time.split(':');
-             let h = parseInt(hh, 10);
-             if (h === 12) h = 0;
-             if (mod === 'PM') h += 12;
-             const iso = `${dateS}T${pad(h)}:${pad(parseInt(mm))}:${pad(parseInt(ss))}Z`;
-             return new Date(iso).getTime() - offMins * 60000;
+         calculateUTCOffset: (dateStr, sunrise, sunset) => {
+             // حساب الإزاحة الزمنية من بيانات sunrise-sunset.org
+             // الـ API يعيد الأوقات بصيغة 24 ساعة بناءً على المنطقة الزمنية المحلية
+             // نحتاج إلى حساب الفرق من UTC
+             if (!sunrise || sunrise === '(null)' || !sunset || sunset === '(null)') return 0;
+             
+             const [h1, m1] = sunrise.split(':').map(x => parseInt(x, 10));
+             const sunriseLocalMs = new Date(`${dateStr}T${pad(h1)}:${pad(m1)}:00`).getTime();
+             const sunriseUTCDate = new Date(sunriseLocalMs);
+             
+             // الشروق الحقيقي للتو الحالي بناءً على خط الاستواء الفلكي
+             // في الواقع، الـ API يعطينا الأوقات بالمنطقة المحلية مباشرة
+             // لذا نستخرج الفرق من التاريخ الحالي
+             const now = new Date();
+             const localHours = now.getHours();
+             const utcHours = now.getUTCHours();
+             return (localHours - utcHours) * 60;
          },
 
          fetchSolar: async (lat, lng) => {
@@ -215,29 +229,35 @@ const App = (() => {
              if (cached) return cached;
 
              D.loaderTxt.textContent = 'جاري جلب بيانات الشمس...';
-             const base = `https://api.sunrisesunset.io/json?lat=${lat}&lng=${lng}`;
+             const base = `https://sunrise-sunset.org/api?lat=${lat}&lng=${lng}&date=`;
 
-             const [yR, tR, tmR] = await Promise.all([
-                 fetch(`${base}&date=${dateStr(-1)}`).then(r => r.json()),
-                 fetch(`${base}&date=${dateStr( 0)}`).then(r => r.json()),
-                 fetch(`${base}&date=${dateStr( 1)}`).then(r => r.json()),
-             ]);
+             try {
+                 const [yR, tR, tmR] = await Promise.all([
+                     fetch(`${base}${dateStr(-1)}`).then(r => r.json()),
+                     fetch(`${base}${dateStr( 0)}`).then(r => r.json()),
+                     fetch(`${base}${dateStr( 1)}`).then(r => r.json()),
+                 ]);
 
-             if (tR.status !== 'OK')
-                 throw new Error('بيانات الشمس غير متاحة حالياً. يرجى المحاولة لاحقاً.');
+                 if (tR.status !== 'OK')
+                     throw new Error('بيانات الشمس غير متاحة حالياً. يرجى المحاولة لاحقاً.');
 
-             const off = API.normOff(tR.results.utc_offset);
-             const data = {
-                 yesterdaySunset : API.toUTC(dateStr(-1), yR.results.sunset,   off),
-                 todaySunrise    : API.toUTC(dateStr( 0), tR.results.sunrise,  off),
-                 todaySunset     : API.toUTC(dateStr( 0), tR.results.sunset,   off),
-                 tomorrowSunrise : API.toUTC(dateStr( 1), tmR.results.sunrise, off),
-                 todaySunriseStr : tR.results.sunrise,
-                 todaySunsetStr  : tR.results.sunset,
-                 utcOff          : off
-             };
-             Cache.set(k, data);
-             return data;
+                 const off = API.calculateUTCOffset(dateStr(0), tR.results.sunrise, tR.results.sunset);
+                 
+                 const data = {
+                     yesterdaySunset : API.timeToMs(yR.results.sunset,   dateStr(-1), off),
+                     todaySunrise    : API.timeToMs(tR.results.sunrise,  dateStr( 0), off),
+                     todaySunset     : API.timeToMs(tR.results.sunset,   dateStr( 0), off),
+                     tomorrowSunrise : API.timeToMs(tmR.results.sunrise, dateStr( 1), off),
+                     todaySunriseStr : tR.results.sunrise,
+                     todaySunsetStr  : tR.results.sunset,
+                     utcOff          : off
+                 };
+                 Cache.set(k, data);
+                 return data;
+             } catch (err) {
+                 console.error('[SolarisSwahili] fetchSolar error:', err);
+                 throw err;
+             }
          },
 
          fetchPrayers: async (lat, lng) => {
