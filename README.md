@@ -7,8 +7,8 @@
 
 <div align="center">
 
-**[🔴 العرض المباشر](https://azzubairx.github.io/SolarisSwahili/)** &nbsp;|&nbsp;
-**[📂 المستودع](https://github.com/AzzubairX/SolarisSwahili)** &nbsp;|&nbsp;
+**[🔴 العرض المباشر](https://azzubairx.gub.io/solaris-So/)** &nbsp;|&nbsp;
+**[📂 المالمستو(https://github.com/AzzubairX/solaris-swahili)** &nbsp;|&nbsp;
 **[📄 الترخيص](#-الترخيص)**
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
