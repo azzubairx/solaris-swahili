@@ -1,7 +1,7 @@
 /**
  * SolarisSwahili v2.0
  * ساعة التوقيت السواحلي الديناميكية — التوقيت الفلكي التكيفي المباشر
- * (مدعوم بـ Open-Meteo API للأداء العالي والدقة الفائقة)
+ * (مدعوم بـ Open-Meteo API ومحمي بالكامل ضد تداخل المناطق الزمنية والأيام القطبية)
  */
 
 const App = (() => {
@@ -10,7 +10,6 @@ const App = (() => {
        1.  CONFIG & STATE
     ═══════════════════════════════════════════════════════ */
     const CFG = {
-        CACHE_TTL : 6 * 3600 * 1000,       // 6 ساعات
         GOLD_WIN  : 45 * 60 * 1000,         // نافذة الغسق (45 دقيقة)
         CITIES: {
             tobruk:   { name: 'طبرق',   lat: '32.0773', lng: '23.9600' },
@@ -81,7 +80,7 @@ const App = (() => {
 
 
     /* ═══════════════════════════════════════════════════════
-       3.  UTILITIES
+       3.  UTILITIES & TIME PARSERS
     ═══════════════════════════════════════════════════════ */
     const pad = n => String(n).padStart(2, '0');
     const fmt = (h, m, s) => `${pad(h)}:${pad(m)}:${pad(s)}`;
@@ -97,10 +96,13 @@ const App = (() => {
         return mS ? `${hS} و${mS}` : hS;
     };
 
-    const dateStr = (off = 0) =>
-        new Date(Date.now() + off * 86400000).toLocaleDateString('en-CA');
+    // استخراج التاريخ المحلي "للمدينة المطلوبة" بدلاً من جهاز المستخدم
+    const getCityDateStr = (offsetMins, offDays = 0) => {
+        const localMs = Date.now() + (offsetMins * 60000) + (offDays * 86400000);
+        return new Date(localMs).toISOString().split('T')[0];
+    };
 
-    // تنسيق الطابع الزمني المطلق إلى وقت محلي مقروء (12 ساعة)
+    // تنسيق الطابع الزمني المطلق إلى وقت محلي مقروء للمدينة المعنية (12 ساعة)
     const formatLocal = (ms, offsetMins) => {
         const d = new Date(ms + offsetMins * 60000);
         const h = d.getUTCHours();
@@ -179,18 +181,13 @@ const App = (() => {
        4.  CACHE 
     ═══════════════════════════════════════════════════════ */
     const Cache = {
+        // نستخدم مفتاحاً يعتمد على نافذة زمنية (3 ساعات) لتجنب أخطاء تداخل الأيام
+        getKey: (prefix, lat, lng) => `${prefix}_${lat}_${lng}_${Math.floor(Date.now() / 10800000)}`,
         get: k => {
-            try {
-                const v = localStorage.getItem(k);
-                if (!v) return null;
-                const { ts, data } = JSON.parse(v);
-                return (Date.now() - ts > CFG.CACHE_TTL) ? null : data;
-            } catch { return null; }
+            try { return JSON.parse(localStorage.getItem(k)); } catch { return null; }
         },
         set: (k, data) => {
-            try {
-                localStorage.setItem(k, JSON.stringify({ ts: Date.now(), data }));
-            } catch { }
+            try { localStorage.setItem(k, JSON.stringify(data)); } catch { }
         }
     };
 
@@ -200,13 +197,13 @@ const App = (() => {
     ═══════════════════════════════════════════════════════ */
     const API = {
         fetchSolar: async (lat, lng) => {
-            const k = `sol_${lat}_${lng}_${dateStr()}`;
+            const k = Cache.getKey('sol', lat, lng);
             const cached = Cache.get(k);
             if (cached) return cached;
 
             D.loaderTxt.textContent = 'جاري جلب بيانات الشمس...';
             
-            // Open-Meteo API: طلب واحد يجلب بيانات الأمس واليوم والغد مع حساب الـ Timezone!
+            // Open-Meteo: طلب واحد يجلب بيانات الأمس واليوم والغد مع حساب الـ Timezone!
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=sunrise,sunset,daylight_duration&timezone=auto&past_days=1&forecast_days=2`;
             
             const response = await fetch(url).then(r => r.json());
@@ -216,15 +213,28 @@ const App = (() => {
             }
 
             const daily = response.daily;
-            
-            // Open-Meteo يوفر فارق التوقيت بالثواني مباشرة
             const offMins = Math.round(response.utc_offset_seconds / 60);
 
-            // المؤشرات: 0=الأمس, 1=اليوم, 2=الغد
-            let ySunset   = new Date(daily.sunset[0]).getTime();
-            let tSunrise  = new Date(daily.sunrise[1]).getTime();
-            let tSunset   = new Date(daily.sunset[1]).getTime();
-            let tmSunrise = new Date(daily.sunrise[2]).getTime();
+            // دالة التعقيم (تمنع المتصفح من استخدام منطقته الزمنية وتجبره على المطلق)
+            const parseOM = (str) => {
+                if (!str) return null; // حماية ضد الأيام القطبية (قيمة فارغة)
+                return new Date(str + "Z").getTime() - (offMins * 60000);
+            };
+
+            // المؤشرات في Open-Meteo: 0=الأمس, 1=اليوم, 2=الغد
+            let ySunset   = parseOM(daily.sunset[0]);
+            let tSunrise  = parseOM(daily.sunrise[1]);
+            let tSunset   = parseOM(daily.sunset[1]);
+            let tmSunrise = parseOM(daily.sunrise[2]);
+
+            // حماية المدن القطبية (نهار أو ليل مستمر)
+            if (!tSunrise || !tSunset) {
+                throw new Error('هذه المدينة تمر بفترة نهار قطبي أو ليل قطبي مستمر (لا يوجد شروق أو غروب واضح حالياً).');
+            }
+
+            // تأمين الأيام المجاورة إن كانت قطبية لضمان استمرار الساعة
+            if (!ySunset) ySunset = tSunset - 86400000;
+            if (!tmSunrise) tmSunrise = tSunrise + 86400000;
 
             /* ── مصحح التسلسل الزمني الصارم (Chronological Enforcer) ── */
             if (ySunset >= tSunrise)  ySunset  -= 86400000; 
@@ -251,11 +261,12 @@ const App = (() => {
         },
 
         fetchPrayers: async (lat, lng) => {
-            const k = `pray_${lat}_${lng}_${dateStr()}`;
+            const k = Cache.getKey('pray', lat, lng);
             const cached = Cache.get(k);
             if (cached) return cached;
 
             D.loaderTxt.textContent = 'جاري جلب مواقيت الصلاة...';
+            // نستخدم Timestamp مطلق، وواجهة الصلاة ستتكفل بحساب المنطقة الزمنية للمدينة
             const ts = Math.floor(Date.now() / 1000);
             const res = await fetch(
                 `https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lng}&method=4`
@@ -272,9 +283,13 @@ const App = (() => {
        6.  PRAYER HELPERS
     ═══════════════════════════════════════════════════════ */
     const Prayers = {
-        toMS: (hhmm, offMins, tmrw = false) => {
-            const iso = `${dateStr(tmrw ? 1 : 0)}T${hhmm}:00Z`;
-            return new Date(iso).getTime() - offMins * 60000;
+        toMS: (hhmm, offsetMins, tmrw = false) => {
+            if (!hhmm) return 0;
+            // استخراج الوقت بدون لواحق زمنية مثل (BST) التي تأتي أحياناً من API الصلاة
+            const timeOnly = hhmm.split(' ')[0];
+            const dStr = getCityDateStr(offsetMins, tmrw ? 1 : 0);
+            const iso = `${dStr}T${timeOnly}:00Z`;
+            return new Date(iso).getTime() - offsetMins * 60000;
         },
 
         getNext: () => {
@@ -298,13 +313,13 @@ const App = (() => {
             const next = Prayers.getNext();
 
             D.prayerList.innerHTML = Object.keys(CFG.PRAYER_AR).map(k => {
-                const local = new Date(Prayers.toMS(S.prayers[k], utcOff) + utcOff * 60000);
-                const tStr  = `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`;
+                const ms = Prayers.toMS(S.prayers[k], utcOff);
+                const tStr = formatLocal(ms, utcOff);
                 const isNxt = next && next.name === k;
                 return `<div class="prayer-item flex flex-col items-center gap-0.5 px-2 py-1
                                     ${isNxt ? 'prayer-item-next' : ''}">
                             <span class="p-name">${CFG.PRAYER_AR[k]}</span>
-                            <span class="p-time" dir="ltr">${tStr}</span>
+                            <span class="p-time" dir="ltr">${tStr.split(' ')[0]}</span>
                         </div>`;
             }).join('');
         },
@@ -435,12 +450,10 @@ const App = (() => {
             );
 
             /* ── التوقيت القياسي للمدينة ── */
-            const local = new Date(now + utcOff * 60000);
-            D.stdTime.textContent = fmt(
-                local.getUTCHours(),
-                local.getUTCMinutes(),
-                local.getUTCSeconds()
-            );
+            D.stdTime.textContent = formatLocal(now, utcOff).split(' ')[0] + ':' + pad(new Date(now).getUTCSeconds());
+            // إضافة مؤشر AM/PM
+            const ampm = formatLocal(now, utcOff).split(' ')[1];
+            D.stdTime.textContent += ` ${ampm}`;
 
             /* ══ تحريك الجسم السماوي ══ */
             const angle = Math.PI * (1 - prog);
@@ -478,14 +491,6 @@ const App = (() => {
 
         D.cityName.textContent = city.name;
 
-        /* ── التاريخ الهجري ── */
-        try {
-            D.hijri.textContent = new Intl.DateTimeFormat(
-                'ar-LY-u-ca-islamic-nu-latn',
-                { day: 'numeric', month: 'long', year: 'numeric' }
-            ).format(new Date());
-        } catch { D.hijri.textContent = ''; }
-
         try {
             // جلب البيانات فلكياً ومن واجهة الصلاة بالتوازي
             const [solar, prayers] = await Promise.all([
@@ -498,6 +503,15 @@ const App = (() => {
 
             S.solar   = solar;
             S.prayers = prayers;
+
+            /* ── التاريخ الهجري (متزامن مع توقيت المدينة المحلي) ── */
+            try {
+                const cityLocalMs = Date.now() + (solar.utcOff * 60000);
+                D.hijri.textContent = new Intl.DateTimeFormat(
+                    'ar-LY-u-ca-islamic-nu-latn',
+                    { day: 'numeric', month: 'long', year: 'numeric' }
+                ).format(new Date(cityLocalMs));
+            } catch { D.hijri.textContent = ''; }
 
             /* ── الشروق والغروب ── */
             D.sunriseEl.textContent = formatLocal(solar.todaySunrise, solar.utcOff);
