@@ -1,6 +1,7 @@
 /**
  * SolarisSwahili v2.0
- * ساعة التوقيت السواحلي الديناميكية — التوقيت التكيفي المعتدل
+ * ساعة التوقيت السواحلي الديناميكية — التوقيت الفلكي التكيفي المباشر
+ * (مدعوم بـ Open-Meteo API للأداء العالي والدقة الفائقة)
  */
 
 const App = (() => {
@@ -96,13 +97,18 @@ const App = (() => {
         return mS ? `${hS} و${mS}` : hS;
     };
 
-    const cleanTime = t => {
-        const p = t.split(':');
-        return p.length >= 3 ? `${p[0]}:${p[1]} ${t.split(' ').pop()}` : t;
-    };
-
     const dateStr = (off = 0) =>
         new Date(Date.now() + off * 86400000).toLocaleDateString('en-CA');
+
+    // تنسيق الطابع الزمني المطلق إلى وقت محلي مقروء (12 ساعة)
+    const formatLocal = (ms, offsetMins) => {
+        const d = new Date(ms + offsetMins * 60000);
+        const h = d.getUTCHours();
+        const m = d.getUTCMinutes();
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${pad(h12)}:${pad(m)} ${ampm}`;
+    };
 
     const genStars = () => {
         D.stars.style.backgroundImage = Array.from({ length: 150 }, () => {
@@ -193,49 +199,53 @@ const App = (() => {
        5.  API MODULE
     ═══════════════════════════════════════════════════════ */
     const API = {
-        normOff: raw => {
-            const n = parseFloat(raw);
-            return isNaN(n) ? 0 : Math.abs(n) < 24 ? Math.round(n * 60) : Math.round(n);
-        },
-
-        toUTC: (dateS, timeStr, offMins) => {
-            if (!timeStr) return 0;
-            const [time, mod] = timeStr.split(' ');
-            const [hh, mm, ss = '0'] = time.split(':');
-            let h = parseInt(hh, 10);
-            if (h === 12) h = 0;
-            if (mod === 'PM') h += 12;
-            const iso = `${dateS}T${pad(h)}:${pad(parseInt(mm))}:${pad(parseInt(ss))}Z`;
-            return new Date(iso).getTime() - offMins * 60000;
-        },
-
         fetchSolar: async (lat, lng) => {
             const k = `sol_${lat}_${lng}_${dateStr()}`;
             const cached = Cache.get(k);
             if (cached) return cached;
 
             D.loaderTxt.textContent = 'جاري جلب بيانات الشمس...';
-            const base = `https://api.sunrisesunset.io/json?lat=${lat}&lng=${lng}`;
+            
+            // Open-Meteo API: طلب واحد يجلب بيانات الأمس واليوم والغد مع حساب الـ Timezone!
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=sunrise,sunset,daylight_duration&timezone=auto&past_days=1&forecast_days=2`;
+            
+            const response = await fetch(url).then(r => r.json());
 
-            const [yR, tR, tmR] = await Promise.all([
-                fetch(`${base}&date=${dateStr(-1)}`).then(r => r.json()),
-                fetch(`${base}&date=${dateStr( 0)}`).then(r => r.json()),
-                fetch(`${base}&date=${dateStr( 1)}`).then(r => r.json()),
-            ]);
-
-            if (tR.status !== 'OK')
+            if (response.error || !response.daily) {
                 throw new Error('بيانات الشمس غير متاحة حالياً. يرجى المحاولة لاحقاً.');
+            }
 
-            const off = API.normOff(tR.results.utc_offset);
+            const daily = response.daily;
+            
+            // Open-Meteo يوفر فارق التوقيت بالثواني مباشرة
+            const offMins = Math.round(response.utc_offset_seconds / 60);
+
+            // المؤشرات: 0=الأمس, 1=اليوم, 2=الغد
+            let ySunset   = new Date(daily.sunset[0]).getTime();
+            let tSunrise  = new Date(daily.sunrise[1]).getTime();
+            let tSunset   = new Date(daily.sunset[1]).getTime();
+            let tmSunrise = new Date(daily.sunrise[2]).getTime();
+
+            /* ── مصحح التسلسل الزمني الصارم (Chronological Enforcer) ── */
+            if (ySunset >= tSunrise)  ySunset  -= 86400000; 
+            if (tSunset <= tSunrise)  tSunset  += 86400000; 
+            if (tmSunrise <= tSunset) tmSunrise += 86400000; 
+
+            // طول النهار بالثواني محول إلى مللي ثانية
+            const dayLenMs   = daily.daylight_duration[1] * 1000;
+            // طول الليل يحسب بناءً على الفرق الدقيق بين غروب اليوم وشروق الغد
+            const nightLenMs = tmSunrise - tSunset;
+
             const data = {
-                yesterdaySunset : API.toUTC(dateStr(-1), yR.results.sunset,   off),
-                todaySunrise    : API.toUTC(dateStr( 0), tR.results.sunrise,  off),
-                todaySunset     : API.toUTC(dateStr( 0), tR.results.sunset,   off),
-                tomorrowSunrise : API.toUTC(dateStr( 1), tmR.results.sunrise, off),
-                todaySunriseStr : tR.results.sunrise,
-                todaySunsetStr  : tR.results.sunset,
-                utcOff          : off
+                yesterdaySunset : ySunset,
+                todaySunrise    : tSunrise,
+                todaySunset     : tSunset,
+                tomorrowSunrise : tmSunrise,
+                dayLengthMs     : dayLenMs,
+                nightLengthMs   : nightLenMs,
+                utcOff          : offMins
             };
+            
             Cache.set(k, data);
             return data;
         },
@@ -401,11 +411,7 @@ const App = (() => {
             /* ── لون تدرج القوس ── */
             D.arc.setAttribute('stroke', isNight ? 'url(#g-night)' : 'url(#g-day)');
 
-            /* ══ الحساب التكيفي الجديد للساعة (المعيارية) ══
-             *
-             *  المبدأ: الساعة مدتها 60 دقيقة قياسية، والعد يبدأ من الشروق/الغروب.
-             *  عدد الساعات غير مقيد بـ 12، بل يعكس الطول الفعلي للنهار أو الليل.
-             */
+            /* ══ الحساب التكيفي المباشر للساعة (Standard Hours) ══ */
             const elapsed = now - startMs; 
 
             const pH = Math.floor(elapsed / 3600000);
@@ -480,10 +486,8 @@ const App = (() => {
             ).format(new Date());
         } catch { D.hijri.textContent = ''; }
 
-        /* ── URL ── */
-        window.history.replaceState(null, '', `?city=${encodeURIComponent(city.name)}`);
-
         try {
+            // جلب البيانات فلكياً ومن واجهة الصلاة بالتوازي
             const [solar, prayers] = await Promise.all([
                 API.fetchSolar(city.lat, city.lng),
                 API.fetchPrayers(city.lat, city.lng)
@@ -496,13 +500,15 @@ const App = (() => {
             S.prayers = prayers;
 
             /* ── الشروق والغروب ── */
-            D.sunriseEl.textContent = cleanTime(solar.todaySunriseStr);
-            D.sunsetEl.textContent  = cleanTime(solar.todaySunsetStr);
+            D.sunriseEl.textContent = formatLocal(solar.todaySunrise, solar.utcOff);
+            D.sunsetEl.textContent  = formatLocal(solar.todaySunset, solar.utcOff);
 
-            /* ── شريط النهار والليل ── */
-            const dayL   = solar.todaySunset - solar.todaySunrise;
-            const nightL = 24 * 3600000 - dayL;
-            const dayPct = (dayL / (24 * 3600000) * 100).toFixed(1);
+            /* ── شريط النهار والليل الدقيق فلكياً ── */
+            const dayL   = solar.dayLengthMs;
+            const nightL = solar.nightLengthMs;
+            
+            const totalCycle = dayL + nightL; 
+            const dayPct = (dayL / totalCycle * 100).toFixed(1);
             const diff   = Math.abs(dayL - nightL);
 
             D.dayBar.style.width   = `${dayPct}%`;
@@ -649,21 +655,7 @@ const App = (() => {
             } catch { }
         };
 
-        const param = new URLSearchParams(location.search).get('city');
-        let startKey = 'tobruk';
-
-        if (param) {
-            const found = Object.keys(S.cities).find(k => S.cities[k].name === param);
-            if (found) {
-                startKey = found;
-            } else {
-                D.cityInput.value = param;
-                setTimeout(() => D.addBtn.click(), 150);
-                return;
-            }
-        }
-
-        loadCity(startKey);
+        loadCity('tobruk');
     };
 
     return { init };
