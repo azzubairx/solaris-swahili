@@ -1,5 +1,5 @@
 /* ================================================================
-   SolarisSwahili v2.0 — نظام التصميم الاحترافي
+   SolarisSwahili v3.0 — نظام التصميم
    css/style.css
    ================================================================ */
 
@@ -16,13 +16,13 @@
 
     /* النصوص */
     --text-pri:      #111827;
-    --text-sec:      #4B5563;   /* تباين > 4.5:1 على الأبيض */
+    --text-sec:      #4B5563;
 
-    /* المساحد والتفاصيل */
+    /* التفاصيل */
     --accent:        #9CA3AF;
     --accent-faint:  rgba(156, 163, 175, 0.25);
-    --day-clr:       #D97706;   /* Amber 600 */
-    --night-clr:     #4338CA;   /* Indigo 700 */
+    --day-clr:       #D97706;
+    --night-clr:     #4338CA;
     --glow-sun:      rgba(251, 191, 36, 0.35);
     --shadow:        rgba(0, 0, 0, 0.06);
 }
@@ -79,10 +79,31 @@ body::before {
 body.theme-night::before { opacity: 0.30; }
 
 /* ── 6. طبقة النجوم ──────────────────────────────────────────── */
-#stars-layer { animation: twinkle 7s infinite alternate ease-in-out; }
-@keyframes twinkle {
-    from { opacity: 0;    }
+/*
+ * الطريقة الصحيحة: نستخدم CSS transition للتحكم في الظهور
+ * ونحذف animation التي كانت تتعارض مع inline-style الذي يضعه JS.
+ * تأثير "البريق" موجود في keyframes twinkle-fade ويُفعَّل بالصنف
+ * .stars-visible فقط — حين يغيب الصنف تعود opacity إلى 0 بسلاسة.
+ */
+#stars-layer {
+    opacity: 0;
+    transition: opacity 2.5s ease;
+}
+
+#stars-layer.stars-visible {
+    animation: stars-twinkle 8s ease-in-out infinite alternate;
+}
+
+@keyframes stars-twinkle {
+    from { opacity: 0.55; }
     to   { opacity: 0.92; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #stars-layer.stars-visible {
+        animation: none;
+        opacity: 0.80;
+    }
 }
 
 /* ── 7. Loader ───────────────────────────────────────────────── */
@@ -98,6 +119,10 @@ body.theme-night::before { opacity: 0.30; }
     animation: spin 0.85s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .loader-ring { animation-duration: 1.8s; }
+}
 
 /* ── 8. بطاقات الزجاج (Glassmorphism) ───────────────────────── */
 .card {
@@ -124,11 +149,18 @@ body.theme-night::before { opacity: 0.30; }
     cursor: pointer;
     backdrop-filter: blur(16px);
     box-shadow: 0 2px 10px var(--shadow);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 .ctrl-btn:hover  { transform: scale(1.1);  box-shadow: 0 4px 18px var(--shadow); }
 .ctrl-btn:active { transform: scale(0.94); }
-.ctrl-btn:focus-visible { outline: 2px solid var(--text-pri); outline-offset: 3px; }
+.ctrl-btn:focus-visible {
+    outline: 2px solid var(--text-pri);
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ctrl-btn { transition: none; }
+}
 
 /* ── 10. أزرار المدن ─────────────────────────────────────────── */
 .city-btn {
@@ -157,6 +189,11 @@ body.theme-night::before { opacity: 0.30; }
     font-weight: 800;
     box-shadow: 0 2px 8px var(--shadow);
     transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .city-btn { transition: color 0.1s, background 0.1s; }
+    .city-btn:hover { transform: none; }
 }
 
 /* ── 11. حقل الإدخال وزر الإضافة ────────────────────────────── */
@@ -200,8 +237,9 @@ body.theme-night::before { opacity: 0.30; }
     transition: all 0.6s ease;
 }
 
-/* ── 15. الرقم التفصيلي النسبي ───────────────────────────────── */
+/* ── 15. الرقم التفصيلي ──────────────────────────────────────── */
 .metric-num { color: var(--text-pri); letter-spacing: 0.06em; }
+.metric-label { color: var(--text-sec); }
 
 /* ── 16. Tooltip ─────────────────────────────────────────────── */
 .tip-box {
@@ -246,6 +284,10 @@ body.theme-night .cd-dot { background: var(--night-clr); }
     animation: pulse-ring 2.4s ease-out infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .prayer-pulse { animation: none; r: 7; opacity: 0.7; }
+}
+
 /* ── 19. الجسم السماوي والقوس ───────────────────────────────── */
 #progress-arc    { transition: stroke-dashoffset 0.95s linear; }
 #celestial-body  { transition: transform 0.95s linear; }
@@ -257,6 +299,12 @@ body.theme-night .cd-dot { background: var(--night-clr); }
     to   { opacity: 0.30; r: 20; }
 }
 #sun-halo { animation: halo-breathe 4.5s ease-in-out infinite alternate; }
+
+@media (prefers-reduced-motion: reduce) {
+    #progress-arc   { transition: none; }
+    #celestial-body { transition: none; }
+    #sun-halo       { animation: none; opacity: 0.20; }
+}
 
 /* ── 20. شريط النهار والليل ──────────────────────────────────── */
 .dl-bg    { background: var(--accent-faint); }
@@ -297,9 +345,21 @@ body.theme-night .cd-dot { background: var(--night-clr); }
 .err-icon     { color: #FCA5A5; }
 .err-title    { color: #FEF2F2; }
 .err-body     { color: #FECACA; }
-.retry-btn    { background: #FEF2F2; color: #4B0000; font-weight: 800; cursor: pointer; transition: background 0.15s; }
+.retry-btn    {
+    background: #FEF2F2; color: #4B0000;
+    font-weight: 800; cursor: pointer;
+    transition: background 0.15s;
+    border: none;
+}
 .retry-btn:hover { background: #ffffff; }
+.retry-btn:focus-visible { outline: 2px solid #FCA5A5; outline-offset: 2px; }
 
 /* ── 24. خطأ الإدخال ─────────────────────────────────────────── */
 .input-err { color: #EF4444; }
 body.theme-night .input-err { color: #F87171; }
+
+/* ── 25. WakeLock indicator (ambient mode) ───────────────────── */
+.wakelock-active #share-btn {
+    /* subtle ring when WakeLock is held — purely informational */
+    box-shadow: 0 0 0 2px var(--night-clr), 0 2px 10px var(--shadow);
+}
