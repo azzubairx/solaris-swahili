@@ -28,7 +28,8 @@ const App = (() => {
         solar       : null,
         prayers     : null,
         tickId      : null,
-        manualTheme : false
+        manualTheme : false,
+        is24Hour    : localStorage.getItem('is24Hour') === 'true' // جلب اختيار المستخدم المحفوظ
     };
 
 
@@ -65,6 +66,7 @@ const App = (() => {
         sunIco      : $('sun-icon'),
         moonIco     : $('moon-icon'),
         shareBtn    : $('share-btn'),
+        formatBtn   : $('time-format-toggle'), // الزر الجديد
         cityInput   : $('city-input'),
         addBtn      : $('add-btn'),
         cityErr     : $('city-error'),
@@ -96,20 +98,26 @@ const App = (() => {
         return mS ? `${hS} و${mS}` : hS;
     };
 
-    // استخراج التاريخ المحلي "للمدينة المطلوبة" بدلاً من جهاز المستخدم
+    // استخراج التاريخ المحلي "للمدينة المطلوبة"
     const getCityDateStr = (offsetMins, offDays = 0) => {
         const localMs = Date.now() + (offsetMins * 60000) + (offDays * 86400000);
         return new Date(localMs).toISOString().split('T')[0];
     };
 
-    // تنسيق الطابع الزمني المطلق إلى وقت محلي مقروء للمدينة المعنية (12 ساعة)
-    const formatLocal = (ms, offsetMins) => {
+    // دالة تنسيق الوقت الذكية (تدعم 12 و 24 ساعة حسب اختيار المستخدم)
+    const formatLocal = (ms, offsetMins, showSecs = false) => {
         const d = new Date(ms + offsetMins * 60000);
         const h = d.getUTCHours();
         const m = d.getUTCMinutes();
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const h12 = h % 12 || 12;
-        return `${pad(h12)}:${pad(m)} ${ampm}`;
+        const s = d.getUTCSeconds();
+        
+        if (S.is24Hour) {
+            return showSecs ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(h)}:${pad(m)}`;
+        } else {
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            return showSecs ? `${pad(h12)}:${pad(m)}:${pad(s)} ${ampm}` : `${pad(h12)}:${pad(m)} ${ampm}`;
+        }
     };
 
     const genStars = () => {
@@ -181,7 +189,6 @@ const App = (() => {
        4.  CACHE 
     ═══════════════════════════════════════════════════════ */
     const Cache = {
-        // نستخدم مفتاحاً يعتمد على نافذة زمنية (3 ساعات) لتجنب أخطاء تداخل الأيام
         getKey: (prefix, lat, lng) => `${prefix}_${lat}_${lng}_${Math.floor(Date.now() / 10800000)}`,
         get: k => {
             try { return JSON.parse(localStorage.getItem(k)); } catch { return null; }
@@ -203,9 +210,7 @@ const App = (() => {
 
             D.loaderTxt.textContent = 'جاري جلب بيانات الشمس...';
             
-            // Open-Meteo: طلب واحد يجلب بيانات الأمس واليوم والغد مع حساب الـ Timezone!
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=sunrise,sunset,daylight_duration&timezone=auto&past_days=1&forecast_days=2`;
-            
             const response = await fetch(url).then(r => r.json());
 
             if (response.error || !response.daily) {
@@ -215,35 +220,28 @@ const App = (() => {
             const daily = response.daily;
             const offMins = Math.round(response.utc_offset_seconds / 60);
 
-            // دالة التعقيم (تمنع المتصفح من استخدام منطقته الزمنية وتجبره على المطلق)
             const parseOM = (str) => {
-                if (!str) return null; // حماية ضد الأيام القطبية (قيمة فارغة)
+                if (!str) return null; 
                 return new Date(str + "Z").getTime() - (offMins * 60000);
             };
 
-            // المؤشرات في Open-Meteo: 0=الأمس, 1=اليوم, 2=الغد
             let ySunset   = parseOM(daily.sunset[0]);
             let tSunrise  = parseOM(daily.sunrise[1]);
             let tSunset   = parseOM(daily.sunset[1]);
             let tmSunrise = parseOM(daily.sunrise[2]);
 
-            // حماية المدن القطبية (نهار أو ليل مستمر)
             if (!tSunrise || !tSunset) {
                 throw new Error('هذه المدينة تمر بفترة نهار قطبي أو ليل قطبي مستمر (لا يوجد شروق أو غروب واضح حالياً).');
             }
 
-            // تأمين الأيام المجاورة إن كانت قطبية لضمان استمرار الساعة
             if (!ySunset) ySunset = tSunset - 86400000;
             if (!tmSunrise) tmSunrise = tSunrise + 86400000;
 
-            /* ── مصحح التسلسل الزمني الصارم (Chronological Enforcer) ── */
             if (ySunset >= tSunrise)  ySunset  -= 86400000; 
             if (tSunset <= tSunrise)  tSunset  += 86400000; 
             if (tmSunrise <= tSunset) tmSunrise += 86400000; 
 
-            // طول النهار بالثواني محول إلى مللي ثانية
             const dayLenMs   = daily.daylight_duration[1] * 1000;
-            // طول الليل يحسب بناءً على الفرق الدقيق بين غروب اليوم وشروق الغد
             const nightLenMs = tmSunrise - tSunset;
 
             const data = {
@@ -266,7 +264,6 @@ const App = (() => {
             if (cached) return cached;
 
             D.loaderTxt.textContent = 'جاري جلب مواقيت الصلاة...';
-            // نستخدم Timestamp مطلق، وواجهة الصلاة ستتكفل بحساب المنطقة الزمنية للمدينة
             const ts = Math.floor(Date.now() / 1000);
             const res = await fetch(
                 `https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lng}&method=4`
@@ -285,7 +282,6 @@ const App = (() => {
     const Prayers = {
         toMS: (hhmm, offsetMins, tmrw = false) => {
             if (!hhmm) return 0;
-            // استخراج الوقت بدون لواحق زمنية مثل (BST) التي تأتي أحياناً من API الصلاة
             const timeOnly = hhmm.split(' ')[0];
             const dStr = getCityDateStr(offsetMins, tmrw ? 1 : 0);
             const iso = `${dStr}T${timeOnly}:00Z`;
@@ -314,12 +310,12 @@ const App = (() => {
 
             D.prayerList.innerHTML = Object.keys(CFG.PRAYER_AR).map(k => {
                 const ms = Prayers.toMS(S.prayers[k], utcOff);
-                const tStr = formatLocal(ms, utcOff);
+                const tStr = formatLocal(ms, utcOff); // يقرأ التنسيق الجديد مباشرة
                 const isNxt = next && next.name === k;
                 return `<div class="prayer-item flex flex-col items-center gap-0.5 px-2 py-1
                                     ${isNxt ? 'prayer-item-next' : ''}">
                             <span class="p-name">${CFG.PRAYER_AR[k]}</span>
-                            <span class="p-time" dir="ltr">${tStr.split(' ')[0]}</span>
+                            <span class="p-time" dir="ltr">${tStr}</span>
                         </div>`;
             }).join('');
         },
@@ -450,10 +446,7 @@ const App = (() => {
             );
 
             /* ── التوقيت القياسي للمدينة ── */
-            D.stdTime.textContent = formatLocal(now, utcOff).split(' ')[0] + ':' + pad(new Date(now).getUTCSeconds());
-            // إضافة مؤشر AM/PM
-            const ampm = formatLocal(now, utcOff).split(' ')[1];
-            D.stdTime.textContent += ` ${ampm}`;
+            D.stdTime.textContent = formatLocal(now, utcOff, true); // يراعي الـ12/24 ويظهر الثواني
 
             /* ══ تحريك الجسم السماوي ══ */
             const angle = Math.PI * (1 - prog);
@@ -492,7 +485,6 @@ const App = (() => {
         D.cityName.textContent = city.name;
 
         try {
-            // جلب البيانات فلكياً ومن واجهة الصلاة بالتوازي
             const [solar, prayers] = await Promise.all([
                 API.fetchSolar(city.lat, city.lng),
                 API.fetchPrayers(city.lat, city.lng)
@@ -595,6 +587,24 @@ const App = (() => {
     const init = () => {
         genStars();
         buildBtns();
+
+        // إعداد نص الزر المبدئي بناءً على ما حُفظ مسبقاً في المتصفح
+        D.formatBtn.textContent = S.is24Hour ? '12H' : '24H';
+
+        // وظيفة التبديل بين 12 و 24
+        D.formatBtn.onclick = () => {
+            S.is24Hour = !S.is24Hour;
+            localStorage.setItem('is24Hour', S.is24Hour);
+            D.formatBtn.textContent = S.is24Hour ? '12H' : '24H';
+            
+            // إعادة رسم الواجهة فوراً بالتنسيق الجديد إن كانت المدينة محملة
+            if (S.solar) {
+                D.sunriseEl.textContent = formatLocal(S.solar.todaySunrise, S.solar.utcOff);
+                D.sunsetEl.textContent  = formatLocal(S.solar.todaySunset, S.solar.utcOff);
+                Prayers.renderBar();
+                Clock.run(); 
+            }
+        };
 
         D.addBtn.onclick = async () => {
             const val = D.cityInput.value.trim();
