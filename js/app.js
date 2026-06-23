@@ -342,7 +342,7 @@ const SolarisSwahili = (() => {
             return secs ? `${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(h)}:${pad(m)}`;
         }
 
-        /* Arabic indicators: ص = صباحاً (AM), م = مساءً (PM) */
+        /* Arabic indicators: ص = صباحًا (AM), م = مساءً (PM) */
         const suffix = h >= 12 ? 'م' : 'ص';
         const h12    = h % 12 || 12;
         return secs
@@ -458,7 +458,7 @@ const SolarisSwahili = (() => {
             }
 
             if (resp.error || !resp.daily)
-                throw new Error('بيانات الشمس غير متاحة حالياً. يرجى المحاولة لاحقاً.');
+                throw new Error('بيانات الشمس غير متاحة حاليًا. يرجى المحاولة لاحقًا.');
 
             const offMins = Math.round(resp.utc_offset_seconds / 60);
 
@@ -476,7 +476,7 @@ const SolarisSwahili = (() => {
             let tmSunrise = parseLocal(resp.daily.sunrise[2]);
 
             if (!tSunrise || !tSunset)
-                throw new Error('لا يوجد شروق أو غروب واضح حالياً (قد تكون المدينة في منطقة قطبية).');
+                throw new Error('لا يوجد شروق أو غروب واضح حاليًا (قد تكون المدينة في منطقة قطبية).');
 
             /* Temporal ordering guards for edge cases. */
             if (!ySunset)             ySunset   = tSunset   - 86_400_000;
@@ -733,6 +733,19 @@ const SolarisSwahili = (() => {
 
             const now = Date.now();
             const { yesterdaySunset, todaySunrise, todaySunset, tomorrowSunrise, utcOff } = S.solar;
+
+            /*
+             * Midnight-crossing guard.
+             * Open-Meteo data covers yesterday→today→tomorrow.  Once `now`
+             * passes `tomorrowSunrise` the daytime data is stale and progress
+             * would be clamped at 1.  Silently reload the active city so the
+             * clock continues correctly on the new calendar day.
+             */
+            if (now > tomorrowSunrise + 60_000) {           // 1-min grace
+                if (S.tickId) { clearInterval(S.tickId); S.tickId = null; }
+                if (S.activeKey) Cities.load(S.activeKey);
+                return;
+            }
 
             /* ── Determine current phase ─────────────────────────── */
             let phase, startMs, endMs;
@@ -1017,8 +1030,9 @@ const SolarisSwahili = (() => {
             D.ambOverlay.style.display = 'flex';
             const ambStars = el('amb-stars');
             if (ambStars) {
+                /* Generate star positions once; Ambient.update() toggles
+                   .stars-visible based on day/night phase. */
                 genStars(ambStars);
-                ambStars.classList.add('stars-visible'); // shows only when night
             }
 
             /* Request fullscreen and WakeLock */
@@ -1435,9 +1449,8 @@ const SolarisSwahili = (() => {
             const isNight = document.body.classList.toggle('theme-night');
             Sky.setIcons(isNight);
             Sky.setManual(isNight);
+            /* localStorage.setItem fires the native storage event in other tabs. */
             try { localStorage.setItem('ss_theme', isNight ? 'night' : 'day'); } catch { /* blocked */ }
-            /* Notify other tabs */
-            window.dispatchEvent(new StorageEvent('storage', { key: 'ss_theme', newValue: isNight ? 'night' : 'day' }));
             if (D.resetBtn) {
                 D.resetBtn.classList.remove('hidden');
                 requestAnimationFrame(() => D.resetBtn.classList.remove('opacity-0', 'translate-x-3'));
