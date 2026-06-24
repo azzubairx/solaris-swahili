@@ -289,6 +289,7 @@ body.theme-night::before { opacity: 0.18; filter: invert(1); }
 .city-input::placeholder { color: var(--text-sec); opacity: 0.55; }
 .city-input:focus {
     border-color: var(--accent);
+    /* box-shadow acts as the visible focus ring — outline suppressed intentionally */
     box-shadow: 0 0 0 3px var(--accent-faint);
     outline: none;
 }
