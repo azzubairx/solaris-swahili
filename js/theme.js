@@ -2,17 +2,13 @@
  * SolarisSwahili — js/theme.js
  *
  * Runs synchronously as the very first <script> inside <body> on every page.
- * Restores the saved colour theme and generates star positions before the
- * browser paints, preventing any flash of unstyled content.
- *
- * NOTE: Star *visibility* is controlled exclusively via the CSS class
- * `.stars-visible` — never via inline `opacity`. This lets the CSS
- * `stars-twinkle` animation take effect without being overridden.
+ * Restores saved colour theme, generates star positions, and wires the
+ * hamburger navigation toggle — all before the browser paints.
  */
 (function () {
     'use strict';
 
-    /** Apply sky CSS variables and body class for a given theme name. */
+    /* ── Theme restore ──────────────────────────────────────── */
     function applyTheme(theme) {
         var root = document.documentElement;
         if (theme === 'night') {
@@ -27,38 +23,66 @@
     }
 
     var saved = null;
-    try { saved = localStorage.getItem('ss_theme'); } catch (e) { /* localStorage blocked */ }
-
+    try { saved = localStorage.getItem('ss_theme'); } catch (e) {}
     if (saved) applyTheme(saved);
 
-    /* ── Generate star background image ────────────────────────────── */
+    /* ── Star background ────────────────────────────────────── */
     var stars = document.getElementById('stars-layer');
-    if (!stars) return;
-
-    var parts = [];
-    for (var i = 0; i < 155; i++) {
-        var x = (Math.random() * 100).toFixed(1);
-        var y = (Math.random() * 100).toFixed(1);
-        var s = (Math.random() * 1.8 + 0.3).toFixed(1);
-        var o = (Math.random() * 0.65 + 0.28).toFixed(2);
-        parts.push(
-            'radial-gradient(' + s + 'px ' + s + 'px at ' + x + '% ' + y +
-            '%, rgba(255,255,255,' + o + '), transparent)'
-        );
+    if (stars) {
+        var parts = [];
+        for (var i = 0; i < 155; i++) {
+            var x = (Math.random() * 100).toFixed(1);
+            var y = (Math.random() * 100).toFixed(1);
+            var s = (Math.random() * 1.8 + 0.3).toFixed(1);
+            var o = (Math.random() * 0.65 + 0.28).toFixed(2);
+            parts.push('radial-gradient(' + s + 'px ' + s + 'px at ' + x + '% ' + y +
+                       '%, rgba(255,255,255,' + o + '), transparent)');
+        }
+        stars.style.backgroundImage = parts.join(',');
+        if (saved === 'night') stars.classList.add('stars-visible');
     }
-    stars.style.backgroundImage = parts.join(',');
 
-    /* Add CSS class for night theme — CSS animation handles opacity. */
-    if (saved === 'night') stars.classList.add('stars-visible');
-
-    /* ── Cross-tab theme sync ────────────────────────────────────── */
+    /* ── Cross-tab theme sync ───────────────────────────────── */
     window.addEventListener('storage', function (e) {
         if (e.key !== 'ss_theme') return;
         applyTheme(e.newValue || '');
-        if (e.newValue === 'night') {
-            stars.classList.add('stars-visible');
-        } else {
-            stars.classList.remove('stars-visible');
+        if (stars) {
+            e.newValue === 'night'
+                ? stars.classList.add('stars-visible')
+                : stars.classList.remove('stars-visible');
         }
     });
+
+    /* ── Hamburger menu toggle (all pages) ──────────────────── */
+    /*
+     * Runs here so the toggle works on every page (about, compare,
+     * dashboard) without depending on app.js or i18n.js loading first.
+     */
+    var hamburger = document.getElementById('nav-toggle');
+    var navLinks  = document.getElementById('nav-links');
+
+    if (hamburger && navLinks) {
+        hamburger.addEventListener('click', function () {
+            var open = navLinks.classList.toggle('nav-open');
+            hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+
+        /* Close when a nav link is tapped */
+        navLinks.addEventListener('click', function (e) {
+            if (e.target.closest('.nav-link')) {
+                navLinks.classList.remove('nav-open');
+                hamburger.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        /* Close when tapping outside the menu */
+        document.addEventListener('click', function (e) {
+            if (navLinks.classList.contains('nav-open') &&
+                !hamburger.contains(e.target) &&
+                !navLinks.contains(e.target)) {
+                navLinks.classList.remove('nav-open');
+                hamburger.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
 })();

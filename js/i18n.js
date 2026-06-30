@@ -1,12 +1,6 @@
 /**
  * SolarisSwahili — js/i18n.js
- *
- * Shared internationalisation module for subpages (about, compare, dashboard).
- * The main page (index.html) uses its own inline Lang object inside app.js.
- *
- * Exports a single global `SubI18N` object with:
- *   SubI18N.getLang()  → 'ar' | 'en'
- *   SubI18N.toggle()   → switches language and re-applies DOM translations
+ * Shared translation module for subpages (about, compare, dashboard).
  */
 const SubI18N = (function () {
     'use strict';
@@ -27,7 +21,7 @@ const SubI18N = (function () {
     };
 
     let lang = 'ar';
-    try { lang = localStorage.getItem('ss_lang') || 'ar'; } catch { /* blocked */ }
+    try { lang = localStorage.getItem('ss_lang') || 'ar'; } catch {}
 
     function apply() {
         const isAr = lang === 'ar';
@@ -39,13 +33,13 @@ const SubI18N = (function () {
             if (val !== undefined) el.textContent = val;
         });
 
+        /* Language toggle button always shows English abbreviations */
         const lb = document.getElementById('lang-toggle');
-        if (lb) lb.textContent = isAr ? 'EN' : 'عر';
+        if (lb) lb.textContent = isAr ? 'EN' : 'AR';
     }
 
     apply();
 
-    /* Cross-tab language sync */
     window.addEventListener('storage', e => {
         if (e.key !== 'ss_lang') return;
         lang = e.newValue || 'ar';
@@ -58,7 +52,7 @@ const SubI18N = (function () {
         getLang: () => lang,
         toggle: () => {
             lang = lang === 'ar' ? 'en' : 'ar';
-            try { localStorage.setItem('ss_lang', lang); } catch { /* blocked */ }
+            try { localStorage.setItem('ss_lang', lang); } catch {}
             apply();
             if (typeof renderCards === 'function') renderCards();
             if (typeof renderAll   === 'function') renderAll();

@@ -55,6 +55,7 @@ const SolarisSwahili = (() => {
             min1: 'دقيقة', min2: 'دقيقتان', minN: 'دقائق', minMany: 'دقيقة',
             hr1:  'ساعة',  hr2:  'ساعتان',  hrN:  'ساعات',  hrMany: 'ساعة',
             and: 'و',      removeCity: 'إزالة المدينة',
+            sincePhaseStart: 'منذ بداية الطور',
         },
         en: {
             navHome:      'Home',          navAbout:     'About',
@@ -91,6 +92,7 @@ const SolarisSwahili = (() => {
             min1: 'minute', min2: 'minutes', minN: 'minutes', minMany: 'minutes',
             hr1: 'hour', hr2: 'hours', hrN: 'hours', hrMany: 'hours',
             and: 'and',    removeCity: 'Remove city',
+            sincePhaseStart: 'since phase start',
         },
     };
 
@@ -137,7 +139,7 @@ const SolarisSwahili = (() => {
             });
 
             const lb = document.getElementById('lang-toggle');
-            if (lb) lb.textContent = isAr ? 'EN' : 'عر';
+            if (lb) lb.textContent = isAr ? 'EN' : 'AR';
 
             updateDateDisplay();
         },
@@ -829,7 +831,7 @@ const SolarisSwahili = (() => {
              *
              * sweep-flag = 1 (clockwise in SVG y-down space).
              * Clockwise from (20,140) passes through (150,10) — the apex —
-             * before reaching (280,140).  This is the UPPER semicircle. ✓
+             * before reaching (280,140).  This is the UPPER semicircle (correct).
              *
              * Parametric formula:
              *   angle = π × (1 − progress)       [π → 0 as progress 0 → 1]
@@ -837,9 +839,9 @@ const SolarisSwahili = (() => {
              *   cy    = 140 − 130 × sin(angle)   [subtract because y↓ in SVG]
              *
              * Verification at key points:
-             *   progress = 0   → angle = π   → (20,  140)  sunrise/sunset ✓
-             *   progress = 0.5 → angle = π/2 → (150,  10)  apex ✓
-             *   progress = 1   → angle = 0   → (280, 140)  sunset/sunrise ✓
+             *   progress = 0   → angle = π   → (20,  140)  sunrise/sunset (correct)
+             *   progress = 0.5 → angle = π/2 → (150,  10)  apex (correct)
+             *   progress = 1   → angle = 0   → (280, 140)  sunset/sunrise (correct)
              */
             const angle = Math.PI * (1 - progress);
             const cx    = 150 + 130 * Math.cos(angle);
@@ -890,90 +892,221 @@ const SolarisSwahili = (() => {
         async generate() {
             await document.fonts.ready;
 
+            const W = 1080, H = 1080;
             const canvas = document.createElement('canvas');
-            canvas.width = 1080; canvas.height = 1080;
-            const ctx    = canvas.getContext('2d');
-            const isAr   = Lang.current === 'ar';
+            canvas.width = W; canvas.height = H;
+            const ctx  = canvas.getContext('2d');
+            const isAr = Lang.current === 'ar';
 
+            /* ── Collect data ────────────────────────────────── */
             const solar = S.solar;
             const now   = Date.now();
             let prog = 0.5, isNight = false;
-
             if (solar) {
                 const { todaySunrise, todaySunset, yesterdaySunset, tomorrowSunrise } = solar;
                 isNight = now < todaySunrise || now >= todaySunset;
-                const st = isNight ? (now < todaySunrise ? yesterdaySunset : todaySunset) : todaySunrise;
-                const en = isNight ? (now < todaySunrise ? todaySunrise : tomorrowSunrise) : todaySunset;
+                const st = isNight
+                    ? (now < todaySunrise ? yesterdaySunset : todaySunset)
+                    : todaySunrise;
+                const en = isNight
+                    ? (now < todaySunrise ? todaySunrise : tomorrowSunrise)
+                    : todaySunset;
                 prog = Math.max(0, Math.min(1, (now - st) / (en - st)));
             }
 
-            /* Background */
-            const bg = ctx.createRadialGradient(540, 540, 100, 540, 540, 800);
-            if (isNight) {
-                bg.addColorStop(0, '#1E1B4B'); bg.addColorStop(1, '#020617');
-            } else {
-                bg.addColorStop(0, '#FEF08A'); bg.addColorStop(1, '#F59E0B');
-            }
-            ctx.fillStyle = bg; ctx.fillRect(0, 0, 1080, 1080);
+            const city       = S.cities[S.activeKey];
+            const cityName   = (isAr ? city?.name    : (city?.nameEn    || city?.name))    || '--';
+            const countryStr = (isAr ? city?.country : (city?.countryEn || city?.country)) || '';
+            const hourStr    = D.hourNum?.textContent    || '--';
+            const phaseStr   = D.phaseDisp?.textContent  || '';
+            const elapsedStr = D.metricDisp?.textContent || '--:--:--';
+            const stdStr     = D.stdTime?.textContent    || '--:--:--';
+            const srStr      = solar ? formatLocal(solar.todaySunrise, solar.utcOff) : '--:--';
+            const ssStr      = solar ? formatLocal(solar.todaySunset,  solar.utcOff) : '--:--';
+            const dayLenStr  = solar ? fmtDur(solar.dayLengthMs)    : '--';
+            const nightLenStr = solar ? fmtDur(solar.nightLengthMs) : '--';
+            const dayFrac    = solar
+                ? (solar.dayLengthMs / (solar.dayLengthMs + solar.nightLengthMs))
+                : 0.5;
+            const dateStr = D.dateEl?.textContent || '';
 
-            /* Stars */
+            /* ── Palette ─────────────────────────────────────── */
+            const TXT = isNight ? '#F1F5F9' : '#111827';
+            const SEC = isNight ? '#94A3B8' : '#6B7280';
+            const ACC = isNight ? '#818CF8' : '#D97706';
+
+            /* ── Background ──────────────────────────────────── */
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
             if (isNight) {
-                for (let i = 0; i < 300; i++) {
-                    ctx.fillStyle = `rgba(255,255,255,${(Math.random()*0.5).toFixed(2)})`;
+                bgGrad.addColorStop(0, '#0F172A');
+                bgGrad.addColorStop(1, '#020617');
+            } else {
+                bgGrad.addColorStop(0, '#FFFBEB');
+                bgGrad.addColorStop(0.45, '#FDE68A');
+                bgGrad.addColorStop(1, '#F59E0B');
+            }
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, W, H);
+
+            if (isNight) {
+                for (let i = 0; i < 230; i++) {
                     ctx.beginPath();
-                    ctx.arc(Math.random()*1080, Math.random()*1080, Math.random()*2, 0, Math.PI*2);
+                    ctx.arc(Math.random() * W, Math.random() * H * 0.55,
+                            Math.random() * 1.8 + 0.3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255,255,255,${(Math.random()*0.6+0.2).toFixed(2)})`;
                     ctx.fill();
                 }
             }
 
-            /* Glass card */
-            ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 20;
-            ctx.fillStyle = isNight ? 'rgba(15,23,42,0.60)' : 'rgba(255,255,255,0.72)';
-            if (ctx.roundRect) {
-                ctx.beginPath(); ctx.roundRect(80, 140, 920, 800, 40); ctx.fill();
-            } else {
-                ctx.fillRect(80, 140, 920, 800);
-            }
-            ctx.shadowColor = 'transparent';
-            ctx.strokeStyle = isNight ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.55)';
+            /* ── Glass panel ─────────────────────────────────── */
+            ctx.shadowColor = 'rgba(0,0,0,0.40)';
+            ctx.shadowBlur  = 80;
+            ctx.shadowOffsetY = 16;
+            ctx.fillStyle   = isNight ? 'rgba(10,20,46,0.80)' : 'rgba(255,255,255,0.86)';
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(50, 50, 980, 980, 44);
+            else ctx.rect(50, 50, 980, 980);
+            ctx.fill();
+            ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+            ctx.strokeStyle = isNight ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.70)';
             ctx.lineWidth = 2; ctx.stroke();
 
-            const city   = S.cities[S.activeKey];
-            const cname  = (isAr ? city?.name : city?.nameEn) || city?.name || '';
-            const hourTxt = D.hourNum?.textContent  || '--';
-            const phase   = D.phaseDisp?.textContent || '';
-            const txtClr  = isNight ? '#FFFFFF' : '#111827';
-            const secClr  = isNight ? '#94A3B8' : '#4B5563';
+            const hr = (x1, x2, y, dash = false) => {
+                ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y);
+                ctx.strokeStyle = isNight ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+                ctx.lineWidth = 1;
+                if (dash) ctx.setLineDash([6, 6]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            };
 
-            ctx.textAlign   = 'center';
             ctx.textBaseline = 'middle';
+            ctx.textAlign    = 'center';
             ctx.direction    = isAr ? 'rtl' : 'ltr';
 
-            ctx.fillStyle = txtClr;
-            ctx.font = 'bold 280px "JetBrains Mono", monospace';
-            ctx.fillText(hourTxt, 540, 490);
-
-            ctx.fillStyle = secClr;
-            ctx.font = 'bold 52px "Tajawal", sans-serif';
-            ctx.fillText(phase, 540, 690);
-
-            ctx.fillStyle = txtClr;
-            ctx.font = 'bold 72px "Tajawal", sans-serif';
-            ctx.fillText(cname, 540, 260);
-
-            /* Arc */
-            ctx.beginPath(); ctx.arc(540, 820, 200, Math.PI, 0);
-            ctx.strokeStyle = isNight ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)';
-            ctx.lineWidth = 12; ctx.stroke();
-            ctx.beginPath(); ctx.arc(540, 820, 200, Math.PI, Math.PI + prog * Math.PI);
-            ctx.strokeStyle = isNight ? '#818CF8' : '#F59E0B';
-            ctx.lineWidth = 12; ctx.stroke();
-
-            /* Brand */
-            ctx.fillStyle = secClr;
-            ctx.font = 'bold 30px "JetBrains Mono", monospace';
+            /* ── Brand ───────────────────────────────────────── */
             ctx.direction = 'ltr';
-            ctx.fillText('SolarisSwahili', 540, 875);
+            ctx.fillStyle = SEC;
+            ctx.font = '500 26px "JetBrains Mono", monospace';
+            ctx.fillText('SolarisSwahili', 540, 100);
+            hr(140, 940, 122);
+
+            /* ── City + country ──────────────────────────────── */
+            ctx.direction = isAr ? 'rtl' : 'ltr';
+            const nameFz  = cityName.length > 12 ? 66 : cityName.length > 8 ? 80 : 92;
+            ctx.fillStyle = TXT;
+            ctx.font = `900 ${nameFz}px "Tajawal", sans-serif`;
+            ctx.fillText(cityName, 540, 206);
+
+            ctx.fillStyle = SEC;
+            ctx.font = '400 34px "Tajawal", sans-serif';
+            ctx.fillText(countryStr, 540, 264);
+            hr(140, 940, 300, true);
+
+            /* ── Date ────────────────────────────────────────── */
+            ctx.fillStyle = SEC;
+            ctx.font = '400 26px "Tajawal", sans-serif';
+            ctx.fillText(dateStr, 540, 336);
+
+            /* ── Hour display ────────────────────────────────── */
+            ctx.fillStyle = SEC;
+            ctx.font = '300 36px "Tajawal", sans-serif';
+            ctx.fillText(isAr ? 'الساعة السواحلية' : 'Swahili Hour', 540, 382);
+
+            ctx.fillStyle = ACC;
+            ctx.font = '700 210px "JetBrains Mono", monospace';
+            ctx.fillText(hourStr, 540, 536);
+
+            ctx.direction = isAr ? 'rtl' : 'ltr';
+            ctx.fillStyle = TXT;
+            ctx.font = '600 42px "Tajawal", sans-serif';
+            ctx.fillText(phaseStr, 540, 636);
+
+            ctx.direction = 'ltr';
+            ctx.fillStyle = SEC;
+            ctx.font = '300 40px "JetBrains Mono", monospace';
+            ctx.fillText(elapsedStr, 540, 690);
+
+            /* ── Arc ─────────────────────────────────────────── */
+            const aCX = 540, aCY = 912, aR = 172;
+
+            ctx.lineCap = 'round';
+
+            /* track */
+            ctx.beginPath(); ctx.arc(aCX, aCY, aR, Math.PI, 0, false);
+            ctx.strokeStyle = isNight ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
+            ctx.lineWidth = 10; ctx.stroke();
+
+            /* progress */
+            if (prog > 0.005) {
+                ctx.beginPath();
+                ctx.arc(aCX, aCY, aR, Math.PI, Math.PI + prog * Math.PI, false);
+                const ag = ctx.createLinearGradient(aCX - aR, 0, aCX + aR, 0);
+                if (isNight) {
+                    ag.addColorStop(0, '#3730A3'); ag.addColorStop(0.5, '#818CF8'); ag.addColorStop(1, '#3730A3');
+                } else {
+                    ag.addColorStop(0, '#F59E0B'); ag.addColorStop(0.45, '#38BDF8'); ag.addColorStop(1, '#F97316');
+                }
+                ctx.strokeStyle = ag; ctx.lineWidth = 10; ctx.stroke();
+            }
+            ctx.lineCap = 'butt';
+
+            /* celestial body */
+            const bAng = Math.PI * (1 - prog);
+            const bx   = aCX + aR * Math.cos(bAng);
+            const by   = aCY - aR * Math.sin(bAng);
+            const glowG = ctx.createRadialGradient(bx, by, 0, bx, by, 34);
+            glowG.addColorStop(0, isNight ? 'rgba(165,180,252,0.55)' : 'rgba(251,191,36,0.55)');
+            glowG.addColorStop(1, 'transparent');
+            ctx.fillStyle = glowG;
+            ctx.beginPath(); ctx.arc(bx, by, 34, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(bx, by, 16, 0, Math.PI * 2);
+            ctx.fillStyle   = isNight ? '#E0E7FF' : '#FFF9C4';
+            ctx.strokeStyle = isNight ? '#818CF8'  : '#F59E0B';
+            ctx.lineWidth = 4.5; ctx.fill(); ctx.stroke();
+
+            /* horizon dash */
+            ctx.beginPath();
+            ctx.moveTo(aCX - aR - 22, aCY); ctx.lineTo(aCX + aR + 22, aCY);
+            ctx.strokeStyle = isNight ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)';
+            ctx.lineWidth = 1.5; ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]);
+
+            /* sunrise | std time | sunset */
+            ctx.direction = 'ltr'; ctx.fillStyle = SEC;
+            ctx.font = '400 24px "JetBrains Mono", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(Lang.t('sunrise') + ' ' + srStr, aCX - aR,   aCY + 28);
+            ctx.fillText(stdStr,                           aCX,          aCY + 28);
+            ctx.fillText(ssStr + ' ' + Lang.t('sunset'),   aCX + aR,   aCY + 28);
+
+            /* day/night bar */
+            const bX = 120, bY = aCY + 58, bW = 840;
+            const bH = 10;
+            ctx.fillStyle = isNight ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(bX, bY, bW, bH, 5); else ctx.rect(bX, bY, bW, bH);
+            ctx.fill();
+            ctx.fillStyle = isNight ? '#818CF8' : '#F59E0B';
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(bX, bY, Math.round(bW * dayFrac), bH, 5);
+            else ctx.rect(bX, bY, Math.round(bW * dayFrac), bH);
+            ctx.fill();
+
+            ctx.direction = isAr ? 'rtl' : 'ltr';
+            ctx.fillStyle = SEC;
+            ctx.font = '400 24px "Tajawal", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(
+                (isAr ? 'النهار ' : 'Day ') + dayLenStr +
+                '   |   ' +
+                (isAr ? 'الليل ' : 'Night ') + nightLenStr,
+                540, aCY + 84
+            );
+
+            ctx.direction = 'ltr';
+            ctx.fillStyle = ACC;
+            ctx.font = '600 26px "JetBrains Mono", monospace';
+            ctx.fillText('SolarisSwahili', 540, aCY + 112);
 
             return canvas.toDataURL('image/png');
         },
@@ -1362,7 +1495,7 @@ const SolarisSwahili = (() => {
         Cities.buildButtons();
 
         /* Time-format button initial label */
-        if (D.formatBtn) D.formatBtn.textContent = S.is24Hour ? '12ساعة' : '24H';
+        if (D.formatBtn) D.formatBtn.textContent = S.is24Hour ? '12H' : '24H';
 
         /* ── Restore saved theme ─────────────────────────── */
         const savedTheme = (() => { try { return localStorage.getItem('ss_theme'); } catch { return null; } })();
@@ -1471,7 +1604,7 @@ const SolarisSwahili = (() => {
             D.formatBtn.onclick = () => {
                 S.is24Hour = !S.is24Hour;
                 try { localStorage.setItem('ss_24h', S.is24Hour); } catch { /* blocked */ }
-                D.formatBtn.textContent = S.is24Hour ? '12ساعة' : '24H';
+                D.formatBtn.textContent = S.is24Hour ? '12H' : '24H';
                 if (S.solar) {
                     D.sunriseEl.textContent = formatLocal(S.solar.todaySunrise, S.solar.utcOff);
                     D.sunsetEl.textContent  = formatLocal(S.solar.todaySunset,  S.solar.utcOff);
