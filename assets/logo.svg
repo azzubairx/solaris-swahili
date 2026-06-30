@@ -1,17 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 156 32" fill="none" role="img" aria-label="SolarisSwahili">
-  <!-- Arc representing the solar path -->
-  <path d="M 3 22 A 13 13 0 0 1 29 22"
-        stroke="#F59E0B" stroke-width="2.4" stroke-linecap="round"/>
-  <!-- Solar disc -->
-  <circle cx="16" cy="9" r="5.5" fill="#F59E0B"/>
-  <!-- Horizon dots -->
-  <circle cx="3"  cy="22" r="1.5" fill="#F59E0B" opacity="0.55"/>
-  <circle cx="29" cy="22" r="1.5" fill="#F59E0B" opacity="0.55"/>
-  <!-- Wordmark -->
-  <text x="38" y="22"
-        font-family="JetBrains Mono, Courier New, monospace"
-        font-size="13"
-        font-weight="600"
-        fill="currentColor"
-        letter-spacing="-0.3">SolarisSwahili</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 178 36" fill="none" role="img" aria-label="SolarisSwahili">
+  <!-- Outer glow halo -->
+  <circle cx="18" cy="13" r="11.5" fill="#F59E0B" opacity="0.18"/>
+  <!-- Sun disc -->
+  <circle cx="18" cy="13" r="6.5"  fill="#F59E0B"/>
+  <!-- Accent ring -->
+  <circle cx="18" cy="13" r="9.5"  stroke="#F59E0B" stroke-width="1" opacity="0.32"/>
+  <!-- Horizon arc -->
+  <path d="M 3 26 A 16 16 0 0 1 33 26"
+        stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Horizon anchor dots -->
+  <circle cx="3"  cy="26" r="1.8" fill="#F59E0B" opacity="0.52"/>
+  <circle cx="33" cy="26" r="1.8" fill="#F59E0B" opacity="0.52"/>
+  <!-- Wordmark — amber visible on both light and dark nav -->
+  <text x="44" y="23.5"
+        font-family="JetBrains Mono, 'Courier New', monospace"
+        font-size="13.5" font-weight="600"
+        fill="#F59E0B" letter-spacing="-0.35">SolarisSwahili</text>
 </svg>
