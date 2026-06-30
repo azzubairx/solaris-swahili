@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="قارن التوقيت السواحلي لعدة مدن في الوقت الفعلي">
+    <meta name="description" content="مقارنة التوقيت السواحلي بين مدن العالم في الوقت الحقيقي">
     <meta name="theme-color" content="#F3F4F6" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#020617"  media="(prefers-color-scheme: dark)">
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
-    <title>مقارنة المدن | SolarisSwahili</title>
-
+    <title>مقارنة | SolarisSwahili</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
@@ -17,523 +16,340 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="antialiased min-h-screen">
+<script src="js/theme.js"></script>
 
-    <script src="js/theme.js"></script>
+<nav class="site-nav" aria-label="التنقل الرئيسي">
+    <a href="index.html" class="nav-logo" aria-label="SolarisSwahili">
+        <img src="assets/logo.svg" alt="SolarisSwahili" height="28" width="auto">
+    </a>
+    <div class="nav-links" id="nav-links">
+        <a href="index.html"     class="nav-link"        data-i18n="navHome">الرئيسية</a>
+        <a href="about.html"     class="nav-link"        data-i18n="navAbout">عن المشروع</a>
+        <a href="compare.html"   class="nav-link active" data-i18n="navCompare">مقارنة</a>
+        <a href="dashboard.html" class="nav-link"        data-i18n="navDashboard">إحصائيات</a>
+    </div>
+    <div class="nav-right">
+        <button id="lang-toggle" class="lang-btn" aria-label="تبديل اللغة" onclick="SubI18N.toggle()">EN</button>
+        <button id="nav-toggle" class="nav-hamburger" aria-expanded="false" aria-label="قائمة التنقل">
+            <span class="nav-hamburger-bar"></span>
+            <span class="nav-hamburger-bar"></span>
+            <span class="nav-hamburger-bar"></span>
+        </button>
+    </div>
+</nav>
 
-    <nav class="site-nav" aria-label="التنقل الرئيسي">
-        <a href="index.html" class="nav-logo" aria-label="SolarisSwahili — الصفحة الرئيسية">
-            <img src="assets/logo.svg" alt="SolarisSwahili" height="28" width="auto">
-        </a>
-        <div class="nav-links">
-            <a href="index.html"     class="nav-link"        data-i18n="navHome">الرئيسية</a>
-            <a href="about.html"     class="nav-link"        data-i18n="navAbout">عن المشروع</a>
-            <a href="compare.html"   class="nav-link active" data-i18n="navCompare">مقارنة</a>
-            <a href="dashboard.html" class="nav-link"        data-i18n="navDashboard">إحصائيات</a>
-        </div>
-        <div class="nav-right">
-            <button id="lang-toggle" class="lang-btn"
-                    aria-label="تبديل اللغة"
-                    onclick="toggleLang()">EN</button>
-        </div>
-    </nav>
+<div id="stars-layer" class="fixed inset-0 pointer-events-none z-0" aria-hidden="true"></div>
 
-    <div id="stars-layer" class="fixed inset-0 pointer-events-none z-0" aria-hidden="true"></div>
+<div class="page-container px-4 pb-10">
 
-    <div class="page-container"
-         style="background:linear-gradient(160deg,var(--sky-top),var(--sky-bot));">
-
-        <div class="text-center pt-4 pb-6 px-4">
-            <p class="font-mono text-xs tracking-widest mb-2"
-               style="color:var(--text-sec)">LIVE COMPARISON</p>
-            <h1 class="font-extrabold text-2xl md:text-3xl mb-2"
-                style="color:var(--text-pri)">مقارنة المدن</h1>
-            <p class="text-sm max-w-md mx-auto" style="color:var(--text-sec)">
-                تابع التوقيت السواحلي الحي لعدة مدن في آنٍ واحد — يُحدَّث كل ثانية
-            </p>
-        </div>
-
-        <!-- Preset group buttons -->
-        <div class="compare-add-zone" role="group" aria-label="مجموعات جاهزة">
-            <span class="text-xs font-bold tracking-wider"
-                  style="color:var(--text-sec);align-self:center;">مجموعات:</span>
-            <button class="city-btn text-xs" onclick="loadGroup('libya')">🇱🇾 ليبيا</button>
-            <button class="city-btn text-xs" onclick="loadGroup('africa')">🌍 شمال أفريقيا</button>
-            <button class="city-btn text-xs" onclick="loadGroup('mideast')">🌏 الشرق الأوسط</button>
-            <button class="city-btn text-xs" onclick="loadGroup('world')">🌐 العالم</button>
-        </div>
-
-        <!-- Custom city input -->
-        <div class="compare-add-zone" style="gap:0.4rem;margin-bottom:2rem;">
-            <label for="compare-input" class="sr-only">أضف مدينةً (بالإنجليزية)</label>
-            <input id="compare-input"
-                   type="text" dir="ltr"
-                   placeholder="Add city… (e.g. Tokyo)"
-                   aria-label="اسم المدينة بالإنجليزية"
-                   class="city-input text-sm rounded-full px-4 py-2"
-                   style="width:210px;text-align:center;"
-                   onkeydown="if(event.key==='Enter')addCompareCity()"/>
-            <button onclick="addCompareCity()"
-                    class="add-btn text-sm font-bold rounded-full px-4 py-2"
-                    aria-label="إضافة المدينة">+</button>
-            <button onclick="clearAll()"
-                    class="city-btn text-xs px-3 py-2 rounded-full">مسح الكل</button>
-            <p id="compare-err"
-               class="input-err text-xs"
-               role="alert" aria-live="assertive"
-               style="display:none;width:100%;text-align:center;"></p>
-        </div>
-
-        <!-- Compare grid -->
-        <div id="compare-grid" class="compare-grid" aria-live="polite" aria-atomic="false"></div>
-
+    <!-- Header -->
+    <div class="text-center mb-8 pt-4">
+        <h1 class="text-2xl font-extrabold mb-2" style="color:var(--text-pri)" data-i18n="compareTitle">مقارنة التوقيت السواحلي</h1>
+        <p class="text-sm mb-4" style="color:var(--text-sec)" data-i18n="compareSub">الوقت الحقيقي لكل مدينة بحسب موضع شمسها</p>
         <!-- Legend -->
-        <div class="text-center mt-4 mb-8 px-4">
-            <p class="text-xs"
-               style="color:var(--text-sec);opacity:0.5;font-family:'JetBrains Mono',monospace;">
-                ☀️ = نهار &nbsp;|&nbsp; 🌙 = ليل &nbsp;|&nbsp;
-                الساعة = ساعاتٌ قياسيةٌ منذ الشروق أو الغروب
-            </p>
+        <div class="inline-flex items-center gap-3 text-xs px-4 py-2 rounded-full card"
+             style="color:var(--text-sec)">
+            <span class="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" style="color:var(--day-clr)" aria-hidden="true">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm0 13a5 5 0 100-10 5 5 0 000 10z"/>
+                </svg>
+                <span data-i18n="daytime">نهار</span>
+            </span>
+            <span style="opacity:0.35">|</span>
+            <span class="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" style="color:var(--night-clr)" aria-hidden="true">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                </svg>
+                <span data-i18n="nighttime">ليل</span>
+            </span>
+            <span style="opacity:0.35">|</span>
+            <span data-i18n="legendHour">الرقم = الساعة السواحلية</span>
         </div>
     </div>
 
-    <script src="js/i18n.js"></script>
-    <script>
+    <!-- Group selector + city search -->
+    <div class="max-w-3xl mx-auto mb-6">
+        <div class="flex flex-wrap justify-center gap-2 mb-4" role="group" aria-label="مجموعات المدن">
+            <button class="city-btn text-xs font-bold" onclick="loadGroup('libya')"   data-i18n="grpLibya">ليبيا</button>
+            <button class="city-btn text-xs" onclick="loadGroup('africa')"  data-i18n="grpAfrica">شمال أفريقيا</button>
+            <button class="city-btn text-xs" onclick="loadGroup('mideast')" data-i18n="grpMideast">الشرق الأوسط</button>
+            <button class="city-btn text-xs" onclick="loadGroup('world')"   data-i18n="grpWorld">حول العالم</button>
+        </div>
+        <!-- Add custom city -->
+        <div class="compare-add-zone">
+            <label for="cmp-city-input" class="sr-only">اسم مدينة للإضافة</label>
+            <input id="cmp-city-input" type="text" dir="ltr" autocomplete="off"
+                   placeholder="Cairo, Istanbul, Tokyo…"
+                   class="city-input text-sm rounded-full px-4 py-2 flex-1 min-w-[200px]">
+            <button id="cmp-add-btn" onclick="addCompareCity()"
+                    class="add-btn text-sm font-bold rounded-full px-5 py-2" data-i18n="addCity">إضافة</button>
+        </div>
+        <p id="cmp-city-err" class="input-err text-xs text-center mt-1 hidden" role="alert"></p>
+    </div>
+
+    <!-- Cards grid -->
+    <div id="cards-grid" class="compare-grid" aria-live="polite" aria-label="بطاقات التوقيت"></div>
+
+</div>
+
+<script src="js/i18n.js"></script>
+<script>
+(function () {
     'use strict';
 
-    /* ── Constants ───────────────────────────────────────────── */
-    const CACHE_TTL  = 6 * 3_600_000;  // 6 hours in ms
-    const pad        = n => String(n).padStart(2, '0');
+    /* ── SVG icon strings (no emojis) ───────────────────────── */
+    const ICO_SUN  = '<svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style="display:inline-block;vertical-align:-2px;color:var(--day-clr)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm0 13a5 5 0 100-10 5 5 0 000 10z"/></svg>';
+    const ICO_MOON = '<svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style="display:inline-block;vertical-align:-2px;color:var(--night-clr)"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>';
 
-    /* ── State ───────────────────────────────────────────────── */
-    const CITIES_STATE = {};  // { [id]: { city, solar } }
-    let tickId    = null;
-    let _groupGen = 0;        // generation counter for rapid group switching
-
-    /* ── Language ────────────────────────────────────────────── */
-    let isEn = SubI18N.getLang() === 'en';
-    function toggleLang() {
-        SubI18N.toggle();
-        isEn = SubI18N.getLang() === 'en';
-        renderCards();
-    }
-
-    /* ── City presets ─────────────────────────────────────────── */
+    /* ── City groups ─────────────────────────────────────────── */
     const GROUPS = {
-        libya: [
-            { name:'طبرق',   nameEn:'Tobruk',    country:'ليبيا',   countryEn:'Libya',   lat:32.0773, lng:23.9600 },
-            { name:'بنغازي', nameEn:'Benghazi',  country:'ليبيا',   countryEn:'Libya',   lat:32.1167, lng:20.0667 },
-            { name:'طرابلس', nameEn:'Tripoli',   country:'ليبيا',   countryEn:'Libya',   lat:32.8892, lng:13.1900 },
+        libya:   [
+            { name:'طبرق',  nameEn:'Tobruk',   country:'ليبيا', countryEn:'Libya', lat:32.0773, lng:23.9600 },
+            { name:'بنغازي',nameEn:'Benghazi',  country:'ليبيا', countryEn:'Libya', lat:32.1167, lng:20.0667 },
+            { name:'طرابلس',nameEn:'Tripoli',   country:'ليبيا', countryEn:'Libya', lat:32.8892, lng:13.1900 },
+            { name:'سبها',  nameEn:'Sabha',     country:'ليبيا', countryEn:'Libya', lat:27.0377, lng:14.4283 },
         ],
-        africa: [
-            { name:'طبرق',    nameEn:'Tobruk',   country:'ليبيا',   countryEn:'Libya',   lat:32.0773, lng:23.9600 },
-            { name:'القاهرة', nameEn:'Cairo',    country:'مصر',     countryEn:'Egypt',   lat:30.0444, lng:31.2357 },
-            { name:'تونس',    nameEn:'Tunis',    country:'تونس',    countryEn:'Tunisia', lat:36.8190, lng:10.1660 },
-            { name:'الخرطوم', nameEn:'Khartoum', country:'السودان', countryEn:'Sudan',   lat:15.5007, lng:32.5600 },
+        africa:  [
+            { name:'القاهرة', nameEn:'Cairo',   country:'مصر',   countryEn:'Egypt',    lat:30.0444, lng:31.2357 },
+            { name:'تونس',    nameEn:'Tunis',   country:'تونس',  countryEn:'Tunisia',  lat:36.8190, lng:10.1658 },
+            { name:'الجزائر', nameEn:'Algiers', country:'الجزائر',countryEn:'Algeria',  lat:36.7538, lng:3.0588  },
+            { name:'الرباط',  nameEn:'Rabat',   country:'المغرب', countryEn:'Morocco',  lat:34.0209, lng:-6.8416 },
+            { name:'الخرطوم', nameEn:'Khartoum',country:'السودان',countryEn:'Sudan',    lat:15.5007, lng:32.5599 },
         ],
         mideast: [
-            { name:'مكة',      nameEn:'Mecca',    country:'السعودية', countryEn:'Saudi Arabia', lat:21.3891, lng:39.8579 },
-            { name:'الرياض',   nameEn:'Riyadh',   country:'السعودية', countryEn:'Saudi Arabia', lat:24.6877, lng:46.7219 },
-            { name:'عمّان',    nameEn:'Amman',    country:'الأردن',   countryEn:'Jordan',       lat:31.9539, lng:35.9106 },
-            { name:'إسطنبول',  nameEn:'Istanbul', country:'تركيا',    countryEn:'Turkey',       lat:41.0082, lng:28.9784 },
+            { name:'الرياض', nameEn:'Riyadh',   country:'السعودية', countryEn:'Saudi Arabia', lat:24.6877, lng:46.7219 },
+            { name:'دبي',    nameEn:'Dubai',    country:'الإمارات',  countryEn:'UAE',           lat:25.2048, lng:55.2708 },
+            { name:'عمّان',  nameEn:'Amman',    country:'الأردن',    countryEn:'Jordan',        lat:31.9539, lng:35.9106 },
+            { name:'بيروت', nameEn:'Beirut',   country:'لبنان',     countryEn:'Lebanon',       lat:33.8938, lng:35.5018 },
+            { name:'صنعاء', nameEn:'Sanaa',    country:'اليمن',     countryEn:'Yemen',         lat:15.3694, lng:44.1910 },
         ],
-        world: [
-            { name:'لندن',    nameEn:'London',   country:'المملكة المتحدة', countryEn:'UK',        lat:51.5074, lng:-0.1278 },
-            { name:'طوكيو',   nameEn:'Tokyo',    country:'اليابان',         countryEn:'Japan',     lat:35.6762, lng:139.6503 },
-            { name:'نيويورك', nameEn:'New York', country:'الولايات المتحدة', countryEn:'USA',       lat:40.7128, lng:-74.0060 },
-            { name:'سيدني',   nameEn:'Sydney',   country:'أستراليا',        countryEn:'Australia', lat:-33.8688, lng:151.2093 },
+        world:   [
+            { name:'لندن',    nameEn:'London',   country:'المملكة المتحدة', countryEn:'UK',      lat:51.5074, lng:-0.1278  },
+            { name:'نيويورك', nameEn:'New York', country:'الولايات المتحدة',countryEn:'USA',     lat:40.7128, lng:-74.0060 },
+            { name:'طوكيو',   nameEn:'Tokyo',    country:'اليابان',          countryEn:'Japan',   lat:35.6762, lng:139.6503 },
+            { name:'موسكو',   nameEn:'Moscow',   country:'روسيا',            countryEn:'Russia',  lat:55.7558, lng:37.6173  },
+            { name:'سيدني',   nameEn:'Sydney',   country:'أستراليا',         countryEn:'Australia',lat:-33.8688,lng:151.2093},
         ],
     };
 
-    /* ── Cache helpers ────────────────────────────────────────── */
-    function cacheGet(k) {
+    /* ── State ───────────────────────────────────────────────── */
+    let cities     = [...GROUPS.libya];
+    let cardData   = {};                 /* key → data object      */
+    let tickTimer  = null;
+    let isEn       = SubI18N.getLang() === 'en';
+    const MS       = 60_000;
+    const TICK     = 1_000;
+
+    /* ── Open-Meteo solar fetch ──────────────────────────────── */
+    async function fetchSolar(city) {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lng}&daily=sunrise,sunset,daylight_duration&timezone=auto&forecast_days=3`;
+        const ctrl = new AbortController();
+        const id   = setTimeout(() => ctrl.abort(), 15_000);
         try {
-            const raw = localStorage.getItem(k);
-            if (!raw) return null;
-            const { ts, data } = JSON.parse(raw);
-            return (Date.now() - ts > CACHE_TTL) ? null : data;
-        } catch { return null; }
-    }
-    function cacheSet(k, data) {
-        try { localStorage.setItem(k, JSON.stringify({ ts: Date.now(), data })); } catch { /* full */ }
-    }
-
-    /* ── Solar data — Open-Meteo ──────────────────────────────── */
-    /**
-     * Fetch sunrise/sunset data from Open-Meteo.
-     *
-     * The API returns local-time ISO strings (no timezone marker).
-     * Convert to UTC by treating as UTC then subtracting the offset:
-     *   local time "06:02" in UTC+2 → 06:02Z − 120 min = 04:02 UTC ✓
-     *
-     * Array indices with past_days=1 & forecast_days=2:
-     *   [0] yesterday  [1] today  [2] tomorrow
-     */
-    async function fetchSolar(lat, lng) {
-        const bucket = Math.floor(Date.now() / CACHE_TTL);
-        const k      = `ss_cmp_${lat}_${lng}_${bucket}`;
-        const cached = cacheGet(k);
-        if (cached) return cached;
-
-        const url = 'https://api.open-meteo.com/v1/forecast'
-                  + `?latitude=${lat}&longitude=${lng}`
-                  + '&daily=sunrise,sunset,daylight_duration'
-                  + '&timezone=auto&past_days=1&forecast_days=2';
-
-        const resp = await fetch(url, { signal: AbortSignal.timeout(12_000) })
-                          .then(r => r.json());
-
-        if (resp.error || !resp.daily)
-            throw new Error('Solar data unavailable');
-
-        const offMins    = Math.round(resp.utc_offset_seconds / 60);
-        const parseLocal = str =>
-            str ? new Date(str + 'Z').getTime() - offMins * 60_000 : null;
-
-        let ySunset   = parseLocal(resp.daily.sunset[0]);
-        let tSunrise  = parseLocal(resp.daily.sunrise[1]);
-        let tSunset   = parseLocal(resp.daily.sunset[1]);
-        let tmSunrise = parseLocal(resp.daily.sunrise[2]);
-
-        if (!tSunrise || !tSunset)
-            throw new Error('No clear sunrise or sunset (polar region?)');
-
-        /* Temporal ordering guards */
-        if (!ySunset)             ySunset   = tSunset   - 86_400_000;
-        if (!tmSunrise)           tmSunrise = tSunrise  + 86_400_000;
-        if (ySunset  >= tSunrise) ySunset  -= 86_400_000;
-        if (tSunset  <= tSunrise) tSunset  += 86_400_000;
-        if (tmSunrise <= tSunset) tmSunrise += 86_400_000;
-
-        const data = {
-            yesterdaySunset:  ySunset,
-            todaySunrise:     tSunrise,
-            todaySunset:      tSunset,
-            tomorrowSunrise:  tmSunrise,
-            dayLengthMs:      resp.daily.daylight_duration[1] * 1_000,
-            nightLengthMs:    tmSunrise - tSunset,
-            utcOff:           offMins,
-            sunriseStr:       resp.daily.sunrise[1]?.slice(11, 16) || '--:--',
-            sunsetStr:        resp.daily.sunset[1]?.slice(11, 16)  || '--:--',
-        };
-        cacheSet(k, data);
-        return data;
+            const j = await fetch(url, { signal: ctrl.signal }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+            clearTimeout(id);
+            const offMins = j.utc_offset_seconds / 60;
+            const parseISO = s => new Date(s + 'Z').getTime() - offMins * 60_000;
+            const [sr0, sr1] = j.daily.sunrise.map(parseISO);
+            const [ss0, ss1] = j.daily.sunset.map(parseISO);
+            const dayLen = ss0 - sr0;
+            const dayLenMs    = dayLen;
+            const nightLenMs  = 86_400_000 - dayLen;
+            return { todaySunrise:sr0, todaySunset:ss0, yesterdaySunset:ss0 - 86_400_000,
+                     tomorrowSunrise:sr1, tomorrowSunset:ss1,
+                     dayLengthMs:dayLenMs, nightLengthMs:nightLenMs, utcOff:offMins };
+        } catch (e) { clearTimeout(id); throw e; }
     }
 
-    /* ── Swahili clock — ABSOLUTE 60-MINUTE MODEL ─────────────── */
-    /**
-     * Compute the current Swahili time from solar data.
-     *
-     * The Swahili hour is counted from the START of the current phase
-     * using standard 60-minute intervals.  The count is NOT capped at 12
-     * — in a 14-hour summer day the counter reaches 14 before sunset.
-     *
-     * Formula:
-     *   elapsed  = now − phaseStart
-     *   hour     = ⌊elapsed / 3 600 000⌋ + 1   (1-indexed)
-     */
+    /* ── Swahili computation (absolute, no 12h cap) ──────────── */
     function computeSwahili(solar) {
         const now = Date.now();
-        const { yesterdaySunset, todaySunrise, todaySunset,
-                tomorrowSunrise, utcOff } = solar;
-
-        let phase, startMs, endMs;
-        if (now < todaySunrise) {
-            phase = 'night'; startMs = yesterdaySunset; endMs = todaySunrise;
-        } else if (now < todaySunset) {
-            phase = 'day';   startMs = todaySunrise;    endMs = todaySunset;
-        } else {
-            phase = 'night'; startMs = todaySunset;     endMs = tomorrowSunrise;
-        }
-
-        const dur     = endMs - startMs;
-        const prog    = Math.max(0, Math.min(1, (now - startMs) / dur));
+        const { todaySunrise, todaySunset, yesterdaySunset, tomorrowSunrise } = solar;
+        const isNight = now < todaySunrise || now >= todaySunset;
+        const startMs = isNight
+            ? (now < todaySunrise ? yesterdaySunset : todaySunset)
+            : todaySunrise;
         const elapsed = now - startMs;
-
-        const pH = Math.floor(elapsed / 3_600_000);       // 0-indexed
-        const pM = Math.floor((elapsed % 3_600_000) / 60_000);
-        const pS = Math.floor((elapsed % 60_000)    / 1_000);
-
-        const loc  = new Date(now + utcOff * 60_000);
-        const civil = `${pad(loc.getUTCHours())}:${pad(loc.getUTCMinutes())}:${pad(loc.getUTCSeconds())}`;
-
-        const total  = solar.dayLengthMs + solar.nightLengthMs;
-        const dayPct = (solar.dayLengthMs / total * 100).toFixed(0);
-
-        return {
-            phase, prog,
-            hour: pH + 1,   // 1-indexed Swahili hour (no cap)
-            min: pM, sec: pS,
-            civil, dayPct,
-            dayLengthMs:   solar.dayLengthMs,
-            nightLengthMs: solar.nightLengthMs,
-            sunriseStr:    solar.sunriseStr,
-            sunsetStr:     solar.sunsetStr,
-        };
+        const hour    = Math.floor(elapsed / 3_600_000) + 1;
+        const mm      = Math.floor((elapsed % 3_600_000) / 60_000);
+        const ss      = Math.floor((elapsed % 60_000) / 1_000);
+        const pad     = n => String(n).padStart(2, '0');
+        return { hour, elapsed: `${pad(hour-1)}:${pad(mm)}:${pad(ss)}`, isNight };
     }
 
-    /* ── SVG arc builder ──────────────────────────────────────── */
-    /**
-     * Build a small semicircular arc SVG for a compare card.
-     *
-     * Arc path:  M 10 140 A 140 140 0 0 1 290 140
-     * Centre:    (150, 140)  Radius: 140
-     * sweep-flag = 1 → clockwise → upper semicircle ✓
-     *
-     * Celestial body position:
-     *   angle = π × (1 − progress)
-     *   cx    = 150 + 140 × cos(angle)
-     *   cy    = 140 − 140 × sin(angle)
-     */
-    function buildArcSVG(prog, isNight, cardId) {
-        const angle  = Math.PI * (1 - prog);
-        const cx     = (150 + 140 * Math.cos(angle)).toFixed(1);
-        const cy     = (140 - 140 * Math.sin(angle)).toFixed(1);
-        const dash   = (100 - prog * 100).toFixed(1);
-        const gid    = `cg-${String(cardId).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-
-        return `<svg viewBox="0 -20 300 170"
-                     style="width:100%;max-width:260px;overflow:visible;"
-                     aria-hidden="true">
-            <defs>
-                <linearGradient id="${gid}" x1="0%" y1="0%" x2="100%" y2="0%">
-                    ${isNight
-                        ? '<stop offset="0%" stop-color="#3730A3"/><stop offset="50%" stop-color="#818CF8"/><stop offset="100%" stop-color="#3730A3"/>'
-                        : '<stop offset="0%" stop-color="#F59E0B"/><stop offset="45%" stop-color="#38BDF8"/><stop offset="100%" stop-color="#F97316"/>'}
-                </linearGradient>
-            </defs>
-            <line x1="10" y1="140" x2="290" y2="140"
-                  stroke="var(--accent)" stroke-width="0.8"
-                  stroke-dasharray="4 4" opacity="0.3"/>
-            <path d="M 10 140 A 140 140 0 0 1 290 140"
-                  fill="none" stroke="var(--accent)"
-                  stroke-width="1.2" opacity="0.15"/>
-            <path d="M 10 140 A 140 140 0 0 1 290 140"
-                  fill="none" stroke="url(#${gid})"
-                  stroke-width="3.5"
-                  pathLength="100" stroke-dasharray="100"
-                  stroke-dashoffset="${dash}"
-                  stroke-linecap="round"/>
-            <circle cx="${cx}" cy="${cy}"
-                    r="${isNight ? 6 : 7}"
-                    fill="${isNight ? '#E0E7FF' : '#FFF9C4'}"
-                    stroke="${isNight ? '#818CF8' : '#F59E0B'}"
-                    stroke-width="${isNight ? 2 : 3}"/>
-        </svg>`;
+    /* ── Format helpers ──────────────────────────────────────── */
+    function fmtLocal(ms, offMins) {
+        const d = new Date(ms + offMins * 60_000);
+        return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
     }
-
-    /* ── Rendering ────────────────────────────────────────────── */
-    function renderCards() {
-        const grid = document.getElementById('compare-grid');
-
-        if (!Object.keys(CITIES_STATE).length) {
-            grid.innerHTML = `<p style="color:var(--text-sec);font-size:0.85rem;
-                               text-align:center;grid-column:1/-1;padding:3rem 0;">
-                               اختر مجموعةً أو أضف مدينةً للبدء</p>`;
-            return;
-        }
-
-        grid.innerHTML = '';
-        Object.entries(CITIES_STATE).forEach(([id, state]) => {
-            const card = document.createElement('div');
-            card.className = 'compare-card';
-            card.id = `card-${id}`;
-
-            const city   = state.city;
-            const cname  = isEn ? (city.nameEn  || city.name)    : city.name;
-            const ctry   = isEn ? (city.countryEn || city.country) : city.country;
-
-            if (!state.solar) {
-                /* Loading state */
-                card.innerHTML = `
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                        <div>
-                            <div class="compare-city-name">${cname}</div>
-                            <div class="compare-country">${ctry}</div>
-                        </div>
-                        <button onclick="removeCity('${id}')"
-                                class="city-del" style="width:22px;height:22px;font-size:0.85rem;"
-                                aria-label="إزالة ${cname}">×</button>
-                    </div>
-                    <div class="compare-loading">
-                        <div class="loader-ring" style="width:28px;height:28px;border-width:2px;"></div>
-                    </div>`;
-            } else {
-                const d         = computeSwahili(state.solar);
-                const isNight   = d.phase === 'night';
-                const phaseIcon = isNight ? '🌙' : '☀️';
-                const phaseLbl  = isNight ? (isEn ? 'Night' : 'ليل') : (isEn ? 'Day' : 'نهار');
-                const hrLbl     = isEn ? 'Hour' : 'ساعة';
-
-                card.innerHTML = `
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                        <div>
-                            <div class="compare-city-name">${cname}</div>
-                            <div class="compare-country">${ctry}</div>
-                        </div>
-                        <button onclick="removeCity('${id}')"
-                                class="city-del" style="width:22px;height:22px;font-size:0.85rem;"
-                                aria-label="إزالة ${cname}">×</button>
-                    </div>
-
-                    <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-                        <span class="compare-hour" aria-label="${hrLbl} ${d.hour}">${d.hour}</span>
-                        <div>
-                            <div class="compare-phase">${phaseIcon} ${hrLbl} ${phaseLbl}</div>
-                            <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;
-                                        color:var(--text-sec);margin-top:0.2rem;
-                                        font-variant-numeric:tabular-nums;"
-                                 dir="ltr"
-                                 aria-label="الوقت المنقضي">
-                                ${pad(d.hour-1)}:${pad(d.min)}:${pad(d.sec)}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="text-align:center;">
-                        ${buildArcSVG(d.prog, isNight, id)}
-                    </div>
-
-                    <div class="compare-times" dir="ltr">
-                        <span title="${isEn ? 'Sunrise' : 'الشروق'}"
-                              style="color:var(--day-clr)">🌅 ${d.sunriseStr}</span>
-                        <span style="color:var(--text-pri);font-variant-numeric:tabular-nums;">
-                            ${d.civil}</span>
-                        <span title="${isEn ? 'Sunset' : 'الغروب'}"
-                              style="color:var(--night-clr)">🌆 ${d.sunsetStr}</span>
-                    </div>
-
-                    <div style="background:var(--accent-faint);border-radius:99px;
-                                height:5px;overflow:hidden;width:100%;"
-                         role="img" aria-label="نسبة النهار ${d.dayPct}٪">
-                        <div style="height:100%;background:var(--day-clr);
-                                    width:${d.dayPct}%;transition:width 2s;
-                                    border-radius:99px;"></div>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;
-                                font-size:0.6rem;color:var(--text-sec);">
-                        <span style="color:var(--day-clr)">
-                            ${isEn ? 'Day' : 'نهار'} ${d.dayPct}٪
-                        </span>
-                        <span style="font-variant-numeric:tabular-nums;">
-                            ${fmtDur(d.dayLengthMs)} / ${fmtDur(d.nightLengthMs)}
-                        </span>
-                        <span style="color:var(--night-clr)">
-                            ${isEn ? 'Night' : 'ليل'} ${100 - +d.dayPct}٪
-                        </span>
-                    </div>`;
-            }
-            grid.appendChild(card);
-        });
-    }
-
-    /* ── Duration formatter ───────────────────────────────────── */
     function fmtDur(ms) {
-        const tot = Math.round(ms / 60_000);
-        const h   = Math.floor(tot / 60);
-        const m   = tot % 60;
-        return isEn
-            ? `${h}h${m ? ' ' + m + 'm' : ''}`
-            : `${h ? h + 'س' : ''}${m ? ' ' + m + 'د' : ''}`.trim() || '<1د';
+        const h = Math.floor(ms / 3_600_000);
+        const m = Math.floor((ms % 3_600_000) / 60_000);
+        return `${h}h ${m}m`;
     }
 
-    /* ── Group loader ─────────────────────────────────────────── */
-    async function loadGroup(name) {
-        const myGen = ++_groupGen;
-        Object.keys(CITIES_STATE).forEach(k => delete CITIES_STATE[k]);
-
-        const cities = GROUPS[name];
-        cities.forEach((c, i) => {
-            CITIES_STATE[`grp_${name}_${i}`] = { city: c, solar: null };
+    /* ── Page-level text (title, legend, group/add buttons) ───
+     * i18n.js's shared apply() only knows nav-link keys, so this
+     * page owns translation of its own static labels. Folded into
+     * renderCards() below so it re-fires on every toggle/storage
+     * event (i18n.js always calls renderCards() after apply()).
+     */
+    const EXTRA = {
+        ar: { compareTitle:'مقارنة التوقيت السواحلي', compareSub:'الوقت الحقيقي لكل مدينة بحسب موضع شمسها',
+              legendHour:'الرقم = الساعة السواحلية', grpLibya:'ليبيا', grpAfrica:'شمال أفريقيا',
+              grpMideast:'الشرق الأوسط', grpWorld:'حول العالم', addCity:'إضافة' },
+        en: { compareTitle:'Swahili Time Comparison', compareSub:'Live time per city based on its own sun position',
+              legendHour:'Number = Swahili hour', grpLibya:'Libya', grpAfrica:'North Africa',
+              grpMideast:'Middle East', grpWorld:'World', addCity:'Add' },
+    };
+    function applyPageText() {
+        const lang = SubI18N.getLang();
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const val = EXTRA[lang]?.[el.dataset.i18n];
+            if (val !== undefined) el.textContent = val;
         });
-        renderCards();
-
-        await Promise.all(cities.map(async (c, i) => {
-            try {
-                const solar = await fetchSolar(c.lat, c.lng);
-                if (_groupGen === myGen) CITIES_STATE[`grp_${name}_${i}`].solar = solar;
-            } catch { /* show card without solar data */ }
-            if (_groupGen === myGen) renderCards();
-        }));
-
-        if (_groupGen === myGen) startTick();
     }
 
-    /* ── Custom city add ──────────────────────────────────────── */
-    async function addCompareCity() {
-        const val   = document.getElementById('compare-input').value.trim();
-        const errEl = document.getElementById('compare-err');
-        if (!val) return;
-        errEl.style.display = 'none';
+    /* ── Render cards ────────────────────────────────────────── */
+    function renderCards() {
+        isEn = SubI18N.getLang() === 'en';
+        applyPageText();
+        const grid = document.getElementById('cards-grid');
+        if (!grid) return;
 
+        const html = cities.map(city => {
+            const key = `${city.lat},${city.lng}`;
+            const d   = cardData[key];
+
+            if (!d || d.loading) {
+                return `<article class="compare-card" aria-label="${isEn ? city.nameEn : city.name}">
+                    <div class="compare-city-name">${isEn ? city.nameEn : city.name}</div>
+                    <div class="country-sub">${isEn ? city.countryEn : city.country}</div>
+                    <div class="compare-loading" aria-busy="true">
+                        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-label="جاري التحميل">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                    </div>
+                </article>`;
+            }
+
+            if (d.error) {
+                return `<article class="compare-card">
+                    <div class="compare-city-name">${isEn ? city.nameEn : city.name}</div>
+                    <div class="country-sub">${isEn ? city.countryEn : city.country}</div>
+                    <p style="color:var(--color-error);font-size:0.75rem;margin-top:0.5rem" role="alert">${d.error}</p>
+                </article>`;
+            }
+
+            const { hour, isNight }  = computeSwahili(d.solar);
+            const phaseIco           = isNight ? ICO_MOON : ICO_SUN;
+            const phaseLbl           = isNight ? (isEn ? 'Night' : 'ليل') : (isEn ? 'Day' : 'نهار');
+            const hrLbl              = isEn ? 'Hour' : 'الساعة';
+            const srStr              = fmtLocal(d.solar.todaySunrise, d.solar.utcOff);
+            const ssStr              = fmtLocal(d.solar.todaySunset,  d.solar.utcOff);
+            const srLbl              = isEn ? 'SR' : 'شروق';
+            const ssLbl              = isEn ? 'SS' : 'غروب';
+            const dayPct             = Math.round(d.solar.dayLengthMs / 864_000);
+
+            return `<article class="compare-card" aria-label="${isEn ? city.nameEn : city.name}">
+                <div>
+                    <div class="compare-city-name">${isEn ? city.nameEn : city.name}</div>
+                    <div class="country-sub">${isEn ? city.countryEn : city.country}</div>
+                </div>
+                <div class="compare-hour" dir="ltr" aria-label="${hrLbl} ${hour}">${hour}</div>
+                <div class="compare-phase">${phaseIco} ${hrLbl} ${hour} ${isEn ? 'of' : 'من'} ${phaseLbl}</div>
+                <div class="compare-times" dir="ltr">
+                    <span title="${isEn ? 'Sunrise' : 'الشروق'}" style="color:var(--day-clr)">
+                        ${ICO_SUN} ${srLbl} ${srStr}
+                    </span>
+                    <span title="${isEn ? 'Sunset' : 'الغروب'}" style="color:var(--night-clr)">
+                        ${ssStr} ${ssLbl} ${ICO_MOON}
+                    </span>
+                </div>
+                <div class="dl-bg w-full h-1.5 rounded-full overflow-hidden" aria-hidden="true">
+                    <div class="${isNight ? 'dl-night' : 'dl-day'} h-full" style="width:${dayPct}%"></div>
+                </div>
+            </article>`;
+        }).join('');
+
+        grid.innerHTML = html;
+    }
+
+    /* ── Load city data ──────────────────────────────────────── */
+    async function loadCityData(city) {
+        const key = `${city.lat},${city.lng}`;
+        cardData[key] = { loading: true };
+        renderCards();
+        try {
+            const solar = await fetchSolar(city);
+            cardData[key] = { solar, loading: false, error: null };
+        } catch {
+            cardData[key] = { loading: false, error: isEn ? 'Fetch failed' : 'تعذّر التحميل' };
+        }
+        renderCards();
+    }
+
+    /* ── Load group ──────────────────────────────────────────── */
+    window.loadGroup = function (key) {
+        if (!GROUPS[key]) return;
+        cities   = [...GROUPS[key]];
+        cardData = {};
+        renderCards();
+        cities.forEach(loadCityData);
+    };
+
+    /* ── Add custom city ─────────────────────────────────────── */
+    window.addCompareCity = async function () {
+        const inp  = document.getElementById('cmp-city-input');
+        const errEl = document.getElementById('cmp-city-err');
+        const addBtn = document.getElementById('cmp-add-btn');
+        const val  = inp.value.trim();
+        if (!val) return;
+        errEl.classList.add('hidden');
+        addBtn.disabled = true;
+        addBtn.textContent = '…';
         try {
             const res = await fetch(
-                'https://nominatim.openstreetmap.org/search'
-                + `?format=json&limit=1&addressdetails=1`
-                + `&q=${encodeURIComponent(val)}`
-                + `&email=solarisswahili@users.noreply.github.com`
+                `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(val)}`
             ).then(r => r.json());
-
-            if (!res.length) throw new Error('City not found');
-
+            if (!res.length) throw new Error(isEn ? 'City not found' : 'لم نجد هذه المدينة');
             const lat = parseFloat(res[0].lat);
             const lng = parseFloat(res[0].lon);
-            if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-                throw new Error('Invalid coordinates returned');
+            if (isNaN(lat) || isNaN(lng)) throw new Error(isEn ? 'Invalid result' : 'نتيجة غير صالحة');
+            const nameEn  = res[0].name || val;
+            const countryEn = res[0].address?.country || '';
+            const city = { name: nameEn, nameEn, country: countryEn, countryEn, lat, lng };
+            if (!cities.some(c => Math.abs(c.lat-lat)<0.05 && Math.abs(c.lng-lng)<0.05)) {
+                cities.push(city);
+                inp.value = '';
+                loadCityData(city);
+            } else {
+                inp.value = '';
             }
-
-            const id   = `custom_${Date.now()}`;
-            const city = {
-                name:      res[0].name || val,
-                nameEn:    res[0].name || val,
-                country:   res[0].address?.country  || '',
-                countryEn: res[0].address?.country  || '',
-                lat, lng,
-            };
-            CITIES_STATE[id] = { city, solar: null };
-            renderCards();
-            document.getElementById('compare-input').value = '';
-
-            const solar = await fetchSolar(lat, lng);
-            CITIES_STATE[id].solar = solar;
-            renderCards();
-            startTick();
         } catch (e) {
-            errEl.textContent    = e.message;
-            errEl.style.display  = 'block';
+            errEl.textContent = e.message;
+            errEl.classList.remove('hidden');
+        } finally {
+            addBtn.disabled = false;
+            addBtn.textContent = isEn ? 'Add' : 'إضافة';
         }
-    }
+    };
 
-    /* ── Controls ─────────────────────────────────────────────── */
-    function removeCity(id) {
-        delete CITIES_STATE[id];
-        renderCards();
-        if (!Object.keys(CITIES_STATE).length && tickId) {
-            clearInterval(tickId); tickId = null;
-        }
-    }
+    /* ── Tick (update elapsed & phase every second) ───────────── */
+    function tick() { renderCards(); }
 
-    function clearAll() {
-        Object.keys(CITIES_STATE).forEach(k => delete CITIES_STATE[k]);
-        if (tickId) { clearInterval(tickId); tickId = null; }
-        renderCards();
-    }
-
-    function startTick() {
-        if (tickId) clearInterval(tickId);
-        tickId = setInterval(renderCards, 1_000);
-    }
-
-    /* Pause tick when tab is hidden */
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            if (tickId) { clearInterval(tickId); tickId = null; }
-        } else if (Object.keys(CITIES_STATE).length) {
-            startTick();
-        }
-    });
-
-    /* Initialise with Libya group */
+    /* ── Init ────────────────────────────────────────────────── */
     loadGroup('libya');
-    </script>
+    tickTimer = setInterval(tick, TICK);
+
+    /* ── Enter on city input ─────────────────────────────────── */
+    const inp = document.getElementById('cmp-city-input');
+    if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') window.addCompareCity(); });
+
+    /* ── Lang sync ───────────────────────────────────────────── */
+    window.renderCards = renderCards;
+})();
+</script>
 </body>
 </html>
