@@ -1,55 +1,51 @@
-// js/theme.js
+/**
+ * SolarisSwahili — js/theme.js
+ * Restores visual state fast, avoiding FOIT or flash of wrong styles
+ */
 (function () {
     'use strict';
-    function applyTheme(theme) {
-        const root = document.documentElement;
-        if (theme === 'night') {
-            document.body.classList.add('theme-night');
-            root.style.setProperty('--sky-top', '#020617');
-            root.style.setProperty('--sky-bot', '#0B1120');
-        } else {
-            document.body.classList.remove('theme-night');
-            root.style.setProperty('--sky-top', '#F3F4F6');
-            root.style.setProperty('--sky-bot', '#E5E7EB');
-        }
-    }
-    const savedTheme = (() => { try { return localStorage.getItem('ss_theme'); } catch (e) {return null;} })();
-    if (savedTheme) applyTheme(savedTheme);
-
-    const starsLayer = document.getElementById('stars-layer');
-    if (starsLayer) {
-        let layers = [];
-        for (let i = 0; i < 155; i++) {
-            const x = (Math.random() * 100).toFixed(1), y = (Math.random() * 100).toFixed(1);
-            const s = (Math.random() * 1.8 + 0.3).toFixed(1), o = (Math.random() * 0.65 + 0.28).toFixed(2);
-            layers.push(`radial-gradient(${s}px ${s}px at ${x}% ${y}%, rgba(255,255,255,${o}), transparent)`);
-        }
-        starsLayer.style.backgroundImage = layers.join(',');
-        if (savedTheme === 'night') starsLayer.classList.add('stars-visible');
-    }
     
-    // Theme local storage hooks sync tab mechanism 
-    window.addEventListener('storage', function (e) {
-        if (e.key === 'ss_theme') {
-            applyTheme(e.newValue);
-            if(starsLayer) e.newValue === 'night' ? starsLayer.classList.add('stars-visible') : starsLayer.classList.remove('stars-visible');
+    // Core engine rendering mode handling!
+    const savedTheme = (() => { 
+        try { return localStorage.getItem('ss_theme'); } catch (e) { return null; } 
+    })();
+
+    if (savedTheme) {
+        document.documentElement.classList.add('manual-theme'); // prevent autodetect overwrite if set 
+        if (savedTheme === 'night') document.body.classList.add('theme-night');
+    }
+
+    // Creating beautiful randomly-placed Canvas CSS stars efficiently without lag
+    document.addEventListener("DOMContentLoaded", () => {
+        const starsLayer = document.getElementById('stars-layer');
+        if (starsLayer) {
+            let elements = [];
+            // Map 120 gentle stars statically generated!
+            for (let i = 0; i < 120; i++) {
+                const x = (Math.random() * 100).toFixed(1);
+                const y = (Math.random() * 100).toFixed(1);
+                const size = (Math.random() * 1.5 + 0.5).toFixed(1);
+                const opacity = (Math.random() * 0.5 + 0.2).toFixed(2);
+                elements.push(`radial-gradient(${size}px ${size}px at ${x}% ${y}%, rgba(255,255,255,${opacity}), transparent)`);
+            }
+            starsLayer.style.backgroundImage = elements.join(',');
+
+            // Add or strip visibility natively depending on the loaded element styles body constraints:
+            if(document.body.classList.contains('theme-night')){
+                starsLayer.classList.add('stars-visible');
+            }
+        }
+
+        // Connect the menu Toggle Navigation Handler (Reusable inside all SubPages dynamically!)
+        const toggleBtn = document.getElementById('nav-toggle');
+        const linkPanels = document.getElementById('nav-links');
+        
+        if (toggleBtn && linkPanels) {
+            toggleBtn.onclick = () => {
+                const isOp = linkPanels.classList.toggle('nav-open');
+                toggleBtn.setAttribute('aria-expanded', isOp.toString());
+            };
         }
     });
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const hamburger = document.getElementById('nav-toggle');
-        const navLinks = document.getElementById('nav-links');
-        if(hamburger && navLinks) {
-            hamburger.onclick = () => {
-                const open = navLinks.classList.toggle('nav-open');
-                hamburger.setAttribute('aria-expanded', open);
-            }
-            document.addEventListener('click', (e) => {
-                if(!hamburger.contains(e.target) && !navLinks.contains(e.target)) {
-                    navLinks.classList.remove('nav-open');
-                    hamburger.setAttribute('aria-expanded', false);
-                }
-            })
-        }
-    });
 })();
